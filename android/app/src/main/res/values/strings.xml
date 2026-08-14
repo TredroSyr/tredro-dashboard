@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">safwat</string>
-    <string name="title_activity_main">safwat</string>
-    <string name="package_name">com.example.app</string>
-    <string name="custom_url_scheme">com.example.app</string>
+    <string name="app_name">tredro-dashborad</string>
+    <string name="title_activity_main">tredro-dashborad</string>
+    <string name="package_name">com.tredro.dashboard</string>
+    <string name="custom_url_scheme">com.tredro.dashboard</string>
 </resources>

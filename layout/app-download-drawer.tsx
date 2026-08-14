@@ -64,7 +64,7 @@ export default function AppDownloadDrawer() {
   return (
     <Drawer open={open} onOpenChange={handleOpenChange}>
       <DrawerContent className="mx-auto max-w-md rounded-t-3xl rounded-b-3xl border-0 bg-background px-6 pb-8 pt-4 data-[state=open]:duration-500 data-[state=open]:ease-out data-[state=closed]:duration-300">
-        <DrawerClose asChild>
+        <DrawerClose>
           <button
             className="mb-4 flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-muted/80 active:scale-90"
             aria-label="إغلاق"
@@ -100,7 +100,10 @@ export default function AppDownloadDrawer() {
             className="group relative mb-4 h-13 w-full overflow-hidden rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-300 active:scale-95 hover:scale-[1.02] hover:bg-primary/90"
           >
             <a
-              href="#"
+              href="/downloads/tredro-dashborad.apk"
+              download
+              target="_blank"
+              rel="noopener noreferrer"
               className="relative z-10 flex items-center justify-center gap-2 text-base font-semibold"
             >
               حمّل التطبيق الآن
@@ -113,7 +116,7 @@ export default function AppDownloadDrawer() {
             <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent [animation:shine_2.5s_ease-in-out_infinite]" />
           </Button>
 
-          <DrawerClose asChild>
+          <DrawerClose>
             <button className="text-sm font-medium text-foreground/80 underline-offset-4 transition-colors hover:text-foreground hover:underline">
               ليس الآن، تابع في المتصفح
             </button>

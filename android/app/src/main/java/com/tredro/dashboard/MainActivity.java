@@ -1,4 +1,4 @@
-package com.example.app;
+package com.tredro.dashboard;
 
 import com.getcapacitor.BridgeActivity;
 
