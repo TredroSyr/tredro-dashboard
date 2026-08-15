@@ -48,55 +48,33 @@ const OVERVIEW_CONTENT = {
   ],
 };
 
-const phoneSchema = z.object({
+const loginSchema = z.object({
   phone: z
     .string()
     .min(9, "رقم الهاتف غير صالح")
     .regex(/^[0-9+]+$/, "رقم الهاتف غير صالح"),
-});
-
-const loginSchema = z.object({
-  phone: z.string().min(9, "رقم الهاتف غير صالح"),
   password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
 });
 
 const AdminLoginPage = () => {
-  const [step, setStep] = useState<"phone" | "password">("phone");
   const [activeTab, setActiveTab] = useState("أداء المناديب");
-  const [phone, setPhone] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [checkingPhone, setCheckingPhone] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // const { mutate: loginMutate, isPending } = useLoginMutation();
-
-  const phoneForm = useForm<z.infer<typeof phoneSchema>>({
-    resolver: zodResolver(phoneSchema),
-    defaultValues: { phone: "" },
-  });
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
     defaultValues: { phone: "", password: "" },
   });
 
-  const onPhoneSubmit = async (values: z.infer<typeof phoneSchema>) => {
-    setCheckingPhone(true);
+  const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
+    setIsLoggingIn(true);
     try {
-      const response = "ss";
-      if (response.data?.id) {
-        setPhone(values.phone);
-        loginForm.setValue("phone", values.phone);
-        setStep("password");
-      } else {
-      }
-    } catch {
+      console.log(values);
     } finally {
-      setCheckingPhone(false);
+      setIsLoggingIn(false);
     }
-  };
-
-  const onLoginSubmit = (values: z.infer<typeof loginSchema>) => {
-    console.log("ss");
   };
 
   return (
@@ -117,138 +95,88 @@ const AdminLoginPage = () => {
             </p>
           </div>
 
-          <AnimatePresence mode="wait">
-            {step === "phone" && (
-              <motion.div
-                key="login-phone"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="w-full bg-card border border-border rounded-2xl p-8 "
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="w-full bg-card border border-border rounded-2xl p-8"
+          >
+            <Form {...loginForm}>
+              <form
+                onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                className="space-y-3"
               >
-                <Form {...phoneForm}>
-                  <form
-                    onSubmit={phoneForm.handleSubmit(onPhoneSubmit)}
-                    className="space-y-3"
-                  >
-                    <FormField
-                      control={phoneForm.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <PhoneInput
-                              id="phone"
-                              value={phone}
-                              defaultCountry="sy"
+                <FormField
+                  control={loginForm.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <PhoneInput
+                          id="phone"
+                          value={field.value}
+                          onChange={field.onChange}
+                          defaultCountry="sy"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={loginForm.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <div className="relative">
+                          <Input
+                            placeholder="كلمة المرور"
+                            type={showPassword ? "text" : "password"}
+                            className="h-12 rounded-xl pe-4 ps-11"
+                            {...field}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            tabIndex={-1}
+                          >
+                            <IconRenderer
+                              name={
+                                showPassword
+                                  ? "eye_invisible_outlined"
+                                  : "eye_visible_outlined"
+                              }
+                              className="w-4 h-4"
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="submit"
-                      disabled={checkingPhone}
-                      className="w-full h-12 rounded-xl text-white"
-                    >
-                      {checkingPhone ? "جاري التحقق..." : "المتابعة"}
-                    </Button>
-                  </form>
-                </Form>
-
-                <p className="text-center mt-4 text-xs text-muted-foreground">
-                  ليس لديك حساب؟{" "}
-                  <Link
-                    href="/auth/register"
-                    className="underline hover:no-underline text-primary/80 font-medium"
-                  >
-                    إنشاء حساب شركة جديد
-                  </Link>
-                </p>
-              </motion.div>
-            )}
-
-            {step === "password" && (
-              <motion.div
-                key="login-password"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-                className="w-full bg-card border border-border rounded-2xl p-8 "
-              >
-                <div className="text-center mb-5">
-                  <p className="text-sm font-medium text-foreground">
-                    مرحباً بعودتك!
-                  </p>
-                  <p className="text-xs mt-1 text-muted-foreground">
-                    أدخل كلمة المرور لحساب{" "}
-                    <span dir="ltr" className="font-medium text-primary">
-                      {phone}
-                    </span>
-                  </p>
-                </div>
-
-                <Form {...loginForm}>
-                  <form
-                    onSubmit={loginForm.handleSubmit(onLoginSubmit)}
-                    className="space-y-3"
-                  >
-                    <FormField
-                      control={loginForm.control}
-                      name="password"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormControl>
-                            <div className="relative">
-                              <Input
-                                placeholder="كلمة المرور"
-                                type={showPassword ? "text" : "password"}
-                                className="h-12 rounded-xl pr-4 pl-11"
-                                {...field}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword((prev) => !prev)}
-                                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                                tabIndex={-1}
-                              >
-                                <IconRenderer
-                                  name={
-                                    showPassword
-                                      ? "eye_invisible_outlined"
-                                      : "eye_visible_outlined"
-                                  }
-                                  className="w-4 h-4"
-                                />
-                              </button>
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="submit"
-                      className="w-full h-12 rounded-xl text-white"
-                    >
-                      {false ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
-                    </Button>
-                  </form>
-                </Form>
-
+                          </button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <Button
-                  variant="link"
-                  onClick={() => setStep("phone")}
-                  className="w-full mt-4 text-xs text-muted-foreground"
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full h-12 rounded-xl text-white"
                 >
-                  العودة
+                  {isLoggingIn ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
                 </Button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              </form>
+            </Form>
+
+            <p className="text-center mt-4 text-xs text-muted-foreground">
+              ليس لديك حساب؟{" "}
+              <Link
+                href="/auth/register"
+                className="underline hover:no-underline text-primary/80 font-medium"
+              >
+                إنشاء حساب شركة جديد
+              </Link>
+            </p>
+          </motion.div>
         </div>
 
         <div className="hidden lg:block w-full max-w-140">
@@ -256,7 +184,7 @@ const AdminLoginPage = () => {
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="rounded-2xl border border-border overflow-hidden  bg-card"
+            className="rounded-2xl border border-border overflow-hidden bg-card"
           >
             <div className="flex items-center justify-center pt-6 pb-4">
               <div className="flex rounded-full p-1 bg-primary/4">
