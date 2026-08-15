@@ -1,8 +1,10 @@
 "use client";
+
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { IconRenderer } from "@/assets/icons/iconRenderer";
+import { useKeyboardOpen } from "@/hooks/use-keyboard-open";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,9 +23,9 @@ import TypingText from "@/components/tredro/typing-text";
 import { PhoneInput } from "@/components/tredro/phone-input";
 
 const HERO_TITLES = [
-  "ابدأ رحلتك معنا اليوم",
-  "أدر شركتك بذكاء واحترافية",
-  "منصّة واحدة لكل فريقك",
+  "ابدأ رحلتك معنا",
+  "أدر شركتك باحتراف",
+  "منصّة واحدة لفريقك",
 ];
 
 const MOCK_TABS = ["لماذا تختارنا", "نظرة عامة"];
@@ -73,13 +75,18 @@ const registerSchema = z
     path: ["confirmPassword"],
   });
 
+type RegisterFormValues = z.infer<typeof registerSchema>;
+
+const HERO_TRANSITION = { duration: 0.35, ease: [0.32, 0.72, 0, 1] } as const;
+
 const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState(MOCK_TABS[0]);
+  const isKeyboardOpen = useKeyboardOpen();
 
-  const form = useForm<z.infer<typeof registerSchema>>({
+  const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
       companyName: "",
@@ -89,35 +96,53 @@ const RegisterPage = () => {
     },
   });
 
-  const onSubmit = async (values: z.infer<typeof registerSchema>) => {
+  const onSubmit = async (values: RegisterFormValues) => {
     setIsSubmitting(true);
     try {
       // TODO: replace with real register mutation
       console.log("register values", values);
       // e.g. router.push("/auth/onboarding")
     } catch {
+      // TODO: surface error to the user (toast / form-level error)
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="h-[calc(100vh-150px)] overflow-hidden flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background overflow-hidden">
       <div className="flex-1 flex flex-col lg:flex-row items-center justify-center px-6 gap-12 lg:gap-20 overflow-hidden">
+        {" "}
         <div className="flex flex-col items-center lg:items-start max-w-130 w-full">
-          <div className="text-center lg:text-right mb-8">
-            <h1 className="font-serif-ar text-4xl sm:text-5xl font-bold leading-tight mb-4 text-foreground">
-              <TypingText
-                texts={HERO_TITLES}
-                typingSpeed={70}
-                deletingSpeed={35}
-                pauseDuration={2500}
-              />
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              أنشئ حساب شركتك وابدأ بإدارة مناديبك وطلباتك من مكان واحد
-            </p>
-          </div>
+          {/* Hero title + description — animates out while the keyboard
+              is open on mobile so the form stays fully visible. Always
+              visible on desktop, since isKeyboardOpen never fires there. */}
+          <AnimatePresence initial={false}>
+            {!isKeyboardOpen && (
+              <motion.div
+                key="hero"
+                initial={{ height: 0, opacity: 0, y: -12 }}
+                animate={{ height: "auto", opacity: 1, y: 0 }}
+                exit={{ height: 0, opacity: 0, y: -12 }}
+                transition={HERO_TRANSITION}
+                className="w-full overflow-hidden text-center lg:text-right"
+              >
+                <div className="mb-8">
+                  <h1 className="font-serif-ar text-4xl sm:text-5xl font-bold leading-tight mb-4 text-foreground">
+                    <TypingText
+                      texts={HERO_TITLES}
+                      typingSpeed={70}
+                      deletingSpeed={35}
+                      pauseDuration={2500}
+                    />
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    أنشئ حساب شركتك وابدأ بإدارة مناديبك وطلباتك من مكان واحد
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -138,7 +163,7 @@ const RegisterPage = () => {
                       <FormControl>
                         <Input
                           placeholder="اسم الشركة"
-                          className="h-12 rounded-xl"
+                          className="h-12  w-full"
                           {...field}
                         />
                       </FormControl>
@@ -155,9 +180,9 @@ const RegisterPage = () => {
                       <FormControl>
                         <PhoneInput
                           id="phone"
-                          defaultCountry="sy"
                           value={field.value}
                           onChange={field.onChange}
+                          className=" h-12"
                         />
                       </FormControl>
                       <FormMessage />
@@ -171,17 +196,17 @@ const RegisterPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <div className="relative">
+                        <div className="relative w-full">
                           <Input
                             placeholder="كلمة المرور"
                             type={showPassword ? "text" : "password"}
-                            className="h-12 rounded-xl pr-4 pl-11"
+                            className="h-12  pl-4 pr-12 w-full"
                             {...field}
                           />
                           <button
                             type="button"
-                            onClick={() => setShowPassword((p) => !p)}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
                             tabIndex={-1}
                           >
                             <IconRenderer
@@ -206,17 +231,19 @@ const RegisterPage = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <div className="relative">
+                        <div className="relative w-full">
                           <Input
                             placeholder="تأكيد كلمة المرور"
                             type={showConfirmPassword ? "text" : "password"}
-                            className="h-12 rounded-xl pr-4 pl-11"
+                            className="h-12  pl-4 pr-12 w-full"
                             {...field}
                           />
                           <button
                             type="button"
-                            onClick={() => setShowConfirmPassword((p) => !p)}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            onClick={() =>
+                              setShowConfirmPassword((prev) => !prev)
+                            }
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
                             tabIndex={-1}
                           >
                             <IconRenderer
@@ -238,7 +265,7 @@ const RegisterPage = () => {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full h-12 rounded-xl text-white"
+                  className="w-full h-12 rounded-full text-white"
                 >
                   {isSubmitting ? "جاري إنشاء الحساب..." : "إنشاء الحساب"}
                 </Button>
@@ -256,7 +283,6 @@ const RegisterPage = () => {
             </p>
           </motion.div>
         </div>
-
         <div className="hidden lg:block w-full max-w-140">
           <motion.div
             initial={{ opacity: 0, x: 40 }}

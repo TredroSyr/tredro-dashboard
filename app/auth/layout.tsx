@@ -9,8 +9,9 @@ type AuthLayoutProps = {
 
 const layout = ({ children }: AuthLayoutProps) => {
   return (
-    <div className="flex min-h-screen flex-col">
-      <div className="mx-auto flex max-w-7xl items-center justify-center px-6 py-6">
+    <div className="flex h-dvh flex-col overflow-hidden bg-background">
+      <div className="mx-auto flex w-full max-w-7xl items-center justify-center px-6 py-6">
+        {" "}
         <Link href="/home" className="flex items-center">
           <Image
             src="/rebbit/logo.svg"
