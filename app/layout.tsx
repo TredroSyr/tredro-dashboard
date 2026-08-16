@@ -4,6 +4,9 @@ import "./globals.css";
 import AppDownloadDrawer from "@/layout/app-download-drawer";
 import { thmanyahSans } from "@/lib/fonts";
 
+import { Toaster } from "sonner";
+import { QueryProvider } from "@/components/provider/QueryClientProvider";
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -71,11 +74,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ar"
       dir="rtl"
-      className={`${geistSans.variable} ${geistMono.variable} ${thmanyahSans.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${thmanyahSans.variable}  h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-thmanyah">
-        {children}
-        <AppDownloadDrawer />
+        <QueryProvider>
+          {children}
+          <AppDownloadDrawer />
+          <Toaster position="top-center" richColors dir="rtl" />
+        </QueryProvider>
       </body>
     </html>
   );

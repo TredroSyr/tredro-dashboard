@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { AxiosError } from "axios";
 
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useKeyboardOpen } from "@/hooks/use-keyboard-open";
@@ -21,6 +22,8 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import TypingText from "@/components/tredro/typing-text";
 import { PhoneInput } from "@/components/tredro/phone-input";
+import { useRegisterMutation } from "@/module/auth/hook";
+import { ApiErrorResponse } from "@/module/auth/types";
 
 const HERO_TITLES = [
   "ابدأ رحلتك معنا",
@@ -67,8 +70,8 @@ const registerSchema = z
       .string()
       .min(9, "رقم الهاتف غير صالح")
       .regex(/^[0-9+]+$/, "رقم الهاتف غير صالح"),
-    password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
-    confirmPassword: z.string().min(6, "تأكيد كلمة المرور مطلوب"),
+    password: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
+    confirmPassword: z.string().min(8, "تأكيد كلمة المرور مطلوب"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "كلمتا المرور غير متطابقتين",
@@ -82,7 +85,6 @@ const HERO_TRANSITION = { duration: 0.35, ease: [0.32, 0.72, 0, 1] } as const;
 const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState(MOCK_TABS[0]);
   const isKeyboardOpen = useKeyboardOpen();
 
@@ -96,27 +98,39 @@ const RegisterPage = () => {
     },
   });
 
-  const onSubmit = async (values: RegisterFormValues) => {
-    setIsSubmitting(true);
-    try {
-      // TODO: replace with real register mutation
-      console.log("register values", values);
-      // e.g. router.push("/auth/onboarding")
-    } catch {
-      // TODO: surface error to the user (toast / form-level error)
-    } finally {
-      setIsSubmitting(false);
-    }
+  const registerMutation = useRegisterMutation({
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      const errors = error.response?.data?.errors;
+      if (errors) {
+        Object.entries(errors).forEach(([field, messages]) => {
+          const fieldMap: Record<string, keyof RegisterFormValues> = {
+            company_name: "companyName",
+            phone: "phone",
+            password: "password",
+            password_confirm: "confirmPassword",
+          };
+          const mapped = fieldMap[field];
+          if (mapped) {
+            form.setError(mapped, { message: messages[0] });
+          }
+        });
+      }
+    },
+  });
+
+  const onSubmit = (values: RegisterFormValues) => {
+    registerMutation.mutate({
+      company_name: values.companyName,
+      phone: values.phone,
+      password: values.password,
+      password_confirm: values.confirmPassword,
+    });
   };
 
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden">
       <div className="flex-1 flex flex-col lg:flex-row items-center justify-center px-6 gap-12 lg:gap-20 overflow-hidden">
-        {" "}
         <div className="flex flex-col items-center lg:items-start max-w-130 w-full">
-          {/* Hero title + description — animates out while the keyboard
-              is open on mobile so the form stays fully visible. Always
-              visible on desktop, since isKeyboardOpen never fires there. */}
           <AnimatePresence initial={false}>
             {!isKeyboardOpen && (
               <motion.div
@@ -163,7 +177,7 @@ const RegisterPage = () => {
                       <FormControl>
                         <Input
                           placeholder="اسم الشركة"
-                          className="h-12  w-full"
+                          className="h-12 w-full"
                           {...field}
                         />
                       </FormControl>
@@ -182,7 +196,7 @@ const RegisterPage = () => {
                           id="phone"
                           value={field.value}
                           onChange={field.onChange}
-                          className=" h-12"
+                          className="h-12"
                         />
                       </FormControl>
                       <FormMessage />
@@ -200,7 +214,7 @@ const RegisterPage = () => {
                           <Input
                             placeholder="كلمة المرور"
                             type={showPassword ? "text" : "password"}
-                            className="h-12  pl-4 pr-12 w-full"
+                            className="h-12 pl-4 pr-12 w-full"
                             {...field}
                           />
                           <button
@@ -235,7 +249,7 @@ const RegisterPage = () => {
                           <Input
                             placeholder="تأكيد كلمة المرور"
                             type={showConfirmPassword ? "text" : "password"}
-                            className="h-12  pl-4 pr-12 w-full"
+                            className="h-12 pl-4 pr-12 w-full"
                             {...field}
                           />
                           <button
@@ -264,10 +278,12 @@ const RegisterPage = () => {
 
                 <Button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={registerMutation.isPending}
                   className="w-full h-12 rounded-full text-white"
                 >
-                  {isSubmitting ? "جاري إنشاء الحساب..." : "إنشاء الحساب"}
+                  {registerMutation.isPending
+                    ? "جاري إنشاء الحساب..."
+                    : "إنشاء الحساب"}
                 </Button>
               </form>
             </Form>
