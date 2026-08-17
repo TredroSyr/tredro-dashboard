@@ -1,8 +1,12 @@
 "use client";
+
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
 
 import { IconRenderer } from "@/assets/icons/iconRenderer";
+import { useKeyboardOpen } from "@/hooks/use-keyboard-open";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -19,6 +23,8 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import TypingText from "@/components/tredro/typing-text";
 import { PhoneInput } from "@/components/tredro/phone-input";
+import { useLoginMutation } from "@/module/auth/hook";
+import { ApiErrorResponse } from "@/module/auth/types";
 
 const HERO_TITLES = [
   "إدارة مناديبك بذكاء",
@@ -56,44 +62,82 @@ const loginSchema = z.object({
   password: z.string().min(6, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"),
 });
 
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+const HERO_TRANSITION = { duration: 0.35, ease: [0.32, 0.72, 0, 1] } as const;
+
 const AdminLoginPage = () => {
-  const [activeTab, setActiveTab] = useState("أداء المناديب");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [activeTab, setActiveTab] = useState(MOCK_TABS[0]);
+  const isKeyboardOpen = useKeyboardOpen();
 
-  // const { mutate: loginMutate, isPending } = useLoginMutation();
-
-  const loginForm = useForm<z.infer<typeof loginSchema>>({
+  const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { phone: "", password: "" },
+    defaultValues: {
+      phone: "",
+      password: "",
+    },
   });
 
-  const onLoginSubmit = async (values: z.infer<typeof loginSchema>) => {
-    setIsLoggingIn(true);
-    try {
-      console.log(values);
-    } finally {
-      setIsLoggingIn(false);
-    }
+  const loginMutation = useLoginMutation({
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      const errors = error.response?.data?.errors;
+      if (errors) {
+        Object.entries(errors).forEach(([field, messages]) => {
+          const fieldMap: Record<string, keyof LoginFormValues> = {
+            phone: "phone",
+            password: "password",
+          };
+          const mapped = fieldMap[field];
+          if (mapped) {
+            form.setError(mapped, { message: messages[0] });
+          } else {
+            toast.error(messages[0]);
+          }
+        });
+      } else {
+        toast.error(error.response?.data?.message || "حدث خطأ، حاول مرة أخرى");
+      }
+    },
+  });
+
+  const onSubmit = (values: LoginFormValues) => {
+    loginMutation.mutate({
+      phone: values.phone,
+      password: values.password,
+    });
   };
 
   return (
-    <div className="h-[calc(100vh-150px)] overflow-hidden flex flex-col bg-background">
+    <div className="h-full flex flex-col bg-background overflow-hidden">
       <div className="flex-1 flex flex-col lg:flex-row items-center justify-center px-6 gap-12 lg:gap-20 overflow-hidden">
         <div className="flex flex-col items-center lg:items-start max-w-130 w-full">
-          <div className="text-center lg:text-right mb-10">
-            <h1 className="font-serif-ar text-4xl sm:text-5xl font-bold leading-tight mb-4 text-foreground">
-              <TypingText
-                texts={HERO_TITLES}
-                typingSpeed={70}
-                deletingSpeed={35}
-                pauseDuration={2500}
-              />
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              لوحة تحكم الشركة لإدارة المناديب والطلبات والفواتير
-            </p>
-          </div>
+          <AnimatePresence initial={false}>
+            {!isKeyboardOpen && (
+              <motion.div
+                key="hero"
+                initial={{ height: 0, opacity: 0, y: -12 }}
+                animate={{ height: "auto", opacity: 1, y: 0 }}
+                exit={{ height: 0, opacity: 0, y: -12 }}
+                transition={HERO_TRANSITION}
+                className="w-full overflow-hidden text-center lg:text-right"
+              >
+                <div className="mb-8">
+                  <h1 className="font-serif-ar text-4xl sm:text-5xl font-bold leading-tight mb-4 text-foreground">
+                    <TypingText
+                      texts={HERO_TITLES}
+                      typingSpeed={70}
+                      deletingSpeed={35}
+                      pauseDuration={2500}
+                    />
+                  </h1>
+                  <p className="text-sm text-muted-foreground">
+                    لوحة تحكم الشركة لإدارة المناديب والطلبات والفواتير
+                  </p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -101,13 +145,13 @@ const AdminLoginPage = () => {
             transition={{ duration: 0.3 }}
             className="w-full bg-card border border-border rounded-2xl p-8"
           >
-            <Form {...loginForm}>
+            <Form {...form}>
               <form
-                onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-3"
               >
                 <FormField
-                  control={loginForm.control}
+                  control={form.control}
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
@@ -116,30 +160,31 @@ const AdminLoginPage = () => {
                           id="phone"
                           value={field.value}
                           onChange={field.onChange}
-                          defaultCountry="sy"
+                          className="h-12"
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
-                  control={loginForm.control}
+                  control={form.control}
                   name="password"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
-                        <div className="relative">
+                        <div className="relative w-full">
                           <Input
                             placeholder="كلمة المرور"
                             type={showPassword ? "text" : "password"}
-                            className="h-12 rounded-xl pe-4 ps-11"
+                            className="h-12 pl-4 pr-12 w-full"
                             {...field}
                           />
                           <button
                             type="button"
                             onClick={() => setShowPassword((prev) => !prev)}
-                            className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
                             tabIndex={-1}
                           >
                             <IconRenderer
@@ -157,12 +202,15 @@ const AdminLoginPage = () => {
                     </FormItem>
                   )}
                 />
+
                 <Button
                   type="submit"
-                  disabled={isLoggingIn}
-                  className="w-full h-12 rounded-xl text-white"
+                  disabled={loginMutation.isPending}
+                  className="w-full h-12 rounded-full text-white"
                 >
-                  {isLoggingIn ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
+                  {loginMutation.isPending
+                    ? "جاري تسجيل الدخول..."
+                    : "تسجيل الدخول"}
                 </Button>
               </form>
             </Form>
@@ -195,7 +243,7 @@ const AdminLoginPage = () => {
                     onClick={() => setActiveTab(tab)}
                     className={`px-8 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
                       activeTab === tab
-                        ? "bg-primary text-white "
+                        ? "bg-primary text-white"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
@@ -216,8 +264,11 @@ const AdminLoginPage = () => {
                   className="px-6 pb-6 space-y-3"
                 >
                   {REPS_CONTENT.reps.map((rep, i) => (
-                    <div
+                    <motion.div
                       key={i}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.06 * i }}
                       className="flex items-center gap-4 rounded-xl bg-primary/4/50 p-4 hover:bg-primary/4 transition-colors cursor-pointer"
                     >
                       <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
@@ -239,8 +290,9 @@ const AdminLoginPage = () => {
                           {rep.orders} طلبية
                         </span>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
+
                   <div className="rounded-xl border border-border bg-card p-4 space-y-3 mt-2">
                     <div className="flex items-center gap-2">
                       <div className="w-5 h-5 rounded-full flex items-center justify-center">
@@ -281,8 +333,11 @@ const AdminLoginPage = () => {
                 >
                   <div className="grid grid-cols-3 gap-3">
                     {OVERVIEW_CONTENT.stats.map((stat, i) => (
-                      <div
+                      <motion.div
                         key={i}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.25, delay: 0.05 * i }}
                         className="rounded-xl bg-primary/4/50 p-4 flex flex-col items-center gap-2"
                       >
                         <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -297,13 +352,16 @@ const AdminLoginPage = () => {
                         <p className="text-[10px] text-muted-foreground text-center">
                           {stat.label}
                         </p>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                   <div className="space-y-3">
                     {OVERVIEW_CONTENT.activities.map((activity, i) => (
-                      <div
+                      <motion.div
                         key={i}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: 0.08 * i }}
                         className="rounded-xl border border-border bg-card p-4"
                       >
                         <div className="flex items-center justify-between mb-1">
@@ -317,7 +375,7 @@ const AdminLoginPage = () => {
                         <p className="text-xs text-muted-foreground leading-relaxed">
                           {activity.text}
                         </p>
-                      </div>
+                      </motion.div>
                     ))}
                   </div>
                 </motion.div>

@@ -30,6 +30,7 @@
     "react-hook-form": "^7.85.0",
     "react-international-phone": "^4.8.0",
     "react-phone-number-input": "^3.4.17",
+    "recharts": "^3.10.1",
     "root": "github:tanstack/react-query",
     "shadcn": "^4.17.0",
     "sonner": "^2.0.8",

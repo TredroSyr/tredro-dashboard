@@ -37,6 +37,8 @@ export interface Permissions {
   billing: { can_view: boolean; can_action: boolean };
   reps: { can_view: boolean; can_action: boolean };
   notifications: { can_view: boolean; can_action: boolean };
+  reports: { can_view: boolean; can_action: boolean };
+  settings: { can_view: boolean; can_action: boolean };
 }
 
 export interface AuthUser {
@@ -47,8 +49,9 @@ export interface AuthUser {
   is_owner: boolean;
   is_active: boolean;
   role: string | null;
-  company: Company | number;
+  company: Company;
   permissions?: Permissions;
+  created_at: string;
 }
 
 export interface Tokens {

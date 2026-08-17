@@ -22,15 +22,22 @@ export const useLoginMutation = (options?: {
     onSuccess: (response) => {
       if (response?.success && response.data?.tokens) {
         setAuth(response.data.user, response.data.tokens);
-
-        router.push("/");
+        console.log({ response });
+        if (!response.data.user.company.onboarding_completed) {
+          console.log("SAFWAT");
+          router.push("/onboarding");
+        } else {
+          router.push("/");
+        }
       } else {
+        toast.error(response?.message || "فشل تسجيل الدخول");
       }
     },
     onError: (error: AxiosError<ApiErrorResponse>) => {
       if (options?.onError) {
         options.onError(error);
       } else {
+        toast.error(error.response?.data?.message || "فشل تسجيل الدخول");
       }
     },
   });
@@ -49,7 +56,7 @@ export const useRegisterMutation = (options?: {
       if (response?.success && response.data?.tokens) {
         setAuth(response.data.user, response.data.tokens);
         toast.success(response.message || "تم إنشاء الحساب بنجاح!");
-        router.push("/auth/onboarding");
+        router.push("/onboarding");
       } else {
         toast.error(response?.message || "فشل حفظ بيانات المستخدم");
       }
