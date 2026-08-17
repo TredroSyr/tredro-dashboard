@@ -74,8 +74,22 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="ar"
       dir="rtl"
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} ${thmanyahSans.variable}  h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                const stored = localStorage.getItem('theme-storage');
+                const theme = stored ? JSON.parse(stored).state.theme : 'light';
+                if (theme === 'dark') document.documentElement.classList.add('dark');
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col font-thmanyah">
         <QueryProvider>
           {children}

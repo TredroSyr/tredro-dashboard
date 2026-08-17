@@ -516,19 +516,57 @@ const OnboardingPage = () => {
                   </p>
                 </div>
 
-                <SearchableSelect
-                  options={businessTypeOptions}
-                  value={selectedCategory ?? undefined}
-                  onChange={(val) => {
-                    setSelectedCategory(val);
-                    setCategoryError(null);
-                  }}
-                  placeholder="اختر نوع النشاط"
-                  searchPlaceholder="ابحث عن نشاط..."
-                  emptyText="لا توجد نتائج"
-                  loading={businessTypesLoading}
-                  className="mb-2"
-                />
+                {businessTypesLoading ? (
+                  <div className="grid grid-cols-3 gap-3 mb-2">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-20 rounded-xl bg-primary/5 animate-pulse"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="max-h-[172px] overflow-y-auto pr-1 mb-2 -mr-1">
+                    <div className="grid grid-cols-3 gap-3">
+                      {businessTypeOptions.map((option) => {
+                        const isSelected = selectedCategory === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(option.value);
+                              setCategoryError(null);
+                            }}
+                            className={`flex flex-col cursor-pointer items-center justify-center gap-2 rounded-xl border-2 p-3 h-20 text-center transition-colors ${
+                              isSelected
+                                ? "border-primary bg-primary/10"
+                                : "border-border bg-primary/4/50 hover:bg-primary/4"
+                            }`}
+                          >
+                            <IconRenderer
+                              name={
+                                isSelected ? "tick_filled" : "star_outlined"
+                              }
+                              className={`w-5 h-5 ${
+                                isSelected
+                                  ? "text-primary"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
+                            <span
+                              className={`text-[11px] font-medium leading-tight line-clamp-2 ${
+                                isSelected ? "text-primary" : "text-foreground"
+                              }`}
+                            >
+                              {option.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
                 {categoryError && (
                   <p className="text-xs text-destructive text-center mb-2">

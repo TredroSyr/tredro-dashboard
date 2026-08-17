@@ -7,6 +7,8 @@ type Theme = "light" | "dark";
 
 type ThemeStore = {
   theme: Theme;
+  hasHydrated: boolean;
+  setHasHydrated: (state: boolean) => void;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
 };
@@ -61,6 +63,8 @@ export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
       theme: "light",
+      hasHydrated: false,
+      setHasHydrated: (state) => set({ hasHydrated: state }),
       toggleTheme: () => {
         const nextTheme: Theme = get().theme === "light" ? "dark" : "light";
         applyWithViewTransition(nextTheme, () => {
@@ -80,6 +84,7 @@ export const useThemeStore = create<ThemeStore>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           applyThemeClass(state.theme);
+          state.setHasHydrated(true);
         }
       },
     },

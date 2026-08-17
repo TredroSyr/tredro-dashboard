@@ -33,7 +33,10 @@ export const submitOnboarding = async (
   if (payload.business_type)
     formData.append("business_type", payload.business_type);
 
-  // Don't set Content-Type manually — let axios/browser set the multipart boundary
-  const response = await api.post("/companies/onboarding", formData);
+  const response = await api.post("/companies/onboarding", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };

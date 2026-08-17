@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Moon, Sun } from "lucide-react";
 import {
   Sidebar,
@@ -20,11 +20,20 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { iconName } from "@/assets/icons/iconRenderer/types";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useThemeStore } from "@/store/use-theme-store";
+import { useAuthStore } from "@/module/auth/store/auth-store";
 
 type NavItem = {
   key: string;
@@ -117,9 +126,6 @@ const SidebarBreakpointSync = () => {
     const syncWithViewport = () => {
       const bucket = getViewportBucket(window.innerWidth);
 
-      // Only react when we actually cross a breakpoint, not on every
-      // resize pixel (e.g. a scrollbar appearing when the sidebar opens),
-      // otherwise the trigger click gets immediately overridden.
       if (bucket === lastBucket.current) return;
       lastBucket.current = bucket;
 
@@ -154,21 +160,19 @@ const MobileTopBar = () => {
   );
 };
 
-const ThemeToggle = () => {
-  const { theme, toggleTheme } = useThemeStore();
-  const [mounted, setMounted] = useState(false);
+const ThemeToggle = ({ onAction }: { onAction: () => void }) => {
+  const { theme, toggleTheme, hasHydrated } = useThemeStore();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const isDark = mounted && theme === "dark";
+  const isDark = hasHydrated && theme === "dark";
 
   return (
     <SidebarMenuItem>
       <SidebarMenuButton
         tooltip={isDark ? "الوضع النهاري" : "الوضع الليلي"}
-        onClick={toggleTheme}
+        onClick={() => {
+          toggleTheme();
+          onAction();
+        }}
         className="cursor-pointer transition-all duration-200 hover:translate-x-1 hover:bg-muted active:scale-[0.97]"
       >
         <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
@@ -195,15 +199,74 @@ const ThemeToggle = () => {
   );
 };
 
+const LogoutMenuItem = ({ onAction }: { onAction: () => void }) => {
+  const router = useRouter();
+  const clearAuth = useAuthStore((state) => state.clearAuth);
+  const [open, setOpen] = useState(false);
+
+  const handleConfirmLogout = () => {
+    clearAuth();
+    setOpen(false);
+    onAction();
+    router.push("/auth/login");
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <SidebarMenuItem>
+        <SidebarMenuButton
+          tooltip="تسجيل الخروج"
+          onClick={() => setOpen(true)}
+          className="cursor-pointer text-destructive transition-all duration-200 hover:translate-x-1 hover:bg-destructive/10 hover:text-destructive active:scale-[0.97]"
+        >
+          <IconRenderer
+            name="logout_outlined"
+            className="h-4 w-4 shrink-0 text-destructive"
+          />
+          <span className="truncate">تسجيل الخروج</span>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>تسجيل الخروج</DialogTitle>
+          <DialogDescription>هل انت متاكد من تسجيل الخروج</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            إلغاء
+          </Button>
+          <Button variant="destructive" onClick={handleConfirmLogout}>
+            تسجيل الخروج
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 type AppSidebarProps = {
   children: React.ReactNode;
 };
 
-const AppSidebar = ({ children }: AppSidebarProps) => {
+const AppSidebarContent = ({ children }: AppSidebarProps) => {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile, setOpen } = useSidebar();
+
+  // Close the sidebar automatically on small screens whenever
+  // the user taps a nav link or any action item.
+  const handleMobileClose = () => {
+    if (isMobile) {
+      setOpenMobile(false);
+    } else if (getViewportBucket(window.innerWidth) !== "desktop") {
+      // Covers the tablet bucket, where the sidebar uses `open`
+      // instead of the mobile sheet's `openMobile`.
+      setOpen(false);
+    }
+  };
 
   return (
-    <SidebarProvider defaultOpen>
+    <>
       <SidebarBreakpointSync />
       <Sidebar
         side="right"
@@ -256,6 +319,7 @@ const AppSidebar = ({ children }: AppSidebarProps) => {
                         >
                           <Link
                             href={href}
+                            onClick={handleMobileClose}
                             className="flex w-full flex-nowrap items-center gap-2 overflow-hidden"
                           >
                             <IconRenderer
@@ -292,21 +356,12 @@ const AppSidebar = ({ children }: AppSidebarProps) => {
         </SidebarContent>
 
         <SidebarFooter className="gap-3 px-2 pb-4">
-          {/* <div className="rounded-2xl bg-muted p-4 transition-opacity duration-200 group-data-[collapsible=icon]:hidden">
-            <p className="text-sm font-semibold text-foreground">
-              الترقية للنسخة الاحترافية
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              شهر مجاني مع مناديب وتقارير غير محدودة
-            </p>
-            <Button className="mt-3 w-full cursor-pointer">ترقية الآن</Button>
-          </div> */}
-
           <SidebarMenu className="gap-3">
-            <ThemeToggle />
+            <ThemeToggle onAction={handleMobileClose} />
             <SidebarMenuItem>
               <SidebarMenuButton
                 tooltip="المساعدة والمعلومات"
+                onClick={handleMobileClose}
                 className="cursor-pointer transition-all duration-200 hover:translate-x-1 hover:bg-muted active:scale-[0.97]"
               >
                 <IconRenderer
@@ -316,18 +371,7 @@ const AppSidebar = ({ children }: AppSidebarProps) => {
                 <span className="truncate">المساعدة والمعلومات</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip="تسجيل الخروج"
-                className="cursor-pointer text-destructive transition-all duration-200 hover:translate-x-1 hover:bg-destructive/10 hover:text-destructive active:scale-[0.97]"
-              >
-                <IconRenderer
-                  name="logout_outlined"
-                  className="h-4 w-4 shrink-0 text-destructive"
-                />
-                <span className="truncate">تسجيل الخروج</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
+            <LogoutMenuItem onAction={handleMobileClose} />
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
@@ -336,6 +380,14 @@ const AppSidebar = ({ children }: AppSidebarProps) => {
         <MobileTopBar />
         <main className="pt-16 md:pt-0">{children}</main>
       </SidebarInset>
+    </>
+  );
+};
+
+const AppSidebar = ({ children }: AppSidebarProps) => {
+  return (
+    <SidebarProvider defaultOpen>
+      <AppSidebarContent>{children}</AppSidebarContent>
     </SidebarProvider>
   );
 };
