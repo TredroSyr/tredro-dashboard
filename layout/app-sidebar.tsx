@@ -211,18 +211,29 @@ const AppSidebar = ({ children }: AppSidebarProps) => {
         className="border-border transition-[width] duration-300 ease-in-out"
       >
         <SidebarHeader className="px-2 py-4">
-          <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:items-center">
+          <div className="flex items-center justify-between gap-2 group-data-[state=expanded]:flex-row-reverse group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:items-center lg:justify-center">
+            {/* الأيقونة - يمين وقت الفتح (ميديوم)، تحت وقت القفل، مخفية باللارج */}
+            <SidebarTrigger className="hidden shrink-0 cursor-pointer transition-transform duration-200 hover:scale-110 md:flex lg:hidden" />
+
+            {/* اللوغو الكامل - يسار وقت الفتح (ميديوم)، وفي النص باللارج */}
             <Image
               src="/tredro/full_logo.svg"
               alt="logo"
               width={140}
               height={70}
-              className="h-auto w-[140px] cursor-pointer object-contain transition-all duration-200 group-data-[collapsible=icon]:w-8"
+              className="hidden h-auto w-[140px] cursor-pointer object-contain transition-all duration-200 group-data-[state=expanded]:block"
             />
-            <SidebarTrigger className="hidden shrink-0 cursor-pointer transition-transform duration-200 hover:scale-110 md:flex lg:hidden" />
+
+            {/* اللوغو الصغير - يظهر بس بحالة icon (مقفول) */}
+            <Image
+              src="/tredro/logo.svg"
+              alt="logo"
+              width={32}
+              height={32}
+              className="hidden h-auto w-8 cursor-pointer object-contain transition-all duration-200 group-data-[collapsible=icon]:block"
+            />
           </div>
         </SidebarHeader>
-
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
