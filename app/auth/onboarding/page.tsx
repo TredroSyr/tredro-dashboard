@@ -1,8 +1,11 @@
 "use client";
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
 
 import { IconRenderer } from "@/assets/icons/iconRenderer";
+import { useKeyboardOpen } from "@/hooks/use-keyboard-open";
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,66 +19,14 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuthStore } from "@/module/auth/store/auth-store";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// ---------------- Dummy data ----------------
-const GOVERNORATES = [
-  { value: "damascus", label: "دمشق" },
-  { value: "aleppo", label: "حلب" },
-  { value: "homs", label: "حمص" },
-  { value: "lattakia", label: "اللاذقية" },
-  { value: "daraa", label: "درعا" },
-];
-
-const REGIONS_BY_GOVERNORATE: Record<
-  string,
-  { value: string; label: string }[]
-> = {
-  damascus: [
-    { value: "mazzeh", label: "المزة" },
-    { value: "midan", label: "الميدان" },
-    { value: "kafarsouseh", label: "كفرسوسة" },
-  ],
-  aleppo: [
-    { value: "jamiliyeh", label: "الجميلية" },
-    { value: "furqan", label: "الفرقان" },
-  ],
-  homs: [
-    { value: "waer", label: "الوعر" },
-    { value: "hamidiyeh", label: "الحميدية" },
-  ],
-  lattakia: [
-    { value: "ziraa", label: "الزراعة" },
-    { value: "shatee", label: "الشاطئ الأزرق" },
-  ],
-  daraa: [
-    { value: "mahatta", label: "المحطة" },
-    { value: "balad", label: "درعا البلد" },
-  ],
-};
-
-const COMPANY_CATEGORIES = [
-  { value: "food", label: "مواد غذائية", icon: "book_outlined" as const },
-  { value: "electronics", label: "إلكترونيات", icon: "star_outlined" as const },
-  { value: "clothing", label: "ألبسة", icon: "users_outlined" as const },
-  {
-    value: "cosmetics",
-    label: "مستحضرات تجميل",
-    icon: "star_outlined" as const,
-  },
-  { value: "home", label: "أدوات منزلية", icon: "book_outlined" as const },
-  {
-    value: "pharma",
-    label: "أدوية ومستلزمات طبية",
-    icon: "tick_filled" as const,
-  },
-];
+  useBusinessTypesQuery,
+  useLocationsQuery,
+  useOnboardingMutation,
+} from "@/module/auth/hook/onboarding";
+import { SearchableSelect } from "@/components/tredro/searchable-select";
+import { ApiErrorResponse } from "@/module/auth/types";
 
 const STEPS = [
   { key: "images", label: "الشعار والغلاف" },
@@ -84,11 +35,9 @@ const STEPS = [
   { key: "category", label: "نوع النشاط" },
 ];
 
-// TODO: replace with the real company name coming from the register step
-// (e.g. via route params, context, or a server session) once wired up.
-const DUMMY_COMPANY_NAME = "اسم شركتك";
+const MAX_LOGO_SIZE = 2 * 1024 * 1024;
+const MAX_COVER_SIZE = 5 * 1024 * 1024;
 
-// ---------------- Schemas ----------------
 const locationSchema = z.object({
   governorate: z.string().min(1, "اختر المحافظة"),
   region: z.string().min(1, "اختر المنطقة"),
@@ -103,13 +52,56 @@ const descriptionSchema = z.object({
 
 const OnboardingPage = () => {
   const [stepIndex, setStepIndex] = useState(0);
+  const isKeyboardOpen = useKeyboardOpen();
+
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [imagesError, setImagesError] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const user = useAuthStore((state) => state.user);
+  const companyName = user?.company?.name;
+  const phoneNumber = user?.phone || null;
+
+  const { data: locations = [], isLoading: locationsLoading } =
+    useLocationsQuery();
+  const { data: businessTypes = [], isLoading: businessTypesLoading } =
+    useBusinessTypesQuery();
+
+  const onboardingMutation = useOnboardingMutation({
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      const errors = error.response?.data?.errors;
+      if (errors) {
+        Object.entries(errors).forEach(([field, messages]) => {
+          const fieldMap: Record<string, string> = {
+            governorate: "governorate",
+            region: "region",
+            description: "description",
+            business_type: "business_type",
+          };
+          const mapped = fieldMap[field];
+          if (mapped === "governorate" || mapped === "region") {
+            locationForm.setError(mapped, { message: messages[0] });
+          } else if (mapped === "description") {
+            descriptionForm.setError("description", { message: messages[0] });
+          } else if (mapped === "business_type") {
+            setCategoryError(messages[0]);
+          } else {
+            toast.error(messages[0]);
+          }
+        });
+      } else {
+        toast.error(error.response?.data?.message || "حدث خطأ، حاول مرة أخرى");
+      }
+    },
+  });
 
   const locationForm = useForm<z.infer<typeof locationSchema>>({
     resolver: zodResolver(locationSchema),
@@ -121,39 +113,52 @@ const OnboardingPage = () => {
     defaultValues: { description: "" },
   });
 
-  // Live-watch fields so the store preview updates as the user types/selects,
-  // not only after each step is submitted.
   const watchedGovernorate = locationForm.watch("governorate");
   const watchedRegion = locationForm.watch("region");
   const watchedDescription = descriptionForm.watch("description");
 
-  const availableRegions = watchedGovernorate
-    ? (REGIONS_BY_GOVERNORATE[watchedGovernorate] ?? [])
-    : [];
+  const governorateOptions = locations.map((loc) => ({
+    value: loc.governorate,
+    label: loc.governorate,
+  }));
 
-  const governorateLabel = GOVERNORATES.find(
-    (g) => g.value === watchedGovernorate,
-  )?.label;
-  const regionLabel = availableRegions.find(
-    (r) => r.value === watchedRegion,
-  )?.label;
-  const categoryData = COMPANY_CATEGORIES.find(
-    (c) => c.value === selectedCategory,
-  );
+  const availableRegions =
+    locations.find((loc) => loc.governorate === watchedGovernorate)?.regions ??
+    [];
+  const regionOptions = availableRegions.map((r) => ({ value: r, label: r }));
+
+  const businessTypeOptions = businessTypes.map((t) => ({
+    value: t.value,
+    label: t.label,
+  }));
+
+  const governorateLabel = watchedGovernorate || undefined;
+  const regionLabel = watchedRegion || undefined;
+  const categoryData = businessTypes.find((c) => c.value === selectedCategory);
+
+  const progressPercent = ((stepIndex + 1) / STEPS.length) * 100;
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setLogoPreview(url);
+    if (file.size > MAX_LOGO_SIZE) {
+      setImagesError("حجم الشعار يجب أن يكون أقل من 2 ميغابايت");
+      return;
+    }
+    setLogoFile(file);
+    setLogoPreview(URL.createObjectURL(file));
     setImagesError(null);
   };
 
   const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setCoverPreview(url);
+    if (file.size > MAX_COVER_SIZE) {
+      setImagesError("حجم الغلاف يجب أن يكون أقل من 5 ميغابايت");
+      return;
+    }
+    setCoverFile(file);
+    setCoverPreview(URL.createObjectURL(file));
   };
 
   const onImagesNext = () => {
@@ -167,80 +172,66 @@ const OnboardingPage = () => {
   const goNext = () => setStepIndex((s) => Math.min(s + 1, STEPS.length - 1));
   const goBack = () => setStepIndex((s) => Math.max(s - 1, 0));
 
-  const onLocationSubmit = (values: z.infer<typeof locationSchema>) => {
-    console.log("location", values);
-    goNext();
-  };
-
-  const onDescriptionSubmit = (values: z.infer<typeof descriptionSchema>) => {
-    console.log("description", values);
-    goNext();
-  };
+  const onLocationSubmit = () => goNext();
+  const onDescriptionSubmit = () => goNext();
 
   const onFinish = () => {
     if (!selectedCategory) {
       setCategoryError("يرجى اختيار نوع نشاط الشركة");
       return;
     }
-    console.log("category", selectedCategory);
-    // TODO: submit full onboarding payload + redirect to dashboard
+
+    onboardingMutation.mutate({
+      logo: logoFile,
+      cover: coverFile,
+      governorate: locationForm.getValues("governorate"),
+      region: locationForm.getValues("region"),
+      description: descriptionForm.getValues("description"),
+      business_type: selectedCategory,
+    });
+  };
+
+  const handleSkip = () => {
+    onboardingMutation.mutate({});
   };
 
   return (
-    <div className="min-h-[calc(100vh-150px)] flex flex-col bg-background">
-      <div className="flex-1 flex flex-col lg:flex-row items-center justify-center px-6 py-10 gap-10 lg:gap-16">
-        {/* ---------------- Form column ---------------- */}
+    <div className="h-full flex flex-col bg-background overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row items-center justify-center px-6 gap-12 lg:gap-20 overflow-hidden">
         <div className="w-full max-w-xl">
-          {/* Stepper */}
-          <div className="flex items-center justify-center gap-2 mb-10">
-            {STEPS.map((step, i) => (
-              <div key={step.key} className="flex items-center gap-2">
-                <div className="flex flex-col items-center gap-2">
-                  <motion.div
-                    animate={{
-                      scale: i === stepIndex ? 1.08 : 1,
-                    }}
-                    transition={{ duration: 0.25 }}
-                    className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
-                      i < stepIndex
-                        ? "bg-primary text-white"
-                        : i === stepIndex
-                          ? "bg-primary/15 text-primary border-2 border-primary"
-                          : "bg-primary/4 text-muted-foreground"
-                    }`}
-                  >
-                    {i < stepIndex ? (
-                      <IconRenderer name="tick_filled" className="w-4 h-4" />
-                    ) : (
-                      i + 1
-                    )}
-                  </motion.div>
-                  <span
-                    className={`text-[11px] whitespace-nowrap ${
-                      i === stepIndex
-                        ? "text-foreground font-medium"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {step.label}
-                  </span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div className="relative w-10 sm:w-16 h-0.5 mb-5 bg-primary/10 overflow-hidden rounded-full">
+          <AnimatePresence initial={false}>
+            {!isKeyboardOpen && (
+              <motion.div
+                key="stepper"
+                initial={{ height: 0, opacity: 0, y: -12 }}
+                animate={{ height: "auto", opacity: 1, y: 0 }}
+                exit={{ height: 0, opacity: 0, y: -12 }}
+                transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+                className="w-full overflow-hidden"
+              >
+                <div className="mb-8">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-foreground">
+                      {STEPS[stepIndex].label}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      {stepIndex + 1}/{STEPS.length}
+                    </span>
+                  </div>
+                  <div className="relative w-full h-1.5 bg-primary/10 rounded-full overflow-hidden">
                     <motion.div
                       initial={false}
-                      animate={{ width: i < stepIndex ? "100%" : "0%" }}
-                      transition={{ duration: 0.35 }}
-                      className="absolute inset-y-0 right-0 bg-primary"
+                      animate={{ width: `${progressPercent}%` }}
+                      transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+                      className="absolute inset-y-0 right-0 bg-primary rounded-full"
                     />
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <AnimatePresence mode="wait">
-            {/* Step 1: Logo + Cover images */}
             {stepIndex === 0 && (
               <motion.div
                 key="step-images"
@@ -259,12 +250,11 @@ const OnboardingPage = () => {
                   </p>
                 </div>
 
-                {/* Cover image */}
                 <div className="mb-6">
                   <input
                     ref={coverInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/jpg"
                     className="hidden"
                     onChange={handleCoverChange}
                   />
@@ -300,16 +290,16 @@ const OnboardingPage = () => {
                     )}
                   </button>
                   <span className="text-[11px] text-muted-foreground mt-1.5 block">
-                    اختياري — تظهر خلف شعار شركتك في المتجر
+                    اختياري — تظهر خلف شعار شركتك في المتجر (بحد أقصى 5
+                    ميغابايت)
                   </span>
                 </div>
 
-                {/* Logo */}
                 <div className="flex flex-col items-center mb-6">
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/jpg,image/svg+xml"
                     className="hidden"
                     onChange={handleLogoChange}
                   />
@@ -333,7 +323,7 @@ const OnboardingPage = () => {
                     )}
                   </button>
                   <span className="text-xs text-muted-foreground mt-2">
-                    اضغط لرفع شعار الشركة
+                    اضغط لرفع شعار الشركة (بحد أقصى 2 ميغابايت)
                   </span>
                 </div>
 
@@ -353,7 +343,6 @@ const OnboardingPage = () => {
               </motion.div>
             )}
 
-            {/* Step 2: Governorate + Region */}
             {stepIndex === 1 && (
               <motion.div
                 key="step-location"
@@ -383,24 +372,18 @@ const OnboardingPage = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Select
+                            <SearchableSelect
+                              options={governorateOptions}
                               value={field.value}
-                              onValueChange={(val) => {
+                              onChange={(val) => {
                                 field.onChange(val);
                                 locationForm.setValue("region", "");
                               }}
-                            >
-                              <SelectTrigger className="h-12 rounded-xl w-full">
-                                <SelectValue placeholder="اختر المحافظة" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {GOVERNORATES.map((g) => (
-                                  <SelectItem key={g.value} value={g.value}>
-                                    {g.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                              placeholder="اختر المحافظة"
+                              searchPlaceholder="ابحث عن محافظة..."
+                              emptyText="لا توجد محافظات مطابقة"
+                              loading={locationsLoading}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -413,22 +396,15 @@ const OnboardingPage = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormControl>
-                            <Select
+                            <SearchableSelect
+                              options={regionOptions}
                               value={field.value}
-                              onValueChange={field.onChange}
+                              onChange={field.onChange}
+                              placeholder="اختر المنطقة"
+                              searchPlaceholder="ابحث عن منطقة..."
+                              emptyText="لا توجد مناطق مطابقة"
                               disabled={!watchedGovernorate}
-                            >
-                              <SelectTrigger className="h-12 rounded-xl w-full">
-                                <SelectValue placeholder="اختر المنطقة" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {availableRegions.map((r) => (
-                                  <SelectItem key={r.value} value={r.value}>
-                                    {r.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -456,7 +432,6 @@ const OnboardingPage = () => {
               </motion.div>
             )}
 
-            {/* Step 3: Description */}
             {stepIndex === 2 && (
               <motion.div
                 key="step-description"
@@ -523,7 +498,6 @@ const OnboardingPage = () => {
               </motion.div>
             )}
 
-            {/* Step 4: Category */}
             {stepIndex === 3 && (
               <motion.div
                 key="step-category"
@@ -542,37 +516,20 @@ const OnboardingPage = () => {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-2">
-                  {COMPANY_CATEGORIES.map((cat) => (
-                    <motion.button
-                      key={cat.value}
-                      type="button"
-                      whileTap={{ scale: 0.96 }}
-                      onClick={() => {
-                        setSelectedCategory(cat.value);
-                        setCategoryError(null);
-                      }}
-                      className={`flex flex-col items-center gap-2 rounded-xl border p-4 transition-colors ${
-                        selectedCategory === cat.value
-                          ? "border-primary bg-primary/10"
-                          : "border-border bg-primary/4/50 hover:bg-primary/4"
-                      }`}
-                    >
-                      <div
-                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                          selectedCategory === cat.value
-                            ? "bg-primary text-white"
-                            : "bg-primary/15 text-primary"
-                        }`}
-                      >
-                        <IconRenderer name={cat.icon} className="w-4 h-4" />
-                      </div>
-                      <span className="text-xs font-medium text-foreground text-center">
-                        {cat.label}
-                      </span>
-                    </motion.button>
-                  ))}
-                </div>
+                <SearchableSelect
+                  options={businessTypeOptions}
+                  value={selectedCategory ?? undefined}
+                  onChange={(val) => {
+                    setSelectedCategory(val);
+                    setCategoryError(null);
+                  }}
+                  placeholder="اختر نوع النشاط"
+                  searchPlaceholder="ابحث عن نشاط..."
+                  emptyText="لا توجد نتائج"
+                  loading={businessTypesLoading}
+                  className="mb-2"
+                />
+
                 {categoryError && (
                   <p className="text-xs text-destructive text-center mb-2">
                     {categoryError}
@@ -591,17 +548,28 @@ const OnboardingPage = () => {
                   <Button
                     type="button"
                     onClick={onFinish}
+                    disabled={onboardingMutation.isPending}
                     className="flex-1 h-12 rounded-xl text-white"
                   >
-                    إنهاء الإعداد
+                    {onboardingMutation.isPending
+                      ? "جارِ الإرسال..."
+                      : "إنهاء الإعداد"}
                   </Button>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
+
+          <button
+            type="button"
+            onClick={handleSkip}
+            disabled={onboardingMutation.isPending}
+            className="w-full text-center text-xs text-muted-foreground hover:text-foreground transition-colors mt-4"
+          >
+            تخطي الإعداد
+          </button>
         </div>
 
-        {/* ---------------- Live store preview column ---------------- */}
         <div className="hidden lg:block w-full max-w-120">
           <motion.div
             initial={{ opacity: 0, x: 40 }}
@@ -626,10 +594,8 @@ const OnboardingPage = () => {
               </div>
             </div>
 
-            {/* Mock storefront card */}
             <div className="mx-6 mb-6 rounded-xl border border-border bg-primary/4/40 overflow-hidden">
-              {/* Cover banner */}
-              <div className="h-20 relative overflow-hidden bg-gradient-to-l from-primary/25 to-primary/5">
+              <div className="h-20 relative bg-gradient-to-l from-primary/25 to-primary/5">
                 <AnimatePresence mode="wait">
                   {coverPreview && (
                     <motion.img
@@ -647,7 +613,7 @@ const OnboardingPage = () => {
                 <motion.div
                   layout
                   transition={{ duration: 0.3 }}
-                  className="absolute -bottom-7 right-5 w-16 h-16 rounded-2xl border-4 border-card bg-card overflow-hidden flex items-center justify-center shadow-sm"
+                  className="absolute -bottom-7 !z-50 right-5 w-16 h-16 rounded-2xl border-4 border-card bg-card overflow-hidden flex items-center justify-center shadow-sm"
                 >
                   {logoPreview ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -665,12 +631,28 @@ const OnboardingPage = () => {
                 </motion.div>
               </div>
 
-              <div className="pt-9 px-5 pb-5">
+              <div className="mt-9 px-5 pb-5">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="text-sm font-bold text-foreground truncate">
-                      {DUMMY_COMPANY_NAME}
+                      {companyName}
                     </p>
+
+                    {phoneNumber && (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <IconRenderer
+                          name="tick_filled"
+                          className="w-3 h-3 text-muted-foreground shrink-0"
+                        />
+                        <span
+                          className="text-[11px] text-muted-foreground truncate"
+                          dir="ltr"
+                        >
+                          {phoneNumber}
+                        </span>
+                      </div>
+                    )}
+
                     <AnimatePresence mode="wait">
                       <motion.div
                         key={`${governorateLabel ?? ""}-${regionLabel ?? ""}`}
@@ -688,8 +670,8 @@ const OnboardingPage = () => {
                           {regionLabel && governorateLabel
                             ? `${regionLabel}، ${governorateLabel}`
                             : governorateLabel
-                              ? governorateLabel
-                              : "لم يتم تحديد الموقع بعد"}
+                            ? governorateLabel
+                            : "لم يتم تحديد الموقع بعد"}
                         </span>
                       </motion.div>
                     </AnimatePresence>
@@ -712,10 +694,7 @@ const OnboardingPage = () => {
                   >
                     {categoryData ? (
                       <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-primary bg-primary/10 px-2.5 py-1 rounded-full">
-                        <IconRenderer
-                          name={categoryData.icon}
-                          className="w-3 h-3"
-                        />
+                        <IconRenderer name="tick_filled" className="w-3 h-3" />
                         {categoryData.label}
                       </span>
                     ) : (

@@ -1,4 +1,4 @@
-import RequireAuth from "@/components/provider/RequireAuth";
+import { ProtectedRoute } from "@/guards/protected-route";
 import AppSidebar from "@/layout/app-sidebar";
 
 import React from "react";
@@ -9,9 +9,9 @@ type ProtectedLayoutProps = {
 
 const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
   return (
-    <RequireAuth>
+    <ProtectedRoute>
       <AppSidebar>{children}</AppSidebar>
-    </RequireAuth>
+    </ProtectedRoute>
   );
 };
 

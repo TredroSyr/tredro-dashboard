@@ -25,7 +25,7 @@ export const useLoginMutation = (options?: {
         console.log({ response });
         if (!response.data.user.company.onboarding_completed) {
           console.log("SAFWAT");
-          router.push("/onboarding");
+          router.push("/auth/onboarding");
         } else {
           router.push("/");
         }
