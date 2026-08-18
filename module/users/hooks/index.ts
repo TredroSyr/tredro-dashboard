@@ -7,7 +7,7 @@ import {
   updateSubUser,
   deleteSubUser,
 } from "../api";
-import { CreateSubUserPayload, UpdateSubUserPayload } from "../types";
+import { CreateSubUserPayload, UpdateSubUserPayload, SubUser } from "../types";
 
 export const useModulesQuery = () =>
   useQuery({
@@ -20,6 +20,26 @@ export const useSubUsersQuery = () =>
   useQuery({
     queryKey: ["subusers"],
     queryFn: listSubUsers,
+  });
+
+// NOTE: no dedicated "get sub-user by id" endpoint is documented in api.ts.
+// This derives the single sub-user from the already-fetched list cache
+// instead of firing a new network call. If a real
+// GET companies/subusers/:id endpoint gets added later, swap the
+// queryFn below to call it directly with queryKey: ["subusers", id].
+export const useSubUserQuery = (
+  id?: string | number,
+  options?: { enabled?: boolean },
+) =>
+  useQuery({
+    queryKey: ["subusers"],
+    queryFn: listSubUsers,
+    enabled: (options?.enabled ?? true) && Boolean(id),
+    select: (response) => {
+      const subusers = response.data.subusers as SubUser[];
+      const found = subusers.find((u) => String(u.id) === String(id));
+      return { ...response, data: found as SubUser };
+    },
   });
 
 export const useCreateSubUserMutation = () => {

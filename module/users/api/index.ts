@@ -9,26 +9,26 @@ import {
   ApiEnvelope,
 } from "../types";
 
-// GET /api/companies/modules
+// GET companies/modules
 export const getModules = async (): Promise<ModulesResponse> => {
-  const response = await api.get<ModulesResponse>("/api/companies/modules");
+  const response = await api.get<ModulesResponse>("companies/modules");
   return response.data;
 };
 
-// GET /api/companies/subusers/list
+// GET companies/subusers/list
 export const listSubUsers = async (): Promise<SubUsersListResponse> => {
   const response = await api.get<SubUsersListResponse>(
-    "/api/companies/subusers/list",
+    "companies/subusers/list",
   );
   return response.data;
 };
 
-// POST /api/companies/subusers
+// POST companies/subusers
 export const createSubUser = async (
   payload: CreateSubUserPayload,
 ): Promise<CreateSubUserResponse> => {
   const response = await api.post<CreateSubUserResponse>(
-    "/api/companies/subusers",
+    "companies/subusers",
     payload,
   );
   return response.data;
@@ -41,7 +41,7 @@ export const updateSubUser = async (
 ): Promise<UpdateSubUserResponse> => {
   const { id, ...body } = payload;
   const response = await api.patch<UpdateSubUserResponse>(
-    `/api/companies/subusers/${id}`,
+    `companies/subusers/${id}`,
     body,
   );
   return response.data;
@@ -50,7 +50,7 @@ export const updateSubUser = async (
 // NOTE: assumed — not documented.
 export const deleteSubUser = async (id: number): Promise<ApiEnvelope<null>> => {
   const response = await api.delete<ApiEnvelope<null>>(
-    `/api/companies/subusers/${id}`,
+    `companies/subusers/${id}`,
   );
   return response.data;
 };

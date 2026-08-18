@@ -6,6 +6,7 @@ import { DataTableRowActions } from "./data-table-row-actions";
 
 import { Badge } from "@/components/ui/badge";
 import { SubUser } from "../types";
+import { PhoneInput } from "@/components/tredro/phone-input";
 
 // Fallback for any empty/missing field
 const val = (v?: string | null) => (v && v.trim() ? v : "?");
@@ -32,11 +33,7 @@ export const columns: ColumnDef<SubUser>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="رقم الهاتف" />
     ),
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground" dir="ltr">
-        {val(row.original.phone)}
-      </span>
-    ),
+    cell: ({ row }) => <PhoneInput value={row.original.phone} readOnly />,
   },
   {
     accessorKey: "email",
@@ -45,7 +42,7 @@ export const columns: ColumnDef<SubUser>[] = [
     ),
     cell: ({ row }) => (
       <span className="text-sm text-muted-foreground" dir="ltr">
-        {val(row.original.email)}
+        {val(row.original.email) || "-"}
       </span>
     ),
   },

@@ -1,26 +1,18 @@
 import * as React from "react";
-import { Check, ChevronDown, Search } from "lucide-react";
+import { Check, Copy, Phone } from "lucide-react";
 import {
   buildCountryData,
   defaultCountries,
   parseCountry,
   usePhoneInput,
-  type CountryIso2,
 } from "react-international-phone";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import {
   phoneFormatOverrides,
   stripNationalLeadingZero,
 } from "@/schema/phone-schema";
-import { getCountryNameAr } from "@/lib/country-names";
 import { CountryFlag } from "./country-flag";
 
 export interface PhoneInputProps {
@@ -33,15 +25,22 @@ export interface PhoneInputProps {
   name?: string;
   id?: string;
   className?: string;
+  readOnly?: boolean;
 }
 
-const countries = defaultCountries
+const editCountries = defaultCountries
   .map((data) => {
     const parsed = parseCountry(data);
     const override = phoneFormatOverrides[parsed.iso2];
     return override ? buildCountryData({ ...parsed, format: override }) : data;
   })
   .filter((data) => parseCountry(data).iso2 === "sy");
+
+const viewCountries = defaultCountries.map((data) => {
+  const parsed = parseCountry(data);
+  const override = phoneFormatOverrides[parsed.iso2];
+  return override ? buildCountryData({ ...parsed, format: override }) : data;
+});
 
 const EXAMPLE_DIGITS = "912345678";
 
@@ -52,6 +51,12 @@ function buildFormattedExample(format: unknown): string | undefined {
     /\./g,
     () => EXAMPLE_DIGITS[i++ % EXAMPLE_DIGITS.length],
   );
+}
+
+// بيكشف إذا الجهاز موبايل/تابلت (بيدعم الاتصال المباشر)
+function isMobileDevice() {
+  if (typeof navigator === "undefined") return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
 }
 
 export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
@@ -66,6 +71,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       name,
       id,
       className,
+      readOnly = false,
     },
     forwardedRef,
   ) {
@@ -73,7 +79,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       usePhoneInput({
         defaultCountry: "sy",
         value: value ?? "",
-        countries,
+        countries: readOnly ? viewCountries : editCountries,
         disableDialCodeAndPrefix: true,
         onChange: (data) =>
           onChange?.(
@@ -87,12 +93,83 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
 
     const dynamicPlaceholder = React.useMemo(() => {
       return (
-        "944 123 456" ??
         buildFormattedExample(country.format) ??
         placeholder ??
         "أدخل رقم الهاتف"
       );
     }, [country, placeholder]);
+
+    const handleChange = React.useCallback(
+      (e: React.ChangeEvent<HTMLInputElement>) => {
+        const dialCode = country.dialCode;
+        let raw = e.target.value;
+        const cleaned = raw.replace(/[\s()-]/g, "");
+
+        if (cleaned.startsWith(`+${dialCode}`)) {
+          raw = cleaned.slice(dialCode.length + 1);
+        } else if (cleaned.startsWith(`00${dialCode}`)) {
+          raw = cleaned.slice(dialCode.length + 2);
+        } else if (cleaned.startsWith(dialCode) && cleaned.length > 9) {
+          raw = cleaned.slice(dialCode.length);
+        }
+
+        handlePhoneValueChange({
+          ...e,
+          target: { ...e.target, value: raw },
+        } as React.ChangeEvent<HTMLInputElement>);
+      },
+      [country.dialCode, handlePhoneValueChange],
+    );
+
+    const [copied, setCopied] = React.useState(false);
+    const fullNumber = `+${country.dialCode}${inputValue}`;
+
+    const handleAction = React.useCallback(async () => {
+      if (isMobileDevice()) {
+        window.location.href = `tel:${fullNumber}`;
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(fullNumber);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {
+        // فشل النسخ (متصفح قديم / بدون صلاحية) — تجاهل بصمت
+      }
+    }, [fullNumber]);
+
+    if (readOnly) {
+      return (
+        <div
+          dir="ltr"
+          className={cn(
+            "inline-flex items-center gap-1.5 rounded-full border border-input bg-muted/30 px-2.5 py-1 text-sm w-fit",
+            className,
+          )}
+        >
+          <CountryFlag iso2={country.iso2} className="h-3.5 w-5 shrink-0" />
+          <span dir="ltr" className="text-sm tabular-nums">
+            +{country.dialCode}
+          </span>
+          <span className="tabular-nums">{inputValue || "—"}</span>
+
+          <button
+            type="button"
+            onClick={handleAction}
+            title={isMobileDevice() ? "اتصال" : "نسخ الرقم"}
+            className="ms-1 flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          >
+            {copied ? (
+              <Check className="h-3.5 w-3.5" />
+            ) : isMobileDevice() ? (
+              <Phone className="h-3.5 w-3.5" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+      );
+    }
 
     return (
       <div
@@ -123,7 +200,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
           disabled={disabled}
           placeholder={dynamicPlaceholder}
           value={inputValue}
-          onChange={handlePhoneValueChange}
+          onChange={handleChange}
           onBlur={onBlur}
           className="h-full flex-1 rounded-none border-0 bg-transparent text-left tabular-nums shadow-none focus-visible:ring-0"
         />

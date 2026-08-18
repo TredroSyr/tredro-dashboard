@@ -1,7 +1,10 @@
 "use client";
 
+import { PhoneInput } from "@/components/tredro/phone-input";
+import { Badge } from "@/components/ui/badge";
 import { columns } from "@/module/users/_components/columns";
 import { DataTable } from "@/module/users/_components/data-table";
+import { DataTableRowActions } from "@/module/users/_components/data-table-row-actions";
 import { useSubUsersQuery } from "@/module/users/hooks";
 import { useState, useMemo } from "react";
 
@@ -51,6 +54,24 @@ export default function SubUsersPage() {
       isLoading={isLoading}
       pagination={{ page, totalPages }}
       onPageChange={setPage}
+      renderCard={(user) => (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="font-semibold text-foreground">{user.name}</span>
+            <Badge variant={user.is_active ? "default" : "destructive"}>
+              {user.is_active ? "مفعّل" : "موقوف"}
+            </Badge>
+          </div>
+
+          <PhoneInput value={user.phone} readOnly />
+          <span className="text-sm text-muted-foreground">
+            {user.email ?? "-"}
+          </span>
+          <div className="flex justify-end pt-2 border-t border-border">
+            <DataTableRowActions row={{ original: user }} />
+          </div>
+        </div>
+      )}
     />
   );
 }
