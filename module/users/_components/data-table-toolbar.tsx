@@ -27,7 +27,7 @@ export function DataTableToolbar<TData>({
     <>
       <div className="flex items-center justify-between border-b px-6 py-6 border-border">
         <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-          <span>المستخدمون الفرعيون</span>
+          <span>المستخدمون </span>
           {total !== undefined && <Badge>{total} مستخدم</Badge>}
         </h1>
       </div>
@@ -44,7 +44,7 @@ export function DataTableToolbar<TData>({
         </div>
         <Button size="sm" onClick={() => setAddDrawerOpen(true)}>
           <Plus className="size-4" />
-          إضافة مستخدم فرعي
+          إضافة مستخدم
         </Button>
       </div>
 

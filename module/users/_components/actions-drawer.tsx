@@ -233,15 +233,13 @@ export function SubUserFormDrawer({
               "
             >
               <DrawerTitle className="text-right text-base sm:text-lg">
-                {mode === "create"
-                  ? "إضافة مستخدم فرعي جديد"
-                  : "تعديل المستخدم الفرعي"}
+                {mode === "create" ? "إضافة مستخدم  جديد" : "تعديل المستخدم "}
               </DrawerTitle>
               <div className="flex items-center gap-2 shrink-0">
                 <Button type="submit" disabled={isSaving} size="sm">
                   {isSaving ? "جارٍ الحفظ..." : "حفظ"}
                 </Button>
-                <DrawerClose asChild>
+                <DrawerClose>
                   <Button variant="outline" type="button" size="sm">
                     إلغاء
                   </Button>

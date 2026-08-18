@@ -72,7 +72,7 @@ export function DataTable<TData, TValue>({
   const rows = table.getRowModel().rows;
 
   return (
-    <div className="rounded-md border border-gray-200">
+    <div className="rounded-md border border-border">
       <DataTableToolbar
         table={table}
         total={total}
@@ -85,10 +85,7 @@ export function DataTable<TData, TValue>({
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow
-                key={headerGroup.id}
-                className="border-b border-gray-200"
-              >
+              <TableRow key={headerGroup.id} className="border-b border-border">
                 {headerGroup.headers.map((header) => (
                   <TableHead key={header.id} colSpan={header.colSpan}>
                     {header.isPlaceholder
@@ -105,7 +102,7 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
-                <TableRow key={i} className="border-b border-gray-200">
+                <TableRow key={i} className="border-b border-border">
                   {columns.map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-8 w-full" />
@@ -115,7 +112,7 @@ export function DataTable<TData, TValue>({
               ))
             ) : rows?.length ? (
               rows.map((row) => (
-                <TableRow key={row.id} className="border-b border-gray-200">
+                <TableRow key={row.id} className="border-b border-border">
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -221,7 +218,7 @@ function DefaultCardBody<TData>({
         })}
       </div>
       {actionsCell && (
-        <div className="flex justify-end pt-1 border-t border-gray-100">
+        <div className="flex justify-end pt-1 border-t border-border">
           {flexRender(
             actionsCell.column.columnDef.cell,
             actionsCell.getContext(),
