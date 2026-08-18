@@ -53,7 +53,6 @@ function buildFormattedExample(format: unknown): string | undefined {
   );
 }
 
-// بيكشف إذا الجهاز موبايل/تابلت (بيدعم الاتصال المباشر)
 function isMobileDevice() {
   if (typeof navigator === "undefined") return false;
   return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -99,28 +98,6 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       );
     }, [country, placeholder]);
 
-    const handleChange = React.useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        const dialCode = country.dialCode;
-        let raw = e.target.value;
-        const cleaned = raw.replace(/[\s()-]/g, "");
-
-        if (cleaned.startsWith(`+${dialCode}`)) {
-          raw = cleaned.slice(dialCode.length + 1);
-        } else if (cleaned.startsWith(`00${dialCode}`)) {
-          raw = cleaned.slice(dialCode.length + 2);
-        } else if (cleaned.startsWith(dialCode) && cleaned.length > 9) {
-          raw = cleaned.slice(dialCode.length);
-        }
-
-        handlePhoneValueChange({
-          ...e,
-          target: { ...e.target, value: raw },
-        } as React.ChangeEvent<HTMLInputElement>);
-      },
-      [country.dialCode, handlePhoneValueChange],
-    );
-
     const [copied, setCopied] = React.useState(false);
     const fullNumber = `+${country.dialCode}${inputValue}`;
 
@@ -133,9 +110,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
         await navigator.clipboard.writeText(fullNumber);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
-      } catch {
-        // فشل النسخ (متصفح قديم / بدون صلاحية) — تجاهل بصمت
-      }
+      } catch {}
     }, [fullNumber]);
 
     if (readOnly) {
@@ -200,7 +175,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
           disabled={disabled}
           placeholder={dynamicPlaceholder}
           value={inputValue}
-          onChange={handleChange}
+          onChange={handlePhoneValueChange}
           onBlur={onBlur}
           className="h-full flex-1 rounded-none border-0 bg-transparent text-left tabular-nums shadow-none focus-visible:ring-0"
         />
