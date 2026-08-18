@@ -27,6 +27,7 @@ import {
 } from "@/module/auth/hook/onboarding";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { ApiErrorResponse } from "@/module/auth/types";
+import { useRouter } from "next/navigation";
 
 const STEPS = [
   { key: "images", label: "الشعار والغلاف" },
@@ -53,7 +54,7 @@ const descriptionSchema = z.object({
 const OnboardingPage = () => {
   const [stepIndex, setStepIndex] = useState(0);
   const isKeyboardOpen = useKeyboardOpen();
-
+  const router = useRouter();
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -192,7 +193,7 @@ const OnboardingPage = () => {
   };
 
   const handleSkip = () => {
-    onboardingMutation.mutate({});
+    router.push("/");
   };
 
   return (
@@ -209,7 +210,7 @@ const OnboardingPage = () => {
                 transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
                 className="w-full overflow-hidden"
               >
-                <div className="mb-8">
+                <div className="mb-6 sm:mb-8">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-medium text-foreground">
                       {STEPS[stepIndex].label}
@@ -239,10 +240,10 @@ const OnboardingPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="bg-card border border-border rounded-2xl p-8"
+                className="bg-card border border-border rounded-2xl p-5 sm:p-6 md:p-8"
               >
-                <div className="text-center mb-6">
-                  <h2 className="font-serif-ar text-2xl font-bold text-foreground mb-2">
+                <div className="text-center mb-5 sm:mb-6">
+                  <h2 className="font-serif-ar text-xl sm:text-2xl font-bold text-foreground mb-2">
                     لنتعرف على شركتك
                   </h2>
                   <p className="text-sm text-muted-foreground">
@@ -261,7 +262,7 @@ const OnboardingPage = () => {
                   <button
                     type="button"
                     onClick={() => coverInputRef.current?.click()}
-                    className="relative w-full h-32 rounded-2xl border-2 border-dashed border-border overflow-hidden bg-primary/4/50 hover:bg-primary/4 transition-colors flex items-center justify-center"
+                    className="relative w-full h-28 sm:h-32 rounded-2xl border-2 border-dashed border-border overflow-hidden bg-primary/4/50 hover:bg-primary/4 transition-colors flex items-center justify-center"
                   >
                     {coverPreview ? (
                       <>
@@ -283,7 +284,7 @@ const OnboardingPage = () => {
                           name="star_outlined"
                           className="w-5 h-5 text-muted-foreground"
                         />
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground text-center px-4">
                           اضغط لرفع صورة غلاف الشركة
                         </span>
                       </div>
@@ -306,7 +307,7 @@ const OnboardingPage = () => {
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    className="w-24 h-24 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-primary/4/50 hover:bg-primary/4 transition-colors"
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl border-2 border-dashed border-border flex items-center justify-center overflow-hidden bg-primary/4/50 hover:bg-primary/4 transition-colors"
                   >
                     {logoPreview ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -322,7 +323,7 @@ const OnboardingPage = () => {
                       />
                     )}
                   </button>
-                  <span className="text-xs text-muted-foreground mt-2">
+                  <span className="text-xs text-muted-foreground mt-2 text-center px-4">
                     اضغط لرفع شعار الشركة (بحد أقصى 2 ميغابايت)
                   </span>
                 </div>
@@ -336,7 +337,7 @@ const OnboardingPage = () => {
                 <Button
                   type="button"
                   onClick={onImagesNext}
-                  className="w-full h-12 rounded-xl text-white mt-2"
+                  className="w-full h-11 sm:h-12 rounded-xl text-white mt-2"
                 >
                   التالي
                 </Button>
@@ -350,10 +351,10 @@ const OnboardingPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="bg-card border border-border rounded-2xl p-8"
+                className="bg-card border border-border rounded-2xl p-5 sm:p-6 md:p-8"
               >
-                <div className="text-center mb-6">
-                  <h2 className="font-serif-ar text-2xl font-bold text-foreground mb-2">
+                <div className="text-center mb-5 sm:mb-6">
+                  <h2 className="font-serif-ar text-xl sm:text-2xl font-bold text-foreground mb-2">
                     أين تقع شركتك؟
                   </h2>
                   <p className="text-sm text-muted-foreground">
@@ -411,18 +412,18 @@ const OnboardingPage = () => {
                       )}
                     />
 
-                    <div className="flex gap-3 mt-2">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 mt-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={goBack}
-                        className="flex-1 h-12 rounded-xl"
+                        className="flex-1 h-11 sm:h-12 rounded-xl"
                       >
                         العودة
                       </Button>
                       <Button
                         type="submit"
-                        className="flex-1 h-12 rounded-xl text-white"
+                        className="flex-1 h-11 sm:h-12 rounded-xl text-white"
                       >
                         التالي
                       </Button>
@@ -439,10 +440,10 @@ const OnboardingPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="bg-card border border-border rounded-2xl p-8"
+                className="bg-card border border-border rounded-2xl p-5 sm:p-6 md:p-8"
               >
-                <div className="text-center mb-6">
-                  <h2 className="font-serif-ar text-2xl font-bold text-foreground mb-2">
+                <div className="text-center mb-5 sm:mb-6">
+                  <h2 className="font-serif-ar text-xl sm:text-2xl font-bold text-foreground mb-2">
                     عرّفنا على شركتك
                   </h2>
                   <p className="text-sm text-muted-foreground">
@@ -463,7 +464,7 @@ const OnboardingPage = () => {
                           <FormControl>
                             <Textarea
                               placeholder="مثال: شركة متخصصة بتوزيع المواد الغذائية الجافة والمعلبات لمحلات التجزئة والجملة في دمشق وريفها..."
-                              className="min-h-40 rounded-xl resize-none"
+                              className="min-h-32 sm:min-h-40 rounded-xl resize-none"
                               {...field}
                             />
                           </FormControl>
@@ -477,18 +478,18 @@ const OnboardingPage = () => {
                       )}
                     />
 
-                    <div className="flex gap-3 mt-2">
+                    <div className="flex flex-col-reverse sm:flex-row gap-3 mt-2">
                       <Button
                         type="button"
                         variant="outline"
                         onClick={goBack}
-                        className="flex-1 h-12 rounded-xl"
+                        className="flex-1 h-11 sm:h-12 rounded-xl"
                       >
                         العودة
                       </Button>
                       <Button
                         type="submit"
-                        className="flex-1 h-12 rounded-xl text-white"
+                        className="flex-1 h-11 sm:h-12 rounded-xl text-white"
                       >
                         التالي
                       </Button>
@@ -505,10 +506,10 @@ const OnboardingPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="bg-card border border-border rounded-2xl p-8"
+                className="bg-card border border-border rounded-2xl p-5 sm:p-6 md:p-8"
               >
-                <div className="text-center mb-6">
-                  <h2 className="font-serif-ar text-2xl font-bold text-foreground mb-2">
+                <div className="text-center mb-5 sm:mb-6">
+                  <h2 className="font-serif-ar text-xl sm:text-2xl font-bold text-foreground mb-2">
                     ما هو نشاط شركتك؟
                   </h2>
                   <p className="text-sm text-muted-foreground">
@@ -517,7 +518,7 @@ const OnboardingPage = () => {
                 </div>
 
                 {businessTypesLoading ? (
-                  <div className="grid grid-cols-3 gap-3 mb-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-2">
                     {Array.from({ length: 8 }).map((_, i) => (
                       <div
                         key={i}
@@ -526,8 +527,8 @@ const OnboardingPage = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="max-h-[172px] overflow-y-auto pr-1 mb-2 -mr-1">
-                    <div className="grid grid-cols-3 gap-3">
+                  <div className="max-h-[220px] sm:max-h-[172px] overflow-y-auto pr-1 mb-2 -mr-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                       {businessTypeOptions.map((option) => {
                         const isSelected = selectedCategory === option.value;
                         return (
@@ -574,12 +575,12 @@ const OnboardingPage = () => {
                   </p>
                 )}
 
-                <div className="flex gap-3 mt-4">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 mt-4">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={goBack}
-                    className="flex-1 h-12 rounded-xl"
+                    className="flex-1 h-11 sm:h-12 rounded-xl"
                   >
                     العودة
                   </Button>
@@ -587,7 +588,7 @@ const OnboardingPage = () => {
                     type="button"
                     onClick={onFinish}
                     disabled={onboardingMutation.isPending}
-                    className="flex-1 h-12 rounded-xl text-white"
+                    className="flex-1 h-11 sm:h-12 rounded-xl text-white"
                   >
                     {onboardingMutation.isPending
                       ? "جارِ الإرسال..."
@@ -608,6 +609,7 @@ const OnboardingPage = () => {
           </button>
         </div>
 
+        {/* Preview panel: hidden on mobile/tablet, visible from lg breakpoint up */}
         <div className="hidden lg:block w-full max-w-120">
           <motion.div
             initial={{ opacity: 0, x: 40 }}
