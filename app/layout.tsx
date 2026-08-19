@@ -6,6 +6,7 @@ import { thmanyahSans } from "@/lib/fonts";
 
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
+import ErudaLoader from "@/components/tredro/ErudaLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -95,6 +96,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <AppDownloadDrawer />
           <Toaster position="top-center" richColors dir="rtl" />
+          <ErudaLoader />
         </QueryProvider>
       </body>
     </html>

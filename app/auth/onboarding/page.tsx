@@ -52,6 +52,7 @@ const descriptionSchema = z.object({
 });
 
 const OnboardingPage = () => {
+  useAuthInit();
   const [stepIndex, setStepIndex] = useState(0);
   const isKeyboardOpen = useKeyboardOpen();
   const router = useRouter();
