@@ -2,7 +2,11 @@ import { refreshAccessToken } from "@/module/auth/lib/auth";
 import { useAuthStore } from "@/module/auth/store/auth-store";
 import axios, { AxiosError, AxiosRequestConfig } from "axios";
 
-const AUTH_SKIP_URLS = ["/auth/login", "/auth/register", "/auth/refresh"];
+const AUTH_SKIP_URLS = [
+  "/auth/company/signup",
+  "/auth/token/refresh",
+  "/auth/company/signin",
+];
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BASE_URL,
