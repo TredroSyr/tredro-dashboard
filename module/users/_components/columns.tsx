@@ -9,7 +9,7 @@ import { SubUser } from "../types";
 import { PhoneInput } from "@/components/tredro/phone-input";
 
 // Fallback for any empty/missing field
-const val = (v?: string | null) => (v && v.trim() ? v : "?");
+const val = (v?: string | null) => (v && v.trim() ? v : "-");
 
 export const columns: ColumnDef<SubUser>[] = [
   {
