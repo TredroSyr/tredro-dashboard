@@ -28,6 +28,7 @@ import {
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { ApiErrorResponse } from "@/module/auth/types";
 import { useRouter } from "next/navigation";
+import { useAuthInit } from "@/module/auth/hook/use-token-guard";
 
 const STEPS = [
   { key: "images", label: "الشعار والغلاف" },
