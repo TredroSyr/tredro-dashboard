@@ -6,6 +6,7 @@ import { thmanyahSans } from "@/lib/fonts";
 
 import { Toaster } from "sonner";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
+import WarmupConnection from "@/components/tredro/warmup-connection";
 import ErudaLoader from "@/components/tredro/ErudaLoader";
 
 const geistSans = Geist({
@@ -79,6 +80,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} ${thmanyahSans.variable}  h-full antialiased`}
     >
       <head>
+        <link rel="preconnect" href={process.env.NEXT_PUBLIC_BASE_URL} />
+        <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_BASE_URL} />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -92,6 +95,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className="min-h-full flex flex-col font-thmanyah">
+        {/* <WarmupConnection /> */}
         <QueryProvider>
           {children}
           <AppDownloadDrawer />
