@@ -3,14 +3,30 @@
 import { Switch as SwitchPrimitive } from "@base-ui/react/switch";
 
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function Switch({
   className,
   size = "default",
+  isLoading = false,
   ...props
 }: SwitchPrimitive.Root.Props & {
   size?: "sm" | "default";
+  isLoading?: boolean;
 }) {
+  if (isLoading) {
+    return (
+      <Skeleton
+        data-slot="switch"
+        className={cn(
+          "rounded-full",
+          size === "default" ? "h-[18.4px] w-[32px]" : "h-[14px] w-[24px]",
+          className,
+        )}
+      />
+    );
+  }
+
   return (
     <SwitchPrimitive.Root
       data-slot="switch"

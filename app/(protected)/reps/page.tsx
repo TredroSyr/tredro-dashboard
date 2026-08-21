@@ -15,7 +15,7 @@ export default function SubUsersPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
-  const { data: reps, isLoading } = useRepsQuery();
+  const { data: reps, isLoading, isError, error, refetch } = useRepsQuery();
 
   const repsUser = reps?.data?.reps ?? [];
 
@@ -53,6 +53,11 @@ export default function SubUsersPage() {
       search={search}
       onSearchChange={handleSearchChange}
       isLoading={isLoading}
+      isError={isError}
+      errorMessage={
+        error instanceof Error ? error.message : "حدث خطأ أثناء تحميل البيانات"
+      }
+      onRetry={() => refetch()}
       pagination={{ page, totalPages }}
       onPageChange={setPage}
       renderCard={(user) => (

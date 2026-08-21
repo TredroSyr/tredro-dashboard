@@ -9,6 +9,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   phoneFormatOverrides,
   stripNationalLeadingZero,
@@ -26,6 +27,7 @@ export interface PhoneInputProps {
   id?: string;
   className?: string;
   readOnly?: boolean;
+  isLoading?: boolean;
 }
 
 const editCountries = defaultCountries
@@ -71,6 +73,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       id,
       className,
       readOnly = false,
+      isLoading = false,
     },
     forwardedRef,
   ) {
@@ -112,6 +115,10 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
         setTimeout(() => setCopied(false), 1500);
       } catch {}
     }, [fullNumber]);
+
+    if (isLoading) {
+      return <Skeleton className={cn("h-12 w-full rounded-xl", className)} />;
+    }
 
     if (readOnly) {
       return (

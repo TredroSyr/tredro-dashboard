@@ -58,7 +58,6 @@ const mainNavItems: NavItem[] = [
     href: "/reps",
     icon: "apps_outlined",
     activeIcon: "apps_filled",
-    addable: true,
   },
   {
     key: "customers",
@@ -66,7 +65,7 @@ const mainNavItems: NavItem[] = [
     href: "/customers",
     icon: "users_outlined",
     activeIcon: "users_filled",
-    addable: true,
+    // addable: true,
   },
   {
     key: "products",

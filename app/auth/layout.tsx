@@ -1,5 +1,3 @@
-import GuestOnly from "@/components/provider/GuestOnly";
-import { ProtectedRoute } from "@/guards/protected-route";
 import { PublicRoute } from "@/guards/public-route";
 
 import Image from "next/image";

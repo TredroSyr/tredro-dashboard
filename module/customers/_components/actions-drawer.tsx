@@ -34,15 +34,17 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 
-import { Rep } from "../types";
+import { Customer } from "../types";
 import {
-  useCreateRepMutation,
-  useUpdateRepMutation,
-  useRepQuery,
+  useCreateCustomerMutation,
+  useUpdateCustomerMutation,
+  useCustomerQuery,
 } from "../hooks";
+import { useRepsQuery } from "@/module/reps/hooks";
 import { PhoneInput } from "@/components/tredro/phone-input";
+import { SearchableSelect } from "@/components/tredro/searchable-select";
 
-const APP_URL = "https://tredro-mandoub.vercel.app/";
+const APP_URL = "https://tredro-customer.vercel.app/";
 const CREDENTIALS_AUTO_CLOSE_MS = 5000;
 
 function useIsMobile(breakpoint = 768) {
@@ -62,7 +64,12 @@ function buildSchema(mode: "create" | "edit") {
   return z.object({
     name: z.string().min(1, "الاسم مطلوب"),
     phone: z.string().min(1, "رقم الهاتف مطلوب"),
-    referral_code: z.string().min(1, "كود الإحالة مطلوب"),
+    email: z
+      .string()
+      .email("بريد إلكتروني غير صالح")
+      .optional()
+      .or(z.literal("")),
+    assigned_rep: z.string().optional(),
     password:
       mode === "create"
         ? z.string().min(6, "كلمة المرور يجب ألا تقل عن 6 أحرف")
@@ -75,11 +82,11 @@ function buildSchema(mode: "create" | "edit") {
   });
 }
 
-type RepFormValues = z.infer<ReturnType<typeof buildSchema>>;
+type CustomerFormValues = z.infer<ReturnType<typeof buildSchema>>;
 
-interface RepFormDrawerProps {
+interface CustomerFormDrawerProps {
   mode: "create" | "edit";
-  repId?: number;
+  customerId?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -100,7 +107,7 @@ function buildCredentialsMessage(
   if (mode === "create") {
     return [
       `أهلاً بك ${name} في منصة tredro `,
-      "تم إنشاء حسابك كمندوب بنجاح، وفيما يلي بيانات الدخول الخاصة بك:",
+      "تم إنشاء حسابك كعميل بنجاح، وفيما يلي بيانات الدخول الخاصة بك:",
       `رابط الدخول: ${APP_URL}`,
       `رقم الهاتف: ${phone}`,
       `كلمة المرور: ${password}`,
@@ -194,8 +201,8 @@ function CredentialsDialog({
           </AlertDialogTitle>
           <AlertDialogDescription>
             {credentials?.mode === "create"
-              ? "تم إنشاء حساب المندوب بنجاح، يمكنه تسجيل الدخول إلى التطبيق باستخدام بيانات الاعتماد التالية. يُرجى نسخها وإرسالها إليه."
-              : "تم تعيين كلمة مرور جديدة لحساب المندوب. يُرجى نسخ البيانات وإرسالها إليه."}
+              ? "تم إنشاء حساب العميل بنجاح، يمكنه تسجيل الدخول إلى التطبيق باستخدام بيانات الاعتماد التالية. يُرجى نسخها وإرسالها إليه."
+              : "تم تعيين كلمة مرور جديدة لحساب العميل. يُرجى نسخ البيانات وإرسالها إليه."}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -251,22 +258,37 @@ function CredentialsDialog({
   );
 }
 
-export function RepFormDrawer({
+export function CustomerFormDrawer({
   mode,
-  repId,
+  customerId,
   open,
   onOpenChange,
-}: RepFormDrawerProps) {
+}: CustomerFormDrawerProps) {
   const isMobile = useIsMobile();
   const schema = React.useMemo(() => buildSchema(mode), [mode]);
 
-  const { data: repRes, isLoading: isLoadingRep } = useRepQuery(repId, {
-    enabled: mode === "edit" && open && Boolean(repId),
-  });
-  const rep = repRes?.data.rep as Rep | undefined;
+  const { data: customerRes, isLoading: isLoadingCustomer } = useCustomerQuery(
+    customerId,
+    {
+      enabled: mode === "edit" && open && Boolean(customerId),
+    },
+  );
+  const customer = customerRes?.data.customer as Customer | undefined;
 
-  const { mutate: createRep, isPending: isCreating } = useCreateRepMutation();
-  const { mutate: updateRep, isPending: isUpdating } = useUpdateRepMutation();
+  const { data: repsRes, isLoading: isLoadingReps } = useRepsQuery();
+  const repOptions = React.useMemo(
+    () =>
+      (repsRes?.data?.reps ?? []).map((r) => ({
+        value: String(r.id),
+        label: r.name,
+      })),
+    [repsRes],
+  );
+
+  const { mutate: createCustomer, isPending: isCreating } =
+    useCreateCustomerMutation();
+  const { mutate: updateCustomer, isPending: isUpdating } =
+    useUpdateCustomerMutation();
 
   const isSaving = isCreating || isUpdating;
 
@@ -274,12 +296,13 @@ export function RepFormDrawer({
     null,
   );
 
-  const form = useForm<RepFormValues>({
+  const form = useForm<CustomerFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
       phone: "",
-      referral_code: "",
+      email: "",
+      assigned_rep: "",
       password: "",
       is_active: true,
     },
@@ -294,7 +317,8 @@ export function RepFormDrawer({
       form.reset({
         name: "",
         phone: "",
-        referral_code: "",
+        email: "",
+        assigned_rep: "",
         password: "",
         is_active: true,
       });
@@ -303,32 +327,38 @@ export function RepFormDrawer({
     }
 
     setPhoneReady(false);
-    if (rep) {
+    if (customer) {
       form.reset({
-        name: rep.name,
-        phone: rep.phone,
-        referral_code: rep.referral_code,
+        name: customer.name,
+        phone: customer.phone,
+        email: customer.email ?? "",
+        assigned_rep: customer.assigned_rep
+          ? String(customer.assigned_rep)
+          : "",
         password: "",
-        is_active: rep.is_active,
+        is_active: customer.is_active,
       });
       setPhoneReady(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, rep]);
+  }, [open, mode, customer]);
 
-  const isFieldsLoading = mode === "edit" && (isLoadingRep || !phoneReady);
+  const isFieldsLoading = mode === "edit" && (isLoadingCustomer || !phoneReady);
 
-  const onSubmit = (values: RepFormValues) => {
+  const onSubmit = (values: CustomerFormValues) => {
     const trimmedName = values.name.trim();
     const trimmedPhone = values.phone.trim();
+    const trimmedEmail = values.email?.trim();
+    const repId = values.assigned_rep ? Number(values.assigned_rep) : undefined;
 
     if (mode === "create") {
       const password = values.password as string;
-      createRep(
+      createCustomer(
         {
           name: trimmedName,
           phone: trimmedPhone,
-          referral_code: values.referral_code.trim(),
+          email: trimmedEmail || undefined,
+          assigned_rep: repId,
           password,
           is_active: values.is_active,
         },
@@ -349,12 +379,13 @@ export function RepFormDrawer({
 
     const newPassword = values.password?.trim();
 
-    updateRep(
+    updateCustomer(
       {
-        id: repId as number,
+        id: customerId as number,
         name: trimmedName,
         phone: trimmedPhone,
-        referral_code: values.referral_code.trim(),
+        email: trimmedEmail || undefined,
+        assigned_rep: repId ?? null,
         password: newPassword || undefined,
         is_active: values.is_active,
       },
@@ -376,7 +407,7 @@ export function RepFormDrawer({
 
   const phoneInputKey =
     mode === "edit"
-      ? `edit-${repId}-${phoneReady ? "ready" : "loading"}`
+      ? `edit-${customerId}-${phoneReady ? "ready" : "loading"}`
       : "create";
 
   return (
@@ -409,7 +440,7 @@ export function RepFormDrawer({
                 "
               >
                 <DrawerTitle className="text-right text-base sm:text-lg">
-                  {mode === "create" ? "إضافة مندوب جديد" : "تعديل المندوب"}
+                  {mode === "create" ? "إضافة عميل جديد" : "تعديل العميل"}
                 </DrawerTitle>
                 <div className="flex items-center gap-2 shrink-0">
                   <Button
@@ -445,7 +476,7 @@ export function RepFormDrawer({
                         <Input
                           {...field}
                           isLoading={isFieldsLoading}
-                          placeholder="أدخل اسم المندوب"
+                          placeholder="أدخل اسم العميل"
                           className="text-right h-12"
                         />
                       </FormControl>
@@ -479,32 +510,64 @@ export function RepFormDrawer({
 
                 <FormField
                   control={form.control}
-                  name="referral_code"
+                  name="email"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-right block">
-                        كود الإحالة
+                        البريد الإلكتروني (اختياري)
                       </FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           isLoading={isFieldsLoading}
-                          placeholder="REF123"
+                          placeholder="example@email.com"
                           dir="ltr"
                           className="h-12"
                         />
                       </FormControl>
-                      <FormDescription className="text-right">
-                        كود الإحالة هو رمز خاص بالمندوب، يُستخدم عند تسجيل عميل
-                        جديد عبر التطبيق. فور استخدام العميل لهذا الكود أثناء
-                        التسجيل، يُربط حسابه تلقائيًا بالمندوب صاحب الكود، ويصبح
-                        هذا المندوب هو المسؤول عن متابعة العميل، بحيث تصله جميع
-                        طلباته ومراسلاته اللاحقة.
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="assigned_rep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-right block">
+                        المندوب المسؤول
+                      </FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          options={repOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          loading={isLoadingReps || isFieldsLoading}
+                          placeholder="اختر مندوباً"
+                          searchPlaceholder="ابحث عن مندوب..."
+                          emptyText="لا يوجد مندوبون"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {mode === "edit" && customer?.referral_code_used && (
+                  <FormItem>
+                    <FormLabel className="text-right block">
+                      كود الإحالة المستخدم
+                    </FormLabel>
+                    <div className="h-12 flex items-center px-3 rounded-md border border-border bg-muted/30 text-sm text-muted-foreground">
+                      {customer.referral_code_used}
+                    </div>
+                    <FormDescription className="text-right">
+                      الكود الذي سجّل به العميل عند الانضمام، وهو ثابت لا يتغير
+                      حتى لو تم تعديل المندوب المسؤول لاحقاً.
+                    </FormDescription>
+                  </FormItem>
+                )}
 
                 <FormField
                   control={form.control}
