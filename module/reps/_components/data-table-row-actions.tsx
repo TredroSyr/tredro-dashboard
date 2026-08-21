@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
-import { Trash2, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Trash2, Pencil, Eye } from "lucide-react";
 import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +23,7 @@ export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
   const item = row.original as Rep;
+  const router = useRouter();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [editDrawerOpen, setEditDrawerOpen] = React.useState(false);
@@ -31,6 +33,13 @@ export function DataTableRowActions<TData>({
   return (
     <>
       <div className="flex items-center">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => router.push(`/reps/${item.id}`)}
+        >
+          <Eye className="size-4 text-muted-foreground" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
