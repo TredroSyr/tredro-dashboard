@@ -3,12 +3,14 @@
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { Badge } from "@/components/ui/badge";
 import { columns } from "@/module/customers/_components/columns";
-import { DataTable } from "@/module/customers/_components/data-table";
 
 import { DataTableRowActions } from "@/module/customers/_components/data-table-row-actions";
+import { BulkAssignBar } from "@/module/customers/_components/bulk-assign-bar";
 import { useCustomersQuery } from "@/module/customers/hooks";
+import { Customer } from "@/module/customers/types";
 
 import { useState, useMemo } from "react";
+import { DataTable } from "@/module/customers/_components/data-table";
 
 const PAGE_SIZE = 8;
 
@@ -34,7 +36,7 @@ export default function CustomersPage() {
         c.name.toLowerCase().includes(q) ||
         c.phone.toLowerCase().includes(q) ||
         (c.email ?? "").toLowerCase().includes(q) ||
-        (c.assigned_rep_name ?? "").toLowerCase().includes(q),
+        (c.category ?? "").toLowerCase().includes(q),
     );
   }, [customers, search]);
 
@@ -68,6 +70,14 @@ export default function CustomersPage() {
       onRetry={() => refetch()}
       pagination={{ page, totalPages }}
       onPageChange={setPage}
+      enableRowSelection
+      getRowId={(c: Customer) => String(c.id)}
+      renderBulkActions={({ selectedRows, clearSelection }) => (
+        <BulkAssignBar
+          selectedCustomers={selectedRows}
+          clearSelection={clearSelection}
+        />
+      )}
       renderCard={(customer) => (
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
@@ -84,7 +94,9 @@ export default function CustomersPage() {
             {customer.email ?? "-"}
           </span>
           <span className="text-sm text-muted-foreground">
-            {customer.assigned_rep_name ?? "بدون مندوب"}
+            {customer.assigned_reps_details?.length
+              ? customer.assigned_reps_details.map((r) => r.name).join("، ")
+              : "بدون مندوب"}
           </span>
           <div className="flex justify-end pt-2 border-t border-border">
             <DataTableRowActions row={{ original: customer }} />

@@ -4,6 +4,7 @@ import * as React from "react";
 import {
   ColumnDef,
   ColumnFiltersState,
+  RowSelectionState,
   SortingState,
   flexRender,
   getCoreRowModel,
@@ -22,6 +23,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { DataTableToolbar } from "./data-table-toolbar";
 import { DataTablePagination } from "./data-table-pagination";
@@ -40,6 +42,12 @@ interface DataTableProps<TData, TValue> {
   onPageChange?: (page: number) => void;
   renderCard?: (row: TData) => React.ReactNode;
   actionsColumnId?: string;
+  enableRowSelection?: boolean;
+  getRowId?: (row: TData) => string;
+  renderBulkActions?: (props: {
+    selectedRows: TData[];
+    clearSelection: () => void;
+  }) => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -56,25 +64,60 @@ export function DataTable<TData, TValue>({
   onPageChange,
   renderCard,
   actionsColumnId = "actions",
+  enableRowSelection = false,
+  getRowId,
+  renderBulkActions,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
+  const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+
+  const tableColumns = React.useMemo(() => {
+    if (!enableRowSelection) return columns;
+    const selectColumn: ColumnDef<TData, TValue> = {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+        />
+      ),
+    };
+    return [selectColumn, ...columns];
+  }, [columns, enableRowSelection]);
 
   const table = useReactTable({
     data,
-    columns,
-    state: { sorting, columnFilters },
+    columns: tableColumns,
+    state: { sorting, columnFilters, rowSelection },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
+    onRowSelectionChange: setRowSelection,
+    getRowId: getRowId ? (row) => getRowId(row) : undefined,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     manualPagination: true,
+    enableRowSelection,
   });
 
   const rows = table.getRowModel().rows;
+  const selectedRows = table
+    .getFilteredSelectedRowModel()
+    .rows.map((r) => r.original);
+
+  const clearSelection = () => setRowSelection({});
 
   return (
     <div className="rounded-md border border-border">
@@ -84,6 +127,12 @@ export function DataTable<TData, TValue>({
         search={search}
         onSearchChange={onSearchChange}
       />
+
+      {enableRowSelection && selectedRows.length > 0 && renderBulkActions && (
+        <div className="px-6 py-3 border-b border-border bg-muted/30">
+          {renderBulkActions({ selectedRows, clearSelection })}
+        </div>
+      )}
 
       <div className="hidden md:block px-6">
         <Table>
@@ -106,7 +155,7 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {isError ? (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-40">
+                <TableCell colSpan={tableColumns.length} className="h-40">
                   <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
                     <AlertCircle className="h-8 w-8 text-destructive" />
                     <p className="text-sm text-gray-500">
@@ -129,7 +178,7 @@ export function DataTable<TData, TValue>({
             ) : isLoading ? (
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i} className="border-b border-border">
-                  {columns.map((_, j) => (
+                  {tableColumns.map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton className="h-8 w-full" />
                     </TableCell>
@@ -138,7 +187,11 @@ export function DataTable<TData, TValue>({
               ))
             ) : rows?.length ? (
               rows.map((row) => (
-                <TableRow key={row.id} className="border-b border-border">
+                <TableRow
+                  key={row.id}
+                  className="border-b border-border"
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
@@ -152,7 +205,7 @@ export function DataTable<TData, TValue>({
             ) : (
               <TableRow>
                 <TableCell
-                  colSpan={columns.length}
+                  colSpan={tableColumns.length}
                   className="h-24 text-center text-sm text-gray-500"
                 >
                   لا توجد نتائج
@@ -237,7 +290,9 @@ function DefaultCardBody<TData>({
   actionsColumnId: string;
 }) {
   const cells = row.getVisibleCells();
-  const contentCells = cells.filter((c) => c.column.id !== actionsColumnId);
+  const contentCells = cells.filter(
+    (c) => c.column.id !== actionsColumnId && c.column.id !== "select",
+  );
   const actionsCell = cells.find((c) => c.column.id === actionsColumnId);
 
   return (

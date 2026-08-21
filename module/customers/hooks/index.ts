@@ -1,13 +1,21 @@
 "use client";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listCustomers,
   getCustomer,
   createCustomer,
   updateCustomer,
   deactivateCustomer,
+  assignRepsToCustomer,
+  removeRepsFromCustomer,
+  importCustomersExcel,
 } from "../api";
-import { CreateCustomerPayload, UpdateCustomerPayload } from "../types";
+import {
+  CreateCustomerPayload,
+  UpdateCustomerPayload,
+  AssignRepsPayload,
+  RemoveRepsPayload,
+} from "../types";
 
 export const useCustomersQuery = () =>
   useQuery({
@@ -49,6 +57,36 @@ export const useDeactivateCustomerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deactivateCustomer(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+};
+
+export const useAssignRepsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: AssignRepsPayload) => assignRepsToCustomer(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+};
+
+export const useRemoveRepsMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: RemoveRepsPayload) => removeRepsFromCustomer(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+};
+
+export const useImportCustomersExcelMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (file: File) => importCustomersExcel(file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },

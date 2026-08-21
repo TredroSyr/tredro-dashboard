@@ -3,6 +3,9 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/module/reps/_components/data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
+import { AssignRepCell } from "./assign-rep-cell";
+import { EditableNameCell } from "./editable-name-cell";
+import { CategoryCell } from "./category-cell";
 
 import { Badge } from "@/components/ui/badge";
 import { Customer } from "../types";
@@ -21,11 +24,7 @@ export const columns: ColumnDef<Customer>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="الاسم" />
     ),
-    cell: ({ row }) => (
-      <span className="text-sm font-medium text-foreground">
-        {val(row.original.name)}
-      </span>
-    ),
+    cell: ({ row }) => <EditableNameCell customer={row.original} />,
   },
   {
     accessorKey: "phone",
@@ -46,41 +45,41 @@ export const columns: ColumnDef<Customer>[] = [
     ),
   },
   {
-    accessorKey: "assigned_rep_name",
+    accessorKey: "category",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="المندوب" />
+      <DataTableColumnHeader column={column} title="التصنيف" />
     ),
-    cell: ({ row }) => (
-      <span className="text-sm font-medium text-foreground">
-        {val(row.original.assigned_rep_name)}
-      </span>
-    ),
+    cell: ({ row }) => <CategoryCell customer={row.original} />,
   },
   {
-    accessorKey: "referral_code_used",
+    id: "assigned_reps",
     header: ({ column }) => (
-      <DataTableColumnHeader
-        column={column}
-        title="كود الإحالة"
-        description="الكود الذي استخدمه العميل عند التسجيل، ثابت ولا يتغير"
-      />
+      <DataTableColumnHeader column={column} title="المندوبون" />
     ),
-    cell: ({ row }) => (
-      <span className="text-sm font-medium" dir="ltr">
-        {val(row.original.referral_code_used)}
-      </span>
-    ),
+    cell: ({ row }) => <AssignRepCell customer={row.original} />,
   },
   {
     accessorKey: "is_active",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="الحالة" />
+      <DataTableColumnHeader
+        column={column}
+        title="الحالة"
+        type="filter"
+        options={[
+          { label: "مفعّل", value: "true" },
+          { label: "موقوف", value: "false" },
+        ]}
+      />
     ),
     cell: ({ row }) => (
       <Badge variant={row.original.is_active ? "default" : "destructive"}>
         {row.original.is_active ? "مفعّل" : "موقوف"}
       </Badge>
     ),
+    filterFn: (row, id, filterValue: string[]) => {
+      if (!filterValue?.length) return true;
+      return filterValue.includes(String(row.getValue(id)));
+    },
   },
   {
     id: "actions",
