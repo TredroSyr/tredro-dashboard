@@ -37,9 +37,12 @@ export function RepDetailClient({ repId }: { repId: string }) {
       <RepDetailTabs
         value={activeTab}
         onValueChange={setActiveTab}
-        counts={dummyCounts}
+        counts={{ invoices: 24, orders: 12, customers: 340 }}
+        trends={{
+          invoices: { direction: "up", percentage: 12 },
+          orders: { direction: "down", percentage: 5 },
+        }}
       />
-
       <div className="px-6 pb-6">
         {activeTab === "overview" && (
           <div className="text-sm text-muted-foreground">محتوى نظرة عامة</div>
