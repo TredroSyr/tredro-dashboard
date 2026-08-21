@@ -4,18 +4,14 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { RepDetailHeader } from "./rep-detail-header";
 import { RepDetailTabs } from "./rep-detail-tabs";
+import RepOverview from "./rep-overview";
+import { CustomersView } from "@/module/customers/_components/customers-view";
 
 const dummyRep = {
   name: "أحمد الشريف",
   phone: "+963 987 654 321",
   isOnline: true,
   customersCount: 24,
-};
-
-const dummyCounts = {
-  invoices: 18,
-  orders: 32,
-  customers: 24,
 };
 
 type TabValue = "overview" | "invoices" | "orders" | "customers";
@@ -44,9 +40,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
         }}
       />
       <div className="px-6 pb-6">
-        {activeTab === "overview" && (
-          <div className="text-sm text-muted-foreground">محتوى نظرة عامة</div>
-        )}
+        {activeTab === "overview" && <RepOverview />}
         {activeTab === "invoices" && (
           <div className="text-sm text-muted-foreground">محتوى الفواتير</div>
         )}
@@ -54,7 +48,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
           <div className="text-sm text-muted-foreground">محتوى الطلبات</div>
         )}
         {activeTab === "customers" && (
-          <div className="text-sm text-muted-foreground">محتوى الزبائن</div>
+          <CustomersView repId={repId} hideBulkAssign />
         )}
       </div>
     </div>
