@@ -716,7 +716,7 @@ export default function RepOverview() {
       dir="rtl"
       className="w-full bg-background min-h-screen p-4 sm:p-6 lg:p-8"
     >
-      <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
+      <div className="max-w-7xl mx-auto flex flex-col gap-5 sm:gap-6">
         <KpiRow loading={loading} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
