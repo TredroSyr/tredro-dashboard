@@ -6,9 +6,9 @@ import { DataTableRowActions } from "./data-table-row-actions";
 import { AssignRepCell } from "./assign-rep-cell";
 import { EditableTextCell } from "./editable-text-cell";
 import { EditablePhoneCell } from "./editable-phone-cell";
+import { EditableStatusCell } from "./editable-status-cell";
 import { CategoryCell } from "./category-cell";
 
-import { Badge } from "@/components/ui/badge";
 import { Customer } from "../types";
 
 export const columns: ColumnDef<Customer>[] = [
@@ -86,14 +86,7 @@ export const columns: ColumnDef<Customer>[] = [
         ]}
       />
     ),
-    cell: ({ row }) => (
-      <Badge
-        variant={row.original.is_active ? "default" : "destructive"}
-        className="font-normal"
-      >
-        {row.original.is_active ? "مفعّل" : "موقوف"}
-      </Badge>
-    ),
+    cell: ({ row }) => <EditableStatusCell customer={row.original} />,
     filterFn: (row, id, filterValue: string[]) => {
       if (!filterValue?.length) return true;
       return filterValue.includes(String(row.getValue(id)));

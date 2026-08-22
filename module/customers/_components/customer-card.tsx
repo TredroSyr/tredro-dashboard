@@ -1,11 +1,15 @@
 "use client";
 import * as React from "react";
-import { Badge } from "@/components/ui/badge";
 import { PhoneInput } from "@/components/tredro/phone-input";
+import { IndeterminateCheckbox } from "@/module/reps/_components/indeterminate-checkbox";
 import { DataTableRowActions } from "./data-table-row-actions";
+import { AssignRepCell } from "./assign-rep-cell";
+import { CategoryCell } from "./category-cell";
+import { EditableTextCell } from "./editable-text-cell";
+import { EditablePhoneCell } from "./editable-phone-cell";
+import { EditableStatusCell } from "./editable-status-cell";
 import { Customer } from "../types";
-import { useLongPress } from "../hook/use-long-press";
-import { IndeterminateCheckbox } from "./indeterminate-checkbox";
+import { useLongPress } from "./use-long-press";
 
 interface CustomerCardProps {
   customer: Customer;
@@ -26,43 +30,66 @@ export function CustomerCard({
     onEnterSelectionMode();
   }, 500);
 
-  const handleClick = () => {
-    if (longPress.wasLongPress()) return;
-    if (selectionMode) onToggleSelect();
-  };
-
   return (
-    <div
-      {...longPress}
-      onClick={handleClick}
-      className="flex flex-col gap-2 select-none"
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    // ملاحظة مهمة: هالـ div ما إله onClick إطلاقًا.
+    // التحديد الجماعي بينفعّل فقط عبر:
+    //  1) الضغط الطويل (long-press) على أي مكان بالكارت
+    //  2) الـ checkbox نفسها بعد ما ينفعّل وضع التحديد
+    // وهيك كل الحقول (اسم/هاتف/تصنيف/مندوب/حالة) بتضل شغالة عادي
+    // بدون أي تدخل أو stopPropagation، بالضبط متل الجدول.
+    <div {...longPress} className="flex flex-col gap-3 select-none">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {selectionMode && (
             <IndeterminateCheckbox
               checked={selected}
               onChange={onToggleSelect}
             />
           )}
-          <span className="text-sm font-normal text-foreground">
-            {customer.name}
-          </span>
+          <EditableTextCell
+            value={customer.name}
+            onSave={(v) => ({ id: customer.id, name: v })}
+          />
         </div>
-        <Badge variant={customer.is_active ? "default" : "destructive"}>
-          {customer.is_active ? "مفعّل" : "موقوف"}
-        </Badge>
+        <EditableStatusCell customer={customer} />
       </div>
 
-      <PhoneInput value={customer.phone} readOnly />
-      <span className="text-sm font-normal text-muted-foreground" dir="ltr">
-        {customer.email ?? "-"}
-      </span>
-      <span className="text-sm font-normal text-muted-foreground">
-        {customer.assigned_reps_details?.length
-          ? customer.assigned_reps_details.map((r) => r.name).join("، ")
-          : "بدون مندوب"}
-      </span>
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-normal text-muted-foreground shrink-0">
+            الهاتف
+          </span>
+          <EditablePhoneCell customer={customer} />
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-normal text-muted-foreground shrink-0">
+            البريد
+          </span>
+          <EditableTextCell
+            value={customer.email ?? ""}
+            placeholder="-"
+            dir="ltr"
+            onSave={(v) => ({ id: customer.id, email: v })}
+          />
+        </div>
+
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-normal text-muted-foreground shrink-0">
+            التصنيف
+          </span>
+          <CategoryCell customer={customer} />
+        </div>
+
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-xs font-normal text-muted-foreground shrink-0 pt-1">
+            المندوبون
+          </span>
+          <div className="flex justify-end">
+            <AssignRepCell customer={customer} />
+          </div>
+        </div>
+      </div>
 
       {!selectionMode && (
         <div className="flex justify-end pt-2 border-t border-border">
