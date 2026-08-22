@@ -4,34 +4,41 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "@/module/reps/_components/data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { AssignRepCell } from "./assign-rep-cell";
-import { EditableNameCell } from "./editable-name-cell";
+import { EditableTextCell } from "./editable-text-cell";
+import { EditablePhoneCell } from "./editable-phone-cell";
 import { CategoryCell } from "./category-cell";
 
 import { Badge } from "@/components/ui/badge";
 import { Customer } from "../types";
-import { PhoneInput } from "@/components/tredro/phone-input";
-
-const val = (v?: string | null) => (v && v.trim() ? v : "-");
 
 export const columns: ColumnDef<Customer>[] = [
   {
     id: "index",
     header: ({ column }) => <DataTableColumnHeader column={column} title="#" />,
-    cell: ({ row }) => <Badge variant="outline">{row.index + 1}</Badge>,
+    cell: ({ row }) => (
+      <span className="text-sm font-normal text-muted-foreground">
+        {row.index + 1}
+      </span>
+    ),
   },
   {
     accessorKey: "name",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="الاسم" />
     ),
-    cell: ({ row }) => <EditableNameCell customer={row.original} />,
+    cell: ({ row }) => (
+      <EditableTextCell
+        value={row.original.name}
+        onSave={(v) => ({ id: row.original.id, name: v })}
+      />
+    ),
   },
   {
     accessorKey: "phone",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="رقم الهاتف" />
     ),
-    cell: ({ row }) => <PhoneInput value={row.original.phone} readOnly />,
+    cell: ({ row }) => <EditablePhoneCell customer={row.original} />,
   },
   {
     accessorKey: "email",
@@ -39,17 +46,25 @@ export const columns: ColumnDef<Customer>[] = [
       <DataTableColumnHeader column={column} title="البريد الإلكتروني" />
     ),
     cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground" dir="ltr">
-        {val(row.original.email)}
-      </span>
+      <EditableTextCell
+        value={row.original.email ?? ""}
+        placeholder="-"
+        dir="ltr"
+        onSave={(v) => ({ id: row.original.id, email: v })}
+      />
     ),
   },
   {
-    accessorKey: "category",
+    id: "category",
+    accessorFn: (row) => row.category_details?.id ?? null,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="التصنيف" />
     ),
     cell: ({ row }) => <CategoryCell customer={row.original} />,
+    filterFn: (row, id, filterValue: string[]) => {
+      if (!filterValue?.length) return true;
+      return filterValue.includes(String(row.getValue(id)));
+    },
   },
   {
     id: "assigned_reps",
@@ -72,7 +87,10 @@ export const columns: ColumnDef<Customer>[] = [
       />
     ),
     cell: ({ row }) => (
-      <Badge variant={row.original.is_active ? "default" : "destructive"}>
+      <Badge
+        variant={row.original.is_active ? "default" : "destructive"}
+        className="font-normal"
+      >
         {row.original.is_active ? "مفعّل" : "موقوف"}
       </Badge>
     ),

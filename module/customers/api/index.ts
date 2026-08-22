@@ -6,6 +6,8 @@ import {
   UpdateCustomerPayload,
   AssignRepsPayload,
   RemoveRepsPayload,
+  BulkActionPayload,
+  BulkActionResponse,
   ImportExcelResponse,
   ApiEnvelope,
 } from "../types";
@@ -68,6 +70,16 @@ export const removeRepsFromCustomer = async (
   const response = await api.post<CustomerResponse>(
     `companies/customers/${payload.id}/remove-reps/`,
     payload.rep_ids ? { rep_ids: payload.rep_ids } : {},
+  );
+  return response.data;
+};
+
+export const bulkAction = async (
+  payload: BulkActionPayload,
+): Promise<BulkActionResponse> => {
+  const response = await api.post<BulkActionResponse>(
+    "companies/customers/bulk-action/",
+    payload,
   );
   return response.data;
 };

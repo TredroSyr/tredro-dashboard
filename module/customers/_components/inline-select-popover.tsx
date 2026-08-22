@@ -25,12 +25,14 @@ interface InlineSelectPopoverProps {
   trigger: React.ReactNode;
   options: InlineOption[];
   value?: string;
+  initialQuery?: string;
   onSelect: (value: string) => void;
   loading?: boolean;
   searchPlaceholder?: string;
   emptyText?: string;
   allowCreate?: boolean;
   createLabel?: (query: string) => string;
+  onCreateRequest?: (query: string) => void;
   align?: "start" | "center" | "end";
 }
 
@@ -38,16 +40,22 @@ export function InlineSelectPopover({
   trigger,
   options,
   value,
+  initialQuery = "",
   onSelect,
   loading,
   searchPlaceholder = "ابحث...",
   emptyText = "لا توجد نتائج",
   allowCreate = false,
   createLabel = (q) => `إضافة "${q}"`,
+  onCreateRequest,
   align = "start",
 }: InlineSelectPopoverProps) {
   const [open, setOpen] = React.useState(false);
-  const [query, setQuery] = React.useState("");
+  const [query, setQuery] = React.useState(initialQuery);
+
+  React.useEffect(() => {
+    if (open) setQuery(initialQuery);
+  }, [open, initialQuery]);
 
   const filtered = options.filter((o) =>
     o.label.toLowerCase().includes(query.trim().toLowerCase()),
@@ -60,6 +68,18 @@ export function InlineSelectPopover({
     onSelect(v);
     setOpen(false);
     setQuery("");
+  };
+
+  const handleCreate = () => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    if (onCreateRequest) {
+      onCreateRequest(trimmed);
+      setOpen(false);
+      setQuery("");
+    } else {
+      handleSelect(trimmed);
+    }
   };
 
   return (
@@ -84,7 +104,7 @@ export function InlineSelectPopover({
           />
           <CommandList>
             {loading ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">
+              <div className="py-6 text-center text-sm font-normal text-muted-foreground">
                 جارِ التحميل...
               </div>
             ) : (
@@ -103,14 +123,18 @@ export function InlineSelectPopover({
                           value === option.value ? "opacity-100" : "opacity-0",
                         )}
                       />
-                      {option.label}
+                      <span className="text-sm font-normal">
+                        {option.label}
+                      </span>
                     </CommandItem>
                   ))}
                 </CommandGroup>
                 {allowCreate && query.trim() && !exactMatch && (
                   <CommandGroup>
-                    <CommandItem onSelect={() => handleSelect(query.trim())}>
-                      {createLabel(query.trim())}
+                    <CommandItem onSelect={handleCreate}>
+                      <span className="text-sm font-normal">
+                        {createLabel(query.trim())}
+                      </span>
                     </CommandItem>
                   </CommandGroup>
                 )}

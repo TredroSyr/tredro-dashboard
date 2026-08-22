@@ -35,12 +35,21 @@ export function AssignRepCell({ customer }: { customer: Customer }) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-1 max-w-[220px]">
+    <div className="flex flex-wrap items-center gap-1 max-w-[240px]">
       {assignedReps.length === 0 && (
-        <span className="text-sm text-muted-foreground">بدون مندوب</span>
+        <span className="text-sm font-normal text-muted-foreground">
+          بدون مندوب
+        </span>
       )}
       {assignedReps.map((rep) => (
-        <Badge key={rep.id} variant="secondary" className="gap-1 pr-1">
+        <Badge
+          key={rep.id}
+          variant="secondary"
+          className="gap-1.5 pr-1 font-normal"
+        >
+          <span className="flex size-4 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-medium text-primary">
+            {rep.name.trim().charAt(0)}
+          </span>
           {rep.name}
           <button
             type="button"

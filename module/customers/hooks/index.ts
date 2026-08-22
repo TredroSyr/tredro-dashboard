@@ -8,6 +8,7 @@ import {
   deactivateCustomer,
   assignRepsToCustomer,
   removeRepsFromCustomer,
+  bulkAction,
   importCustomersExcel,
 } from "../api";
 import {
@@ -15,6 +16,7 @@ import {
   UpdateCustomerPayload,
   AssignRepsPayload,
   RemoveRepsPayload,
+  BulkActionPayload,
 } from "../types";
 
 export const useCustomersQuery = () =>
@@ -77,6 +79,16 @@ export const useRemoveRepsMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: RemoveRepsPayload) => removeRepsFromCustomer(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    },
+  });
+};
+
+export const useBulkActionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: BulkActionPayload) => bulkAction(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
     },

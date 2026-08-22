@@ -23,10 +23,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { DataTableToolbar } from "./data-table-toolbar";
 import { DataTablePagination } from "./data-table-pagination";
+import { IndeterminateCheckbox } from "./indeterminate-checkbox";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -48,6 +48,7 @@ interface DataTableProps<TData, TValue> {
     selectedRows: TData[];
     clearSelection: () => void;
   }) => React.ReactNode;
+  renderMobileHeader?: () => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -67,6 +68,7 @@ export function DataTable<TData, TValue>({
   enableRowSelection = false,
   getRowId,
   renderBulkActions,
+  renderMobileHeader,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -78,19 +80,11 @@ export function DataTable<TData, TValue>({
     if (!enableRowSelection) return columns;
     const selectColumn: ColumnDef<TData, TValue> = {
       id: "select",
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && "indeterminate")
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        />
-      ),
+      header: () => null,
       cell: ({ row }) => (
-        <Checkbox
+        <IndeterminateCheckbox
           checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          onChange={(value) => row.toggleSelected(value)}
         />
       ),
     };
@@ -113,6 +107,23 @@ export function DataTable<TData, TValue>({
   });
 
   const rows = table.getRowModel().rows;
+  const pageRowIds = React.useMemo(() => rows.map((r) => r.id), [rows]);
+  const selectedIdsInPage = pageRowIds.filter((id) => rowSelection[id]);
+  const allPageSelected =
+    pageRowIds.length > 0 && selectedIdsInPage.length === pageRowIds.length;
+  const somePageSelected = selectedIdsInPage.length > 0 && !allPageSelected;
+
+  const toggleSelectAllPage = (value: boolean) => {
+    setRowSelection((prev) => {
+      const next = { ...prev };
+      pageRowIds.forEach((id) => {
+        if (value) next[id] = true;
+        else delete next[id];
+      });
+      return next;
+    });
+  };
+
   const selectedRows = table
     .getFilteredSelectedRowModel()
     .rows.map((r) => r.original);
@@ -129,26 +140,39 @@ export function DataTable<TData, TValue>({
       />
 
       {enableRowSelection && selectedRows.length > 0 && renderBulkActions && (
-        <div className="px-6 py-3 border-b border-border bg-muted/30">
+        <div className="px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
           {renderBulkActions({ selectedRows, clearSelection })}
         </div>
       )}
 
-      <div className="hidden md:block px-6">
+      <div className="hidden lg:block px-6 overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-b border-border">
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} colSpan={header.colSpan}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                  </TableHead>
-                ))}
+                {headerGroup.headers.map((header) => {
+                  if (header.column.id === "select") {
+                    return (
+                      <TableHead key={header.id} className="w-10">
+                        <IndeterminateCheckbox
+                          checked={allPageSelected}
+                          indeterminate={somePageSelected}
+                          onChange={toggleSelectAllPage}
+                        />
+                      </TableHead>
+                    );
+                  }
+                  return (
+                    <TableHead key={header.id} colSpan={header.colSpan}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
@@ -158,7 +182,7 @@ export function DataTable<TData, TValue>({
                 <TableCell colSpan={tableColumns.length} className="h-40">
                   <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
                     <AlertCircle className="h-8 w-8 text-destructive" />
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm font-normal text-gray-500">
                       {errorMessage ?? "حدث خطأ أثناء تحميل البيانات"}
                     </p>
                     {onRetry && (
@@ -206,7 +230,7 @@ export function DataTable<TData, TValue>({
               <TableRow>
                 <TableCell
                   colSpan={tableColumns.length}
-                  className="h-24 text-center text-sm text-gray-500"
+                  className="h-24 text-center text-sm font-normal text-gray-500"
                 >
                   لا توجد نتائج
                 </TableCell>
@@ -216,12 +240,14 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="md:hidden px-4 py-3 flex flex-col gap-3">
+      <div className="lg:hidden px-4 py-3 flex flex-col gap-3">
+        {renderMobileHeader?.()}
+
         {isError ? (
           <Card>
             <CardContent className="p-6 flex flex-col items-center justify-center gap-3 text-center">
               <AlertCircle className="h-8 w-8 text-destructive" />
-              <p className="text-sm text-gray-500">
+              <p className="text-sm font-normal text-gray-500">
                 {errorMessage ?? "حدث خطأ أثناء تحميل البيانات"}
               </p>
               {onRetry && (
@@ -263,7 +289,7 @@ export function DataTable<TData, TValue>({
             </Card>
           ))
         ) : (
-          <p className="text-center text-sm text-gray-500 py-10">
+          <p className="text-center text-sm font-normal text-gray-500 py-10">
             لا توجد نتائج
           </p>
         )}
@@ -304,10 +330,10 @@ function DefaultCardBody<TData>({
           return (
             <div
               key={cell.id}
-              className="flex items-center justify-between gap-2 text-sm"
+              className="flex items-center justify-between gap-2 text-sm font-normal"
             >
               <span className="text-gray-500 shrink-0">{label}</span>
-              <span className="font-medium text-foreground text-right">
+              <span className="text-foreground text-right">
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </span>
             </div>

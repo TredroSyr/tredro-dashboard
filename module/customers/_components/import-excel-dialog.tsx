@@ -6,6 +6,7 @@ import {
   Upload,
   CheckCircle2,
   XCircle,
+  AlertTriangle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,15 +19,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { downloadCustomersTemplate } from "../api";
 import { useImportCustomersExcelMutation } from "../hooks";
 import { ImportExcelResult } from "../types";
+import { FailedRowsEditor } from "./failed-rows-editor";
 
 export function ImportExcelDialog() {
   const [open, setOpen] = React.useState(false);
   const [isDownloading, setIsDownloading] = React.useState(false);
   const [result, setResult] = React.useState<ImportExcelResult | null>(null);
+  const [generalError, setGeneralError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const { mutate: importExcel, isPending: isImporting } =
@@ -51,15 +53,29 @@ export function ImportExcelDialog() {
     const file = e.target.files?.[0];
     if (!file) return;
     setResult(null);
+    setGeneralError(null);
     importExcel(file, {
       onSuccess: (res) => setResult(res.data),
+      onError: (err: any) => {
+        const responseData = err?.response?.data;
+        const details = responseData?.errors?.details;
+        if (details) {
+          setResult(details);
+          setGeneralError(responseData?.message ?? null);
+        } else {
+          setGeneralError(responseData?.message ?? "حدث خطأ أثناء الاستيراد");
+        }
+      },
     });
     e.target.value = "";
   };
 
   const handleOpenChange = (o: boolean) => {
     setOpen(o);
-    if (!o) setResult(null);
+    if (!o) {
+      setResult(null);
+      setGeneralError(null);
+    }
   };
 
   return (
@@ -70,17 +86,17 @@ export function ImportExcelDialog() {
           استيراد Excel
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-right">
             استيراد العملاء من Excel
           </DialogTitle>
         </DialogHeader>
 
-        {!result ? (
+        {!result && !generalError ? (
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2 rounded-md border border-border p-3 text-right">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm font-normal text-muted-foreground">
                 حمّل القالب أولاً، عبّئ بيانات العملاء، ثم ارفع الملف. الصفوف
                 غير الصحيحة تُستثنى مع تقرير مفصّل، بينما تُستورد بقية الصفوف
                 بنجاح.
@@ -115,50 +131,68 @@ export function ImportExcelDialog() {
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 justify-center">
-              <Badge variant="default" className="gap-1.5">
-                <CheckCircle2 className="size-3.5" />
-                {result.successful} نجح
-              </Badge>
-              {result.failed > 0 && (
-                <Badge variant="destructive" className="gap-1.5">
-                  <XCircle className="size-3.5" />
-                  {result.failed} فشل
-                </Badge>
-              )}
-              <span className="text-sm text-muted-foreground">
-                من أصل {result.total_rows} صف
-              </span>
-            </div>
-
-            {result.errors.length > 0 && (
-              <ScrollArea className="h-64 rounded-md border border-border p-3">
-                <div className="flex flex-col gap-3">
-                  {result.errors.map((err) => (
-                    <div
-                      key={err.row}
-                      className="text-sm border-b border-border pb-2 last:border-0 text-right"
-                    >
-                      <span className="font-medium text-foreground">
-                        صف {err.row}
-                      </span>
-                      <div className="flex flex-col gap-0.5 mt-1">
-                        {Object.entries(err.errors).map(([field, msgs]) => (
-                          <span
-                            key={field}
-                            className="text-destructive text-xs"
-                          >
-                            {field}: {msgs.join("، ")}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </ScrollArea>
+            {generalError && (
+              <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3 text-right">
+                <AlertTriangle className="size-4 shrink-0 text-destructive mt-0.5" />
+                <span className="text-sm font-normal text-destructive">
+                  {generalError}
+                </span>
+              </div>
             )}
 
-            <Button variant="outline" onClick={() => setResult(null)}>
+            {result && (
+              <>
+                <div className="flex items-center gap-3 justify-center flex-wrap">
+                  <Badge variant="default" className="gap-1.5 font-normal">
+                    <CheckCircle2 className="size-3.5" />
+                    {result.successful} نجح
+                  </Badge>
+                  {result.failed > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="gap-1.5 font-normal"
+                    >
+                      <XCircle className="size-3.5" />
+                      {result.failed} فشل
+                    </Badge>
+                  )}
+                  <span className="text-sm font-normal text-muted-foreground">
+                    من أصل {result.total_rows} صف
+                  </span>
+                </div>
+
+                {result.errors.length > 0 && (
+                  <FailedRowsEditor
+                    errors={result.errors}
+                    onRetryComplete={(res) => {
+                      setResult(res);
+                      setGeneralError(null);
+                    }}
+                    onRetryError={(err: any) => {
+                      const responseData = err?.response?.data;
+                      const details = responseData?.errors?.details;
+                      if (details) {
+                        setResult(details);
+                        setGeneralError(responseData?.message ?? null);
+                      } else {
+                        setGeneralError(
+                          responseData?.message ??
+                            "حدث خطأ أثناء إعادة المحاولة",
+                        );
+                      }
+                    }}
+                  />
+                )}
+              </>
+            )}
+
+            <Button
+              variant="outline"
+              onClick={() => {
+                setResult(null);
+                setGeneralError(null);
+              }}
+            >
               استيراد ملف آخر
             </Button>
           </div>

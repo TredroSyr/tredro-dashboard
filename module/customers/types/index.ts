@@ -2,7 +2,14 @@ export interface AssignedRepDetail {
   id: number;
   name: string;
   phone: string;
-  company_name?: string;
+  company_id?: number;
+  referral_code?: string;
+}
+
+export interface CategoryDetail {
+  id: number;
+  name: string;
+  is_global: boolean;
 }
 
 export interface Customer {
@@ -10,7 +17,7 @@ export interface Customer {
   name: string;
   phone: string;
   email: string | null;
-  category: string | null;
+  category_details: CategoryDetail | null;
   assigned_reps_details: AssignedRepDetail[];
   referral_code_used: string | null;
   is_active: boolean;
@@ -22,7 +29,7 @@ export interface CreateCustomerPayload {
   name: string;
   phone: string;
   email?: string;
-  category?: string;
+  category?: number | null;
   assigned_reps?: number[];
   is_active?: boolean;
 }
@@ -32,7 +39,7 @@ export interface UpdateCustomerPayload {
   name?: string;
   phone?: string;
   email?: string;
-  category?: string;
+  category?: number | null;
   assigned_reps?: number[];
   is_active?: boolean;
 }
@@ -45,6 +52,27 @@ export interface AssignRepsPayload {
 export interface RemoveRepsPayload {
   id: number;
   rep_ids?: number[];
+}
+
+export type BulkActionType =
+  | "assign_rep"
+  | "assign_category"
+  | "remove_rep"
+  | "remove_category"
+  | "delete";
+
+export interface BulkActionPayload {
+  action: BulkActionType;
+  customer_ids: number[];
+  rep_id?: number;
+  category_id?: number;
+}
+
+export interface BulkActionResult {
+  total: number;
+  successful: number;
+  failed: number;
+  failed_ids: number[];
 }
 
 export interface ImportError {
@@ -76,4 +104,5 @@ export interface ApiEnvelope<T> {
 
 export type CustomersListResponse = ApiEnvelope<{ customers: Customer[] }>;
 export type CustomerResponse = ApiEnvelope<{ customer: Customer }>;
+export type BulkActionResponse = ApiEnvelope<BulkActionResult>;
 export type ImportExcelResponse = ApiEnvelope<ImportExcelResult>;

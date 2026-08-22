@@ -3,7 +3,7 @@ import * as React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { X } from "lucide-react";
+import { ChevronsUpDown, Loader2, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,9 +32,13 @@ import {
   useUpdateCustomerMutation,
   useCustomerQuery,
 } from "../hooks";
+
 import { useRepsQuery } from "@/module/reps/hooks";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
+import { CategoryPickerPopover } from "./category-picker-popover";
+import { cn } from "@/lib/utils";
+import { useCategoriesQuery } from "../hooks/categories";
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = React.useState(false);
@@ -97,6 +101,9 @@ export function CustomerFormDrawer({
     [repsRes],
   );
 
+  const { data: categoriesRes } = useCategoriesQuery();
+  const categories = categoriesRes?.data?.categories ?? [];
+
   const { mutate: createCustomer, isPending: isCreating } =
     useCreateCustomerMutation();
   const { mutate: updateCustomer, isPending: isUpdating } =
@@ -142,7 +149,9 @@ export function CustomerFormDrawer({
         name: customer.name,
         phone: customer.phone,
         email: customer.email ?? "",
-        category: customer.category ?? "",
+        category: customer.category_details
+          ? String(customer.category_details.id)
+          : "",
         assigned_reps: (customer.assigned_reps_details ?? []).map((r) =>
           String(r.id),
         ),
@@ -160,7 +169,7 @@ export function CustomerFormDrawer({
     const trimmedName = values.name.trim();
     const trimmedPhone = values.phone.trim();
     const trimmedEmail = values.email?.trim();
-    const trimmedCategory = values.category?.trim();
+    const categoryId = values.category ? Number(values.category) : null;
     const repIds = values.assigned_reps.map((v) => Number(v));
 
     if (mode === "create") {
@@ -169,7 +178,7 @@ export function CustomerFormDrawer({
           name: trimmedName,
           phone: trimmedPhone,
           email: trimmedEmail || undefined,
-          category: trimmedCategory || undefined,
+          category: categoryId,
           assigned_reps: repIds.length ? repIds : undefined,
           is_active: values.is_active,
         },
@@ -184,7 +193,7 @@ export function CustomerFormDrawer({
         name: trimmedName,
         phone: trimmedPhone,
         email: trimmedEmail || undefined,
-        category: trimmedCategory || undefined,
+        category: categoryId,
         assigned_reps: repIds,
         is_active: values.is_active,
       },
@@ -252,13 +261,6 @@ export function CustomerFormDrawer({
                 sm:px-6 sm:pb-6
               "
             >
-              {mode === "create" && (
-                <p className="text-xs text-muted-foreground bg-muted/30 border border-border rounded-md p-3 text-right">
-                  سيتم إنشاء العميل بدون كلمة مرور. يقوم العميل بتعيين كلمة
-                  المرور بنفسه عند التسجيل عبر التطبيق باستخدام رقم هاتفه.
-                </p>
-              )}
-
               <FormField
                 control={form.control}
                 name="name"
@@ -326,22 +328,61 @@ export function CustomerFormDrawer({
               <FormField
                 control={form.control}
                 name="category"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-right block">
-                      التصنيف (اختياري)
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        isLoading={isFieldsLoading}
-                        placeholder="مثال: تاجر جملة"
-                        className="text-right h-12"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selectedCategory = categories.find(
+                    (c) => String(c.id) === field.value,
+                  );
+
+                  return (
+                    <FormItem>
+                      <FormLabel className="text-right block">
+                        التصنيف (اختياري)
+                      </FormLabel>
+                      <FormControl>
+                        <CategoryPickerPopover
+                          value={field.value}
+                          onSelect={field.onChange}
+                          trigger={
+                            <Button
+                              type="button"
+                              variant="outline"
+                              role="combobox"
+                              disabled={isFieldsLoading}
+                              className={cn(
+                                "h-12 rounded-xl w-full justify-between font-normal",
+                                !selectedCategory && "text-muted-foreground",
+                              )}
+                            >
+                              <span className="flex items-center gap-2 truncate">
+                                {isFieldsLoading && (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                )}
+                                {isFieldsLoading
+                                  ? "جارِ التحميل..."
+                                  : selectedCategory
+                                  ? selectedCategory.is_global
+                                    ? `${selectedCategory.name} (افتراضي)`
+                                    : selectedCategory.name
+                                  : "اختر تصنيفاً"}
+                              </span>
+                              <ChevronsUpDown className="ms-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          }
+                        />
+                      </FormControl>
+                      {field.value && (
+                        <button
+                          type="button"
+                          onClick={() => field.onChange("")}
+                          className="self-start text-xs font-normal text-muted-foreground hover:text-destructive underline underline-offset-2"
+                        >
+                          إزالة التصنيف
+                        </button>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
@@ -386,7 +427,7 @@ export function CustomerFormDrawer({
                             <Badge
                               key={rep.value}
                               variant="secondary"
-                              className="gap-1 pr-1"
+                              className="gap-1 pr-1 font-normal"
                             >
                               {rep.label}
                               <button
@@ -419,7 +460,7 @@ export function CustomerFormDrawer({
                   <FormLabel className="text-right block">
                     كود الإحالة المستخدم
                   </FormLabel>
-                  <div className="h-12 flex items-center px-3 rounded-md border border-border bg-muted/30 text-sm text-muted-foreground">
+                  <div className="h-12 flex items-center px-3 rounded-md border border-border bg-muted/30 text-sm font-normal text-muted-foreground">
                     {customer.referral_code_used}
                   </div>
                   <FormDescription className="text-right">

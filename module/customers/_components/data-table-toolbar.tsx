@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { CustomerFormDrawer } from "./actions-drawer";
 import { ImportExcelDialog } from "./import-excel-dialog";
+import { CategoryFilterPopover } from "./category-filter-popover";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -25,19 +26,24 @@ export function DataTableToolbar<TData>({
   const [addDrawerOpen, setAddDrawerOpen] = React.useState(false);
 
   const isFiltered = table.getState().columnFilters.length > 0;
+  const categoryColumn = table.getColumn("category");
+  const categoryFilterValue =
+    (categoryColumn?.getFilterValue() as string[]) ?? [];
 
   return (
     <>
-      <div className="flex items-center justify-between border-b px-6 py-6 border-border">
+      <div className="flex items-center justify-between border-b px-4 sm:px-6 py-6 border-border">
         <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
           <span>العملاء</span>
-          {total !== undefined && <Badge>{total} عميل</Badge>}
+          {total !== undefined && (
+            <Badge className="font-normal">{total} عميل</Badge>
+          )}
         </h1>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between py-4 px-6 gap-3 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="relative w-[280px]">
+      <div className="flex flex-wrap items-center justify-between py-4 px-4 sm:px-6 gap-3 border-b border-border">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full xs:w-[220px] sm:w-[280px]">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             <Input
               placeholder="ابحث عن عميل..."
@@ -46,6 +52,14 @@ export function DataTableToolbar<TData>({
               className="pr-9"
             />
           </div>
+
+          <CategoryFilterPopover
+            value={categoryFilterValue}
+            onChange={(v) =>
+              categoryColumn?.setFilterValue(v.length ? v : undefined)
+            }
+          />
+
           {isFiltered && (
             <Button
               variant="ghost"
