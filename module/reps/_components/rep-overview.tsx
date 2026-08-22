@@ -1,210 +1,180 @@
-"use client";
+'use client'
 
-import { useEffect, useRef, useState, type PointerEvent } from "react";
-import { IconRenderer } from "@/assets/icons/iconRenderer";
-import type { iconName } from "@/assets/icons/iconRenderer/types";
+import { useEffect, useRef, useState, type PointerEvent } from 'react'
+import { IconRenderer } from '@/assets/icons/iconRenderer'
+import type { iconName } from '@/assets/icons/iconRenderer/types'
 
 /* ============================================================
    Dummy Data (بديل مؤقت لحد ما نربط الـ API)
    ============================================================ */
 
 const REP = {
-  name: "محمد الأحمد",
-  type: "مندوب مفرّق",
-  avatarInitials: "م أ",
-};
+  name: 'محمد الأحمد',
+  type: 'مندوب مفرّق',
+  avatarInitials: 'م أ',
+}
 
 const KPIS: {
-  key: string;
-  label: string;
-  value: string | number;
-  suffix?: string;
-  change?: number | null;
-  icon: iconName;
+  key: string
+  label: string
+  value: string | number
+  suffix?: string
+  change?: number | null
+  icon: iconName
 }[] = [
+  { key: 'customers', label: 'الزبائن المسندين', value: 42, change: 8, icon: 'users_outlined' },
+  { key: 'orders', label: 'الطلبيات هالشهر', value: 128, change: 12, icon: 'cart_outlined' },
   {
-    key: "customers",
-    label: "الزبائن المسندين",
-    value: 42,
-    change: 8,
-    icon: "users_outlined",
-  },
-  {
-    key: "orders",
-    label: "الطلبيات هالشهر",
-    value: 128,
-    change: 12,
-    icon: "cart_outlined",
-  },
-  {
-    key: "revenue",
-    label: "قيمة المبيعات",
-    value: "18,450,000",
-    suffix: "ل.س",
+    key: 'revenue',
+    label: 'قيمة المبيعات',
+    value: '18,450,000',
+    suffix: 'ل.س',
     change: 5,
-    icon: "revenue_outlined",
+    icon: 'revenue_outlined',
   },
-  {
-    key: "newCustomers",
-    label: "زبائن جدد (إحالة)",
-    value: 6,
-    change: 20,
-    icon: "add_user_outlined",
-  },
-  {
-    key: "pending",
-    label: "بانتظار التسليم",
-    value: 4,
-    change: -10,
-    icon: "clock_outlined",
-  },
-  {
-    key: "visits",
-    label: "الزيارات هالأسبوع",
-    value: 31,
-    change: 3,
-    icon: "map_outlined",
-  },
-];
+  { key: 'newCustomers', label: 'زبائن جدد (إحالة)', value: 6, change: 20, icon: 'add_user_outlined' },
+  { key: 'pending', label: 'بانتظار التسليم', value: 4, change: -10, icon: 'clock_outlined' },
+  { key: 'visits', label: 'الزيارات هالأسبوع', value: 31, change: 3, icon: 'map_outlined' },
+]
 
 const ORDERS_DISTRIBUTION = [
-  { label: "مكتملة", value: 86 },
-  { label: "قيد الانتظار", value: 22 },
-  { label: "مرتجعة", value: 14 },
-  { label: "ملغية", value: 6 },
-];
+  { label: 'مكتملة', value: 86 },
+  { label: 'قيد الانتظار', value: 22 },
+  { label: 'مرتجعة', value: 14 },
+  { label: 'ملغية', value: 6 },
+]
 
-const ACTIVITY_GROUPS: {
-  key: string;
-  title: string;
-  icon: iconName;
-  tiles: {
-    value: string | number;
-    suffix?: string;
-    change: number | null;
-    label: string;
-    sub?: string;
-  }[];
-}[] = [
+const ACTIVITY_GROUPS: { key: string; title: string; icon: iconName; tiles: { value: string | number; suffix?: string; change: number | null; label: string; sub?: string }[] }[] = [
   {
-    key: "orders",
-    title: "الطلبيات",
-    icon: "cart_outlined",
+    key: 'orders',
+    title: 'الطلبيات',
+    icon: 'cart_outlined',
     tiles: [
-      {
-        value: "18,450,000",
-        suffix: "ل.س",
-        change: 12,
-        label: "إجمالي المبيعات",
-        sub: "آخر 30 يوم",
-      },
-      { value: 128, change: 8, label: "عدد الطلبيات", sub: "آخر 30 يوم" },
-      { value: 4, change: -15, label: "طلبيات معلّقة", sub: "بانتظار الشركة" },
+      { value: '18,450,000', suffix: 'ل.س', change: 12, label: 'إجمالي المبيعات', sub: 'آخر 30 يوم' },
+      { value: 128, change: 8, label: 'عدد الطلبيات', sub: 'آخر 30 يوم' },
+      { value: 4, change: -15, label: 'طلبيات معلّقة', sub: 'بانتظار الشركة' },
     ],
   },
   {
-    key: "visits",
-    title: "الزيارات",
-    icon: "map_outlined",
+    key: 'visits',
+    title: 'الزيارات',
+    icon: 'map_outlined',
     tiles: [
-      { value: 31, change: 4, label: "زيارات هالأسبوع", sub: "آخر 7 أيام" },
-      { value: 5, change: -6, label: "محلات غير مزارة", sub: "هالأسبوع" },
+      { value: 31, change: 4, label: 'زيارات هالأسبوع', sub: 'آخر 7 أيام' },
+      { value: 5, change: -6, label: 'محلات غير مزارة', sub: 'هالأسبوع' },
     ],
   },
   {
-    key: "customers",
-    title: "الزبائن",
-    icon: "users_outlined",
+    key: 'customers',
+    title: 'الزبائن',
+    icon: 'users_outlined',
     tiles: [
-      { value: 42, change: 8, label: "إجمالي الزبائن", sub: "مسندين للمندوب" },
-      { value: 6, change: 20, label: "زبائن جدد", sub: "عبر كود الإحالة" },
+      { value: 42, change: 8, label: 'إجمالي الزبائن', sub: 'مسندين للمندوب' },
+      { value: 6, change: 20, label: 'زبائن جدد', sub: 'عبر كود الإحالة' },
     ],
   },
-];
+]
 
-const INSIGHT_BANNER: {
-  indicator: "error" | "warning" | "success" | "info";
-  label: string;
-  description: string;
+/** بانر فوق — توقعات وتنبؤات قصيرة (rotating) */
+const FORECAST_BANNER: { indicator: 'error' | 'warning' | 'success' | 'info'; label: string; description: string }[] = [
+  {
+    indicator: 'success',
+    label: 'توقع تجاوز الهدف',
+    description: 'بمعدلك الحالي، متوقع توصل لـ 145 طلبية نهاية الشهر — أعلى من هدفك بـ 5%.',
+  },
+  {
+    indicator: 'warning',
+    label: 'خطر فقدان زبائن',
+    description: 'إذا استمرت 5 محلات بدون زيارة لأسبوعين كمان، فيه احتمال يتوجهوا لمندوب تاني.',
+  },
+  {
+    indicator: 'info',
+    label: 'تغطية الزبائن',
+    description: 'بمعدل الزيارات الحالي، رح تغطي كل زبائنك المسندين خلال 3 أسابيع.',
+  },
+]
+
+/** القسم تحت — تنقيب بيانات: الوضع الحالي ← التوقع لو استمر نفس المعدل */
+const ANALYSIS_INTRO =
+  'بناءً على تحليل بيانات أداء المندوب خلال الفترة الحالية، وبافتراض استمرار نفس المعدلات لنهاية الشهر:'
+
+const PERFORMANCE_PROJECTIONS: {
+  metric: string
+  current: string
+  projected: string
+  trend: 'up' | 'down' | 'steady'
 }[] = [
   {
-    indicator: "warning",
-    label: "زبائن ما تمت زيارتهم",
-    description: "5 محلات مسندة للمندوب لم تُزَر خلال آخر 7 أيام.",
+    metric: 'الطلبيات',
+    current: 'الوضع الحالي: 128 طلبية منذ بداية الشهر',
+    projected: 'التوقع: ≈ 145 طلبية نهاية الشهر (+13%)',
+    trend: 'up',
   },
   {
-    indicator: "error",
-    label: "طلبية متأخرة",
-    description: "طلبية بانتظار التسليم منذ أكثر من يومين، تحتاج متابعة.",
+    metric: 'الزيارات',
+    current: 'الوضع الحالي: 31 زيارة هالأسبوع',
+    projected: 'التوقع: تغطية كامل الزبائن المسندين خلال 3 أسابيع بنفس المعدل',
+    trend: 'up',
   },
   {
-    indicator: "success",
-    label: "أداء ممتاز هالشهر",
-    description: "عدد الطلبيات المكتملة ارتفع 12% مقارنة بالشهر الماضي.",
-  },
-];
-
-const PERFORMANCE_SUMMARY =
-  "أداء المندوب هالشهر أعلى من المعدل المعتاد، مع ارتفاع ملحوظ بعدد الطلبيات المكتملة. بالمقابل في محلات ما زارها منذ فترة، وهاد ممكن يأثر عالمبيعات إذا استمر.";
-
-const PERFORMANCE_INSIGHTS: {
-  indicator: "error" | "warning" | "success" | "info";
-  label: string;
-  description: string;
-}[] = [
-  {
-    indicator: "success",
-    label: "نمو بالمبيعات",
-    description:
-      "المبيعات ارتفعت 12% مقارنة بالشهر الماضي، وهيدا أعلى معدل نمو بين المناديب هالفترة.",
+    metric: 'الزبائن غير المُزارين',
+    current: 'الوضع الحالي: 5 محلات بدون زيارة من أكثر من أسبوع',
+    projected: 'التوقع: خطر فقدان 1-2 زبون خلال أسبوعين إذا استمر الوضع متل ما هو',
+    trend: 'down',
   },
   {
-    indicator: "warning",
-    label: "زيارات متأخرة",
-    description:
-      "5 زبائن ما تمت زيارتهم من أكثر من أسبوع، فيه خطر يتوجهوا لمندوب تاني.",
+    metric: 'المرتجعات',
+    current: 'الوضع الحالي: 11% من إجمالي الطلبيات مرتجعة',
+    projected: 'التوقع: بتضل ثابتة ضمن المعدل الطبيعي (10-12%)',
+    trend: 'steady',
   },
-  {
-    indicator: "info",
-    label: "طلبيات مرتجعة",
-    description:
-      "نسبة المرتجع 11% من إجمالي الطلبيات، ضمن المعدل الطبيعي بس بتستاهل متابعة.",
-  },
-];
+]
 
 const PERFORMANCE_RECOMMENDATIONS = [
-  "جدولة زيارة للزبائن الخمسة يلي ما تمت زيارتهم هالأسبوع.",
-  "متابعة الطلبية المتأخرة مع الشركة لتسريع التسليم.",
-  "التواصل مع الزبائن الجدد للتأكد من رضاهم عن أول طلبية.",
-];
+  'جدولة زيارة للزبائن الخمسة يلي ما تمت زيارتهم هالأسبوع قبل ما تفقدهم لمندوب تاني.',
+  'الحفاظ على معدل الطلبيات الحالي لتحقيق أو تجاوز هدف الشهر.',
+  'متابعة أسباب نسبة المرتجع كل فترة حتى تضل ضمن الحد الطبيعي.',
+]
+
+const TREND_ICON: Record<string, iconName> = {
+  up: 'arrow_up_outlined',
+  down: 'arrow_down_outlined',
+  steady: 'minus_outlined',
+}
+
+const TREND_CLASS: Record<string, string> = {
+  up: 'text-emerald-600 bg-emerald-500/10',
+  down: 'text-red-500 bg-red-500/10',
+  steady: 'text-muted-foreground bg-muted',
+}
 
 const INDICATOR_DOT: Record<string, string> = {
-  error: "bg-red-500",
-  warning: "bg-yellow-500",
-  success: "bg-green-500",
-  info: "bg-primary",
-};
+  error: 'bg-red-500',
+  warning: 'bg-yellow-500',
+  success: 'bg-green-500',
+  info: 'bg-primary',
+}
 
 const INDICATOR_ICON: Record<string, iconName> = {
-  error: "warning_outlined",
-  warning: "warning_outlined",
-  success: "success_outlined",
-  info: "info_outlined",
-};
+  error: 'warning_outlined',
+  warning: 'warning_outlined',
+  success: 'success_outlined',
+  info: 'info_outlined',
+}
 
 const INDICATOR_ICON_CLASS: Record<string, string> = {
-  error: "text-red-200",
-  warning: "text-amber-200",
-  success: "text-emerald-200",
-  info: "text-white/80",
-};
+  error: 'text-red-200',
+  warning: 'text-amber-200',
+  success: 'text-emerald-200',
+  info: 'text-white/80',
+}
 
 /* ============================================================
    Skeleton
    ============================================================ */
 
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-muted ${className}`} />;
+function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`animate-pulse rounded-md bg-muted ${className}`} />
 }
 
 /* ============================================================
@@ -212,39 +182,31 @@ function Skeleton({ className = "" }: { className?: string }) {
    ============================================================ */
 
 function useDragScroll() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const state = useRef({ startX: 0, startLeft: 0 });
+  const ref = useRef<HTMLDivElement>(null)
+  const [dragging, setDragging] = useState(false)
+  const state = useRef({ startX: 0, startLeft: 0 })
 
   const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    const el = ref.current;
-    if (!el) return;
-    setDragging(true);
-    state.current.startX = e.clientX;
-    state.current.startLeft = el.scrollLeft;
-    el.setPointerCapture(e.pointerId);
-  };
+    const el = ref.current
+    if (!el) return
+    setDragging(true)
+    state.current.startX = e.clientX
+    state.current.startLeft = el.scrollLeft
+    el.setPointerCapture(e.pointerId)
+  }
   const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    const el = ref.current;
-    if (!el) return;
-    el.scrollLeft =
-      state.current.startLeft - (e.clientX - state.current.startX);
-  };
+    if (!dragging) return
+    const el = ref.current
+    if (!el) return
+    el.scrollLeft = state.current.startLeft - (e.clientX - state.current.startX)
+  }
   const endDrag = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    setDragging(false);
-    ref.current?.releasePointerCapture(e.pointerId);
-  };
+    if (!dragging) return
+    setDragging(false)
+    ref.current?.releasePointerCapture(e.pointerId)
+  }
 
-  return {
-    ref,
-    dragging,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp: endDrag,
-    onPointerCancel: endDrag,
-  };
+  return { ref, dragging, onPointerDown, onPointerMove, onPointerUp: endDrag, onPointerCancel: endDrag }
 }
 
 /* ============================================================
@@ -261,12 +223,12 @@ function KpiCardSkeleton() {
       <Skeleton className="h-6 w-16" />
       <Skeleton className="h-3 w-20" />
     </div>
-  );
+  )
 }
 
 function KpiCard({ item }: { item: (typeof KPIS)[number] }) {
-  const change = item.change ?? null;
-  const isUp = (change ?? 0) >= 0;
+  const change = item.change ?? null
+  const isUp = (change ?? 0) >= 0
   return (
     <div className="shrink-0 w-[150px] sm:w-auto rounded-2xl border border-border bg-card p-3.5 sm:p-4 flex flex-col gap-2 min-w-0">
       <div className="flex items-center justify-between">
@@ -274,36 +236,23 @@ function KpiCard({ item }: { item: (typeof KPIS)[number] }) {
           <IconRenderer name={item.icon} className="size-4" />
         </div>
         {change != null && (
-          <span
-            className={`text-[11px] font-medium flex items-center gap-0.5 ${
-              isUp ? "text-emerald-600" : "text-red-500"
-            }`}
-          >
-            <IconRenderer
-              name={isUp ? "arrow_up_outlined" : "arrow_down_outlined"}
-              className="size-3"
-            />
+          <span className={`text-[11px] font-medium flex items-center gap-0.5 ${isUp ? 'text-emerald-600' : 'text-red-500'}`}>
+            <IconRenderer name={isUp ? 'arrow_up_outlined' : 'arrow_down_outlined'} className="size-3" />
             {Math.abs(change)}%
           </span>
         )}
       </div>
       <div className="flex items-baseline gap-1 flex-wrap">
-        <span className="text-xl sm:text-2xl font-semibold text-foreground truncate">
-          {item.value}
-        </span>
-        {item.suffix && (
-          <span className="text-xs text-muted-foreground">{item.suffix}</span>
-        )}
+        <span className="text-xl sm:text-2xl font-semibold text-foreground truncate">{item.value}</span>
+        {item.suffix && <span className="text-xs text-muted-foreground">{item.suffix}</span>}
       </div>
-      <span className="text-xs text-muted-foreground truncate">
-        {item.label}
-      </span>
+      <span className="text-xs text-muted-foreground truncate">{item.label}</span>
     </div>
-  );
+  )
 }
 
 function KpiRow({ loading }: { loading: boolean }) {
-  const drag = useDragScroll();
+  const drag = useDragScroll()
 
   if (loading) {
     return (
@@ -312,7 +261,7 @@ function KpiRow({ loading }: { loading: boolean }) {
           <KpiCardSkeleton key={i} />
         ))}
       </div>
-    );
+    )
   }
 
   return (
@@ -323,16 +272,14 @@ function KpiRow({ loading }: { loading: boolean }) {
       onPointerUp={drag.onPointerUp}
       onPointerCancel={drag.onPointerCancel}
       className={`flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible ${
-        drag.dragging
-          ? "cursor-grabbing select-none"
-          : "cursor-grab sm:cursor-auto"
+        drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab sm:cursor-auto'
       }`}
     >
-      {KPIS.map((item) => (
+      {KPIS.map(item => (
         <KpiCard key={item.key} item={item} />
       ))}
     </div>
-  );
+  )
 }
 
 /* ============================================================
@@ -348,78 +295,55 @@ function OrdersDistributionSkeleton() {
         {[60, 90, 40, 70].map((h, i) => (
           <div key={i} className="flex-1 flex flex-col items-center gap-2">
             <div className="w-full h-28 sm:h-32 flex items-end">
-              <Skeleton
-                className="w-full"
-                style={{ height: `${h}%` } as React.CSSProperties}
-              />
+              <Skeleton className="w-full" style={{ height: `${h}%` } as React.CSSProperties} />
             </div>
             <Skeleton className="h-2.5 w-10" />
           </div>
         ))}
       </div>
     </div>
-  );
+  )
 }
 
 function OrdersDistributionCard() {
-  const [sel, setSel] = useState(0);
-  const values = ORDERS_DISTRIBUTION.map((d) => d.value);
-  const total = values.reduce((s, v) => s + v, 0);
-  const maxV = Math.max(...values, 1);
+  const [sel, setSel] = useState(0)
+  const values = ORDERS_DISTRIBUTION.map(d => d.value)
+  const total = values.reduce((s, v) => s + v, 0)
+  const maxV = Math.max(...values, 1)
 
   return (
     <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 flex flex-col h-full">
       <div className="flex items-start justify-between">
-        <span className="text-sm font-medium text-muted-foreground">
-          توزيع الطلبيات
-        </span>
-        <IconRenderer
-          name="arrow_up_right_outlined"
-          className="size-4 text-muted-foreground"
-        />
+        <span className="text-sm font-medium text-muted-foreground">توزيع الطلبيات</span>
+        <IconRenderer name="arrow_up_right_outlined" className="size-4 text-muted-foreground" />
       </div>
       <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
-          {total}
-        </span>
+        <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">{total}</span>
         <span className="text-xs text-muted-foreground">طلبية</span>
       </div>
 
       <div className="mt-6 flex-1 flex items-end gap-2 sm:gap-4">
         {ORDERS_DISTRIBUTION.map((d, i) => {
-          const isSel = sel === i;
-          const h = (d.value / maxV) * 100;
+          const isSel = sel === i
+          const h = (d.value / maxV) * 100
           return (
-            <button
-              key={d.label}
-              onClick={() => setSel(i)}
-              className="flex-1 flex flex-col items-center gap-2 min-w-0"
-            >
+            <button key={d.label} onClick={() => setSel(i)} className="flex-1 flex flex-col items-center gap-2 min-w-0">
               <div className="w-full h-28 sm:h-32 flex items-end">
-                <div
-                  className={`w-full rounded-md transition-all ${
-                    isSel ? "bg-primary" : "bg-primary/15"
-                  }`}
-                  style={{ height: `${h}%` }}
-                >
+                <div className={`w-full rounded-md transition-all ${isSel ? 'bg-primary' : 'bg-primary/15'}`} style={{ height: `${h}%` }}>
                   {isSel && (
                     <div className="w-full text-center pt-1">
-                      <span className="text-[11px] font-semibold text-primary-foreground">
-                        {d.value}
-                      </span>
+                      <span className="text-[11px] font-semibold text-primary-foreground">{d.value}</span>
                     </div>
                   )}
                 </div>
               </div>
-              <span className="text-[11px] text-muted-foreground truncate w-full text-center">
-                {d.label}
-              </span>
+              <span className="text-[11px] text-muted-foreground truncate w-full text-center">{d.label}</span>
             </button>
-          );
+          )
         })}
       </div>
     </div>
-  );
+  )
 }
 
 /* ============================================================
@@ -449,60 +373,52 @@ function InsightBannerSkeleton() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 function InsightBanner() {
-  const [active, setActive] = useState(0);
+  const [active, setActive] = useState(0)
   useEffect(() => {
-    if (INSIGHT_BANNER.length < 2) return;
-    const id = setInterval(
-      () => setActive((p) => (p + 1) % INSIGHT_BANNER.length),
-      5000,
-    );
-    return () => clearInterval(id);
-  }, []);
+    if (FORECAST_BANNER.length < 2) return
+    const id = setInterval(() => setActive(p => (p + 1) % FORECAST_BANNER.length), 5000)
+    return () => clearInterval(id)
+  }, [])
 
-  const current = INSIGHT_BANNER[active];
+  const current = FORECAST_BANNER[active]
 
   return (
     <div className="rounded-2xl bg-primary p-5 sm:p-6 text-primary-foreground relative overflow-hidden h-full flex flex-col justify-between min-h-[220px]">
       <div className="flex items-center justify-between">
-        <span className="text-base sm:text-lg font-medium">تنبيهات الأداء</span>
-        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-medium">
-          مباشر
+        <span className="text-base sm:text-lg font-medium">توقعات وتنبؤات</span>
+        <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-medium flex items-center gap-1">
+          <IconRenderer name="ai_outlined" className="size-3" />
+          AI
         </span>
       </div>
       <div className="flex flex-col gap-3">
         <div className="flex items-start gap-2">
           <IconRenderer
             name={INDICATOR_ICON[current.indicator]}
-            className={`size-4 mt-0.5 shrink-0 ${
-              INDICATOR_ICON_CLASS[current.indicator]
-            }`}
+            className={`size-4 mt-0.5 shrink-0 ${INDICATOR_ICON_CLASS[current.indicator]}`}
           />
           <div className="flex flex-col gap-1">
             <span className="text-sm font-semibold">{current.label}</span>
-            <p className="text-xs leading-relaxed text-white/80">
-              {current.description}
-            </p>
+            <p className="text-xs leading-relaxed text-white/80">{current.description}</p>
           </div>
         </div>
         <div className="flex items-center gap-1.5">
-          {INSIGHT_BANNER.map((_, i) => (
+          {FORECAST_BANNER.map((_, i) => (
             <button
               key={i}
               onClick={() => setActive(i)}
-              aria-label={`تنبيه ${i + 1}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === active ? "w-5 bg-white" : "w-1.5 bg-white/40"
-              }`}
+              aria-label={`توقع ${i + 1}`}
+              className={`h-1.5 rounded-full transition-all ${i === active ? 'w-5 bg-white' : 'w-1.5 bg-white/40'}`}
             />
           ))}
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 /* ============================================================
@@ -512,81 +428,76 @@ function InsightBanner() {
 function RepInsightsSkeleton() {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <Skeleton className="h-5 w-40 mb-4" />
-      <div className="space-y-2 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Skeleton className="h-7 w-7 rounded-lg" />
+        <Skeleton className="h-5 w-44" />
+      </div>
+      <div className="space-y-2 mb-5">
         <Skeleton className="h-3 w-full" />
         <Skeleton className="h-3 w-11/12" />
-        <Skeleton className="h-3 w-3/5" />
       </div>
-      <div className="space-y-4">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="flex items-start gap-3">
-            <Skeleton className="h-2.5 w-2.5 rounded-full mt-1.5" />
+      <div className="space-y-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-start gap-3 rounded-xl bg-muted/40 p-3">
+            <Skeleton className="h-7 w-7 rounded-lg shrink-0" />
             <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-3.5 w-32" />
-              <Skeleton className="h-3 w-full" />
+              <Skeleton className="h-3.5 w-24" />
+              <Skeleton className="h-2.5 w-full" />
+              <Skeleton className="h-2.5 w-4/5" />
             </div>
           </div>
         ))}
       </div>
       <div className="mt-6 pt-6 border-t border-border space-y-2">
-        <Skeleton className="h-3.5 w-36 mb-2" />
+        <Skeleton className="h-3.5 w-48 mb-2" />
         <Skeleton className="h-3 w-full" />
         <Skeleton className="h-3 w-4/5" />
         <Skeleton className="h-3 w-2/3" />
       </div>
     </div>
-  );
+  )
 }
 
 function RepInsights() {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <h2 className="text-lg sm:text-xl font-medium mb-4 text-foreground">
-        ملخص أداء المندوب
-      </h2>
+      <div className="flex items-center gap-2 mb-4">
+        <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <IconRenderer name="ai_outlined" className="size-4" />
+        </div>
+        <h2 className="text-lg sm:text-xl font-medium text-foreground">تحليل الأداء والتوقعات</h2>
+      </div>
 
-      <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
-        {PERFORMANCE_SUMMARY}
-      </p>
+      <p className="text-sm text-muted-foreground mb-5 leading-relaxed">{ANALYSIS_INTRO}</p>
 
-      <ul className="space-y-4">
-        {PERFORMANCE_INSIGHTS.map((insight, idx) => (
-          <li key={idx} className="flex items-start gap-3">
-            <span
-              className={`w-2.5 h-2.5 mt-1.5 rounded-full shrink-0 ${
-                INDICATOR_DOT[insight.indicator]
-              }`}
-            />
-            <div>
-              <div className="font-semibold text-sm mb-1 text-foreground">
-                {insight.label}
-              </div>
-              <div className="text-muted-foreground text-sm leading-relaxed">
-                {insight.description}
-              </div>
+      {/* الوضع الحالي ← التوقع، لكل مؤشر */}
+      <ul className="space-y-3">
+        {PERFORMANCE_PROJECTIONS.map((p, idx) => (
+          <li key={idx} className="flex items-start gap-3 rounded-xl bg-muted/40 p-3">
+            <div className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${TREND_CLASS[p.trend]}`}>
+              <IconRenderer name={TREND_ICON[p.trend]} className="size-3.5" />
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold text-sm mb-1 text-foreground">{p.metric}</div>
+              <div className="text-muted-foreground text-xs leading-relaxed">{p.current}</div>
+              <div className="text-foreground text-xs leading-relaxed mt-0.5">{p.projected}</div>
             </div>
           </li>
         ))}
       </ul>
 
       <div className="mt-6 pt-6 border-t border-border">
-        <h3 className="text-sm font-semibold mb-3 text-foreground">
-          شو لازم يعمل المندوب
-        </h3>
+        <h3 className="text-sm font-semibold mb-3 text-foreground">شو لازم يعمل المندوب بناءً عالتوقعات</h3>
         <ul className="list-disc ps-5 space-y-2">
           {PERFORMANCE_RECOMMENDATIONS.map((rec, idx) => (
-            <li
-              key={idx}
-              className="text-muted-foreground text-sm leading-relaxed"
-            >
+            <li key={idx} className="text-muted-foreground text-sm leading-relaxed">
               {rec}
             </li>
           ))}
         </ul>
       </div>
     </div>
-  );
+  )
 }
 
 /* ============================================================
@@ -602,30 +513,20 @@ function ActivityTileSkeleton() {
         <Skeleton className="h-2.5 w-14" />
       </div>
     </div>
-  );
+  )
 }
 
-function ActivityStatTile({
-  tile,
-}: {
-  tile: (typeof ACTIVITY_GROUPS)[number]["tiles"][number];
-}) {
-  const isUp = (tile.change ?? 0) >= 0;
+function ActivityStatTile({ tile }: { tile: (typeof ACTIVITY_GROUPS)[number]['tiles'][number] }) {
+  const isUp = (tile.change ?? 0) >= 0
   return (
     <div className="shrink-0 w-[150px] sm:w-[164px] rounded-2xl border border-border bg-card p-4 flex flex-col justify-between h-[140px]">
       <div className="flex items-center gap-1.5">
-        <span className="text-xl font-semibold text-foreground truncate">
-          {tile.value}
-        </span>
-        {tile.suffix && (
-          <span className="text-[11px] text-muted-foreground">
-            {tile.suffix}
-          </span>
-        )}
+        <span className="text-xl font-semibold text-foreground truncate">{tile.value}</span>
+        {tile.suffix && <span className="text-[11px] text-muted-foreground">{tile.suffix}</span>}
         {tile.change != null && (
           <IconRenderer
-            name={isUp ? "arrow_up_outlined" : "arrow_down_outlined"}
-            className={`size-3.5 ${isUp ? "text-emerald-600" : "text-red-500"}`}
+            name={isUp ? 'arrow_up_outlined' : 'arrow_down_outlined'}
+            className={`size-3.5 ${isUp ? 'text-emerald-600' : 'text-red-500'}`}
           />
         )}
       </div>
@@ -634,17 +535,17 @@ function ActivityStatTile({
         <div className="text-[11px] text-muted-foreground">{tile.sub}</div>
       </div>
     </div>
-  );
+  )
 }
 
 function ActivitySection({ loading }: { loading: boolean }) {
-  const drag = useDragScroll();
+  const drag = useDragScroll()
 
   if (loading) {
     return (
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
         <div className="flex min-w-max gap-6 sm:gap-8 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-          {ACTIVITY_GROUPS.map((group) => (
+          {ACTIVITY_GROUPS.map(group => (
             <div key={group.key} className="shrink-0">
               <div className="mb-3 flex items-center gap-2">
                 <Skeleton className="h-4 w-4 rounded" />
@@ -659,7 +560,7 @@ function ActivitySection({ loading }: { loading: boolean }) {
           ))}
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -670,21 +571,14 @@ function ActivitySection({ loading }: { loading: boolean }) {
         onPointerMove={drag.onPointerMove}
         onPointerUp={drag.onPointerUp}
         onPointerCancel={drag.onPointerCancel}
-        className={`overflow-x-auto [&::-webkit-scrollbar]:hidden ${
-          drag.dragging ? "cursor-grabbing select-none" : "cursor-grab"
-        }`}
+        className={`overflow-x-auto [&::-webkit-scrollbar]:hidden ${drag.dragging ? 'cursor-grabbing select-none' : 'cursor-grab'}`}
       >
         <div className="flex min-w-max gap-6 sm:gap-8">
-          {ACTIVITY_GROUPS.map((group) => (
+          {ACTIVITY_GROUPS.map(group => (
             <div key={group.key} className="shrink-0">
               <div className="mb-3 flex items-center gap-2">
-                <IconRenderer
-                  name={group.icon}
-                  className="size-4 text-muted-foreground"
-                />
-                <h3 className="text-sm font-semibold text-foreground">
-                  {group.title}
-                </h3>
+                <IconRenderer name={group.icon} className="size-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>
               </div>
               <div className="flex gap-3">
                 {group.tiles.map((tile, i) => (
@@ -696,7 +590,7 @@ function ActivitySection({ loading }: { loading: boolean }) {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 /* ============================================================
@@ -704,27 +598,42 @@ function ActivitySection({ loading }: { loading: boolean }) {
    ============================================================ */
 
 export default function RepOverview() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const id = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(id);
-  }, []);
+    const id = setTimeout(() => setLoading(false), 2000)
+    return () => clearTimeout(id)
+  }, [])
 
   return (
-    <div
-      dir="rtl"
-      className="w-full bg-background min-h-screen p-4 sm:p-6 lg:p-8"
-    >
-      <div className="max-w-7xl mx-auto flex flex-col gap-5 sm:gap-6">
+    <div dir="rtl" className="w-full bg-background min-h-screen p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
+        <div className="flex items-center gap-3">
+          {loading ? (
+            <>
+              <Skeleton className="h-11 w-11 rounded-full shrink-0" />
+              <div className="space-y-1.5">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="h-11 w-11 rounded-full bg-primary/10 text-primary flex items-center justify-center font-semibold shrink-0">
+                {REP.avatarInitials}
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-lg sm:text-xl font-semibold text-foreground truncate">{REP.name}</h1>
+                <p className="text-xs sm:text-sm text-muted-foreground truncate">{REP.type}</p>
+              </div>
+            </>
+          )}
+        </div>
+
         <KpiRow loading={loading} />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          {loading ? (
-            <OrdersDistributionSkeleton />
-          ) : (
-            <OrdersDistributionCard />
-          )}
+          {loading ? <OrdersDistributionSkeleton /> : <OrdersDistributionCard />}
           {loading ? <InsightBannerSkeleton /> : <InsightBanner />}
         </div>
 
@@ -733,5 +642,5 @@ export default function RepOverview() {
         <ActivitySection loading={loading} />
       </div>
     </div>
-  );
+  )
 }
