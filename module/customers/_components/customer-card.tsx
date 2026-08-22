@@ -1,7 +1,5 @@
 "use client";
 import * as React from "react";
-import { PhoneInput } from "@/components/tredro/phone-input";
-import { IndeterminateCheckbox } from "@/module/reps/_components/indeterminate-checkbox";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { AssignRepCell } from "./assign-rep-cell";
 import { CategoryCell } from "./category-cell";
@@ -9,7 +7,8 @@ import { EditableTextCell } from "./editable-text-cell";
 import { EditablePhoneCell } from "./editable-phone-cell";
 import { EditableStatusCell } from "./editable-status-cell";
 import { Customer } from "../types";
-import { useLongPress } from "./use-long-press";
+import { useLongPress } from "../hook/use-long-press";
+import { IndeterminateCheckbox } from "./indeterminate-checkbox";
 
 interface CustomerCardProps {
   customer: Customer;
