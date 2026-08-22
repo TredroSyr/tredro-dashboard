@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { RepDetailHeader } from "./rep-detail-header";
 import { RepDetailTabs } from "./rep-detail-tabs";
 import RepOverview from "./rep-overview";
-import { CustomersView } from "@/module/customers/_components/customers-view";
+import CustomersView from "@/module/customers/_components/customers-view";
 
 const dummyRep = {
   name: "أحمد الشريف",
@@ -47,9 +47,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
         {activeTab === "orders" && (
           <div className="text-sm text-muted-foreground">محتوى الطلبات</div>
         )}
-        {activeTab === "customers" && (
-          <CustomersView repId={repId} hideBulkAssign />
-        )}
+        {activeTab === "customers" && <CustomersView />}
       </div>
     </div>
   );
