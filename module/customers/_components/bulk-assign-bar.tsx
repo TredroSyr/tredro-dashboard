@@ -16,21 +16,26 @@ import { CategoryPickerPopover } from "./category-picker-popover";
 import { useRepsQuery } from "@/module/reps/hooks";
 import { useBulkActionMutation } from "../hooks";
 import { Customer } from "../types";
+import { cn } from "@/lib/utils";
 
 interface BulkActionsBarProps {
   selectedCustomers: Customer[];
   clearSelection: () => void;
+  variant?: "full" | "compact";
 }
 
 export function BulkActionsBar({
   selectedCustomers,
   clearSelection,
+  variant = "full",
 }: BulkActionsBarProps) {
   const ids = selectedCustomers.map((c) => c.id);
   const { data: repsRes, isLoading: isLoadingReps } = useRepsQuery();
   const { mutate: runBulkAction, isPending } = useBulkActionMutation();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
   const [feedback, setFeedback] = React.useState<string | null>(null);
+
+  const isCompact = variant === "compact";
 
   const repOptions = React.useMemo(
     () =>
@@ -120,38 +125,125 @@ export function BulkActionsBar({
     );
   };
 
+  const buttonSize = isCompact ? "sm" : "sm";
+  const buttonClass = isCompact
+    ? "justify-center shrink-0 gap-1.5 whitespace-nowrap"
+    : "justify-start w-full sm:w-auto";
+
   return (
     <>
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2 shrink-0">
-            <Badge className="font-normal">
-              {selectedCustomers.length} عميل محدد
-            </Badge>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={clearSelection}
-            >
-              إلغاء التحديد
-            </Button>
-            {isPending && (
-              <Loader2 className="size-4 animate-spin text-muted-foreground" />
-            )}
-          </div>
+      <div className={cn("flex flex-col gap-3", isCompact && "gap-2")}>
+        {!isCompact && (
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2 shrink-0">
+              <Badge className="font-normal">
+                {selectedCustomers.length} عميل محدد
+              </Badge>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={clearSelection}
+              >
+                إلغاء التحديد
+              </Button>
+              {isPending && (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
 
-          <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
+              <InlineSelectPopover
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size={buttonSize}
+                    className={buttonClass}
+                  >
+                    <UserPlus className="size-4" />
+                    تعيين مندوب
+                  </Button>
+                }
+                options={repOptions}
+                onSelect={handleAssignRep}
+                loading={isLoadingReps}
+                searchPlaceholder="ابحث عن مندوب..."
+                emptyText="لا يوجد مندوبون"
+              />
+
+              <InlineSelectPopover
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size={buttonSize}
+                    className={buttonClass}
+                  >
+                    <UserMinus className="size-4" />
+                    إزالة مندوب
+                  </Button>
+                }
+                options={repOptions}
+                onSelect={handleRemoveRep}
+                loading={isLoadingReps}
+                searchPlaceholder="ابحث عن مندوب..."
+                emptyText="لا يوجد مندوبون"
+              />
+
+              <CategoryPickerPopover
+                onSelect={handleAssignCategory}
+                trigger={
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size={buttonSize}
+                    className={buttonClass}
+                  >
+                    <Tag className="size-4" />
+                    تعيين تصنيف
+                  </Button>
+                }
+              />
+
+              <Button
+                type="button"
+                variant="outline"
+                size={buttonSize}
+                disabled={isPending}
+                onClick={handleRemoveCategory}
+                className={buttonClass}
+              >
+                <TagIcon className="size-4" />
+                إزالة التصنيف
+              </Button>
+
+              <Button
+                type="button"
+                variant="destructive"
+                size={buttonSize}
+                onClick={() => setDeleteOpen(true)}
+                className={cn(buttonClass, "col-span-2 sm:col-span-1")}
+              >
+                <Ban className="size-4" />
+                تعطيل المحدد
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {isCompact && (
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <InlineSelectPopover
               trigger={
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className="justify-start w-full sm:w-auto"
+                  className={buttonClass}
                 >
                   <UserPlus className="size-4" />
-                  تعيين مندوب
+                  مندوب
                 </Button>
               }
               options={repOptions}
@@ -165,9 +257,9 @@ export function BulkActionsBar({
               trigger={
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className="justify-start w-full sm:w-auto"
+                  className={buttonClass}
                 >
                   <UserMinus className="size-4" />
                   إزالة مندوب
@@ -185,23 +277,23 @@ export function BulkActionsBar({
               trigger={
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="secondary"
                   size="sm"
-                  className="justify-start w-full sm:w-auto"
+                  className={buttonClass}
                 >
                   <Tag className="size-4" />
-                  تعيين تصنيف
+                  تصنيف
                 </Button>
               }
             />
 
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               disabled={isPending}
               onClick={handleRemoveCategory}
-              className="justify-start w-full sm:w-auto"
+              className={buttonClass}
             >
               <TagIcon className="size-4" />
               إزالة التصنيف
@@ -212,13 +304,13 @@ export function BulkActionsBar({
               variant="destructive"
               size="sm"
               onClick={() => setDeleteOpen(true)}
-              className="justify-start w-full sm:w-auto col-span-2 sm:col-span-1"
+              className={buttonClass}
             >
               <Ban className="size-4" />
-              تعطيل المحدد
+              تعطيل
             </Button>
           </div>
-        </div>
+        )}
 
         {feedback && (
           <p className="text-xs font-normal text-destructive">{feedback}</p>

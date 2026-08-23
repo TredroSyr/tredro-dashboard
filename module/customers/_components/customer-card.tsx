@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+
 import { DataTableRowActions } from "./data-table-row-actions";
 import { AssignRepCell } from "./assign-rep-cell";
 import { CategoryCell } from "./category-cell";
@@ -30,13 +31,7 @@ export function CustomerCard({
   }, 500);
 
   return (
-    // ملاحظة مهمة: هالـ div ما إله onClick إطلاقًا.
-    // التحديد الجماعي بينفعّل فقط عبر:
-    //  1) الضغط الطويل (long-press) على أي مكان بالكارت
-    //  2) الـ checkbox نفسها بعد ما ينفعّل وضع التحديد
-    // وهيك كل الحقول (اسم/هاتف/تصنيف/مندوب/حالة) بتضل شغالة عادي
-    // بدون أي تدخل أو stopPropagation، بالضبط متل الجدول.
-    <div {...longPress} className="flex flex-col gap-3 select-none">
+    <div {...longPress} className="flex flex-col gap-2.5 select-none">
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
           {selectionMode && (
@@ -53,41 +48,18 @@ export function CustomerCard({
         <EditableStatusCell customer={customer} />
       </div>
 
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-normal text-muted-foreground shrink-0">
-            الهاتف
-          </span>
-          <EditablePhoneCell customer={customer} />
-        </div>
+      <EditablePhoneCell customer={customer} />
 
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-normal text-muted-foreground shrink-0">
-            البريد
-          </span>
-          <EditableTextCell
-            value={customer.email ?? ""}
-            placeholder="-"
-            dir="ltr"
-            onSave={(v) => ({ id: customer.id, email: v })}
-          />
-        </div>
+      <EditableTextCell
+        value={customer.email ?? ""}
+        placeholder="بدون بريد إلكتروني"
+        dir="ltr"
+        onSave={(v) => ({ id: customer.id, email: v })}
+      />
 
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-normal text-muted-foreground shrink-0">
-            التصنيف
-          </span>
-          <CategoryCell customer={customer} />
-        </div>
-
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-xs font-normal text-muted-foreground shrink-0 pt-1">
-            المندوبون
-          </span>
-          <div className="flex justify-end">
-            <AssignRepCell customer={customer} />
-          </div>
-        </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <CategoryCell customer={customer} />
+        <AssignRepCell customer={customer} />
       </div>
 
       {!selectionMode && (

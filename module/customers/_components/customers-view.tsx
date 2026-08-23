@@ -1,6 +1,8 @@
 "use client";
 
 import { columns } from "@/module/customers/_components/columns";
+
+import { FloatingBulkBar } from "@/module/customers/_components/floating-bulk-bar";
 import { CustomerCard } from "@/module/customers/_components/customer-card";
 import { useCustomersQuery } from "@/module/customers/hooks";
 import { Customer } from "@/module/customers/types";
@@ -77,31 +79,33 @@ export default function CustomersPage() {
   };
 
   return (
-    <DataTable
-      data={paginatedCustomers}
-      columns={columns}
-      total={filteredCustomers.length}
-      search={search}
-      onSearchChange={handleSearchChange}
-      isLoading={isLoading}
-      isError={isError}
-      errorMessage={
-        error instanceof Error ? error.message : "حدث خطأ أثناء تحميل البيانات"
-      }
-      onRetry={() => refetch()}
-      pagination={{ page, totalPages }}
-      onPageChange={setPage}
-      enableRowSelection
-      getRowId={(c: Customer) => String(c.id)}
-      renderBulkActions={({ selectedRows, clearSelection }) => (
-        <BulkActionsBar
-          selectedCustomers={selectedRows}
-          clearSelection={clearSelection}
-        />
-      )}
-      renderMobileHeader={() => (
-        <div className="flex flex-col gap-2">
-          {!mobileSelectionMode ? (
+    <>
+      <DataTable
+        data={paginatedCustomers}
+        columns={columns}
+        total={filteredCustomers.length}
+        search={search}
+        onSearchChange={handleSearchChange}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage={
+          error instanceof Error
+            ? error.message
+            : "حدث خطأ أثناء تحميل البيانات"
+        }
+        onRetry={() => refetch()}
+        pagination={{ page, totalPages }}
+        onPageChange={setPage}
+        enableRowSelection
+        getRowId={(c: Customer) => String(c.id)}
+        renderBulkActions={({ selectedRows, clearSelection }) => (
+          <BulkActionsBar
+            selectedCustomers={selectedRows}
+            clearSelection={clearSelection}
+          />
+        )}
+        renderMobileHeader={() =>
+          !mobileSelectionMode ? (
             <Button
               variant="outline"
               size="sm"
@@ -112,44 +116,40 @@ export default function CustomersPage() {
               تحديد
             </Button>
           ) : (
-            <div className="rounded-md border border-border bg-muted/30 p-3">
-              {mobileSelectedCustomers.length > 0 ? (
-                <BulkActionsBar
-                  selectedCustomers={mobileSelectedCustomers}
-                  clearSelection={clearMobileSelection}
-                />
-              ) : (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-normal text-muted-foreground">
-                    اختر عملاء من القائمة بالأسفل
-                  </span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={clearMobileSelection}
-                    className="gap-1"
-                  >
-                    <X className="size-4" />
-                    إلغاء
-                  </Button>
-                </div>
-              )}
+            <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-2.5">
+              <span className="text-sm font-normal text-muted-foreground">
+                اضغط مطولاً أو اختر عبر المربع لتحديد عملاء
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearMobileSelection}
+                className="gap-1 shrink-0"
+              >
+                <X className="size-4" />
+                إلغاء
+              </Button>
             </div>
-          )}
-        </div>
-      )}
-      renderCard={(customer) => (
-        <CustomerCard
-          customer={customer}
-          selectionMode={mobileSelectionMode}
-          selected={mobileSelectedIds.has(customer.id)}
-          onEnterSelectionMode={() => {
-            setMobileSelectionMode(true);
-            toggleMobileSelect(customer.id);
-          }}
-          onToggleSelect={() => toggleMobileSelect(customer.id)}
-        />
-      )}
-    />
+          )
+        }
+        renderCard={(customer) => (
+          <CustomerCard
+            customer={customer}
+            selectionMode={mobileSelectionMode}
+            selected={mobileSelectedIds.has(customer.id)}
+            onEnterSelectionMode={() => {
+              setMobileSelectionMode(true);
+              toggleMobileSelect(customer.id);
+            }}
+            onToggleSelect={() => toggleMobileSelect(customer.id)}
+          />
+        )}
+      />
+
+      <FloatingBulkBar
+        selectedCustomers={mobileSelectedCustomers}
+        clearSelection={clearMobileSelection}
+      />
+    </>
   );
 }
