@@ -145,11 +145,6 @@ export default function CustomersPage() {
           />
         )}
       />
-
-      <FloatingBulkBar
-        selectedCustomers={mobileSelectedCustomers}
-        clearSelection={clearMobileSelection}
-      />
     </>
   );
 }
