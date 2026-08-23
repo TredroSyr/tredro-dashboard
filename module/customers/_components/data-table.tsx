@@ -130,6 +130,13 @@ export function DataTable<TData, TValue>({
 
   const clearSelection = () => setRowSelection({});
 
+  const bulkBar =
+    enableRowSelection && selectedRows.length > 0 && renderBulkActions ? (
+      <div className="sticky bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-4 sm:px-6 py-3">
+        {renderBulkActions({ selectedRows, clearSelection })}
+      </div>
+    ) : null;
+
   return (
     <div className="rounded-md border border-border">
       <DataTableToolbar
@@ -138,12 +145,6 @@ export function DataTable<TData, TValue>({
         search={search}
         onSearchChange={onSearchChange}
       />
-
-      {enableRowSelection && selectedRows.length > 0 && renderBulkActions && (
-        <div className="px-4 sm:px-6 py-3 border-b border-border bg-muted/30">
-          {renderBulkActions({ selectedRows, clearSelection })}
-        </div>
-      )}
 
       <div className="hidden lg:block px-6 overflow-x-auto">
         <Table>
@@ -238,6 +239,8 @@ export function DataTable<TData, TValue>({
             )}
           </TableBody>
         </Table>
+
+        {bulkBar}
       </div>
 
       <div className="lg:hidden px-4 py-3 flex flex-col gap-3">
@@ -293,6 +296,8 @@ export function DataTable<TData, TValue>({
             لا توجد نتائج
           </p>
         )}
+
+        {bulkBar}
       </div>
 
       {!isError && (pagination || isLoading) && onPageChange && (
