@@ -1,17 +1,15 @@
 "use client";
 
-import { columns } from "@/module/customers/_components/columns";
-
-import { FloatingBulkBar } from "@/module/customers/_components/floating-bulk-bar";
-import { CustomerCard } from "@/module/customers/_components/customer-card";
-import { useCustomersQuery } from "@/module/customers/hooks";
-import { Customer } from "@/module/customers/types";
 import { Button } from "@/components/ui/button";
 import { CheckSquare, X } from "lucide-react";
 
 import { useState, useMemo } from "react";
 import { DataTable } from "./data-table";
+import { columns } from "./columns";
+import { Customer } from "../types";
 import { BulkActionsBar } from "./bulk-assign-bar";
+import { CustomerCard } from "./customer-card";
+import { useCustomersQuery } from "../hooks";
 
 const PAGE_SIZE = 8;
 
@@ -79,72 +77,79 @@ export default function CustomersPage() {
   };
 
   return (
-    <>
-      <DataTable
-        data={paginatedCustomers}
-        columns={columns}
-        total={filteredCustomers.length}
-        search={search}
-        onSearchChange={handleSearchChange}
-        isLoading={isLoading}
-        isError={isError}
-        errorMessage={
-          error instanceof Error
-            ? error.message
-            : "حدث خطأ أثناء تحميل البيانات"
-        }
-        onRetry={() => refetch()}
-        pagination={{ page, totalPages }}
-        onPageChange={setPage}
-        enableRowSelection
-        getRowId={(c: Customer) => String(c.id)}
-        renderBulkActions={({ selectedRows, clearSelection }) => (
-          <BulkActionsBar
-            selectedCustomers={selectedRows}
-            clearSelection={clearSelection}
-          />
-        )}
-        renderMobileHeader={() =>
-          !mobileSelectionMode ? (
+    <DataTable
+      data={paginatedCustomers}
+      columns={columns}
+      total={filteredCustomers.length}
+      search={search}
+      onSearchChange={handleSearchChange}
+      isLoading={isLoading}
+      isError={isError}
+      errorMessage={
+        error instanceof Error ? error.message : "حدث خطأ أثناء تحميل البيانات"
+      }
+      onRetry={() => refetch()}
+      pagination={{ page, totalPages }}
+      onPageChange={setPage}
+      enableRowSelection
+      getRowId={(c: Customer) => String(c.id)}
+      renderBulkActions={({ selectedRows, clearSelection }) => (
+        <BulkActionsBar
+          selectedCustomers={selectedRows}
+          clearSelection={clearSelection}
+        />
+      )}
+      renderMobileHeader={() =>
+        !mobileSelectionMode ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMobileSelectionMode(true)}
+            className="self-start gap-1.5"
+          >
+            <CheckSquare className="size-4" />
+            تحديد
+          </Button>
+        ) : mobileSelectedIds.size === 0 ? (
+          <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-2.5">
+            <span className="text-sm font-normal text-muted-foreground">
+              اضغط مطولاً أو اختر عبر المربع لتحديد عملاء
+            </span>
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={() => setMobileSelectionMode(true)}
-              className="self-start gap-1.5"
+              onClick={clearMobileSelection}
+              className="gap-1 shrink-0"
             >
-              <CheckSquare className="size-4" />
-              تحديد
+              <X className="size-4" />
+              إلغاء
             </Button>
-          ) : (
-            <div className="flex items-center justify-between rounded-md border border-border bg-muted/30 p-2.5">
-              <span className="text-sm font-normal text-muted-foreground">
-                اضغط مطولاً أو اختر عبر المربع لتحديد عملاء
-              </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearMobileSelection}
-                className="gap-1 shrink-0"
-              >
-                <X className="size-4" />
-                إلغاء
-              </Button>
-            </div>
-          )
-        }
-        renderCard={(customer) => (
-          <CustomerCard
-            customer={customer}
-            selectionMode={mobileSelectionMode}
-            selected={mobileSelectedIds.has(customer.id)}
-            onEnterSelectionMode={() => {
-              setMobileSelectionMode(true);
-              toggleMobileSelect(customer.id);
-            }}
-            onToggleSelect={() => toggleMobileSelect(customer.id)}
-          />
-        )}
-      />
-    </>
+          </div>
+        ) : null
+      }
+      renderMobileBulkBar={() =>
+        mobileSelectedCustomers.length > 0 ? (
+          <div className="sticky bottom-0 z-20 -mx-4 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-4 py-3">
+            <BulkActionsBar
+              selectedCustomers={mobileSelectedCustomers}
+              clearSelection={clearMobileSelection}
+              variant="compact"
+            />
+          </div>
+        ) : null
+      }
+      renderCard={(customer) => (
+        <CustomerCard
+          customer={customer}
+          selectionMode={mobileSelectionMode}
+          selected={mobileSelectedIds.has(customer.id)}
+          onEnterSelectionMode={() => {
+            setMobileSelectionMode(true);
+            toggleMobileSelect(customer.id);
+          }}
+          onToggleSelect={() => toggleMobileSelect(customer.id)}
+        />
+      )}
+    />
   );
 }

@@ -44,11 +44,14 @@ interface DataTableProps<TData, TValue> {
   actionsColumnId?: string;
   enableRowSelection?: boolean;
   getRowId?: (row: TData) => string;
+  /** الديسكتوب: يعتمد على rowSelection الداخلي تبع الجدول */
   renderBulkActions?: (props: {
     selectedRows: TData[];
     clearSelection: () => void;
   }) => React.ReactNode;
   renderMobileHeader?: () => React.ReactNode;
+  /** الموبايل: عنصر جاهز بالكامل (الصفحة نفسها بتبني الـ selection state) */
+  renderMobileBulkBar?: () => React.ReactNode;
 }
 
 export function DataTable<TData, TValue>({
@@ -69,6 +72,7 @@ export function DataTable<TData, TValue>({
   getRowId,
   renderBulkActions,
   renderMobileHeader,
+  renderMobileBulkBar,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -130,12 +134,8 @@ export function DataTable<TData, TValue>({
 
   const clearSelection = () => setRowSelection({});
 
-  const bulkBar =
-    enableRowSelection && selectedRows.length > 0 && renderBulkActions ? (
-      <div className="sticky bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-4 sm:px-6 py-3">
-        {renderBulkActions({ selectedRows, clearSelection })}
-      </div>
-    ) : null;
+  const showDesktopBulkBar =
+    enableRowSelection && selectedRows.length > 0 && !!renderBulkActions;
 
   return (
     <div className="rounded-md border border-border">
@@ -240,7 +240,11 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
 
-        {bulkBar}
+        {showDesktopBulkBar && (
+          <div className="sticky bottom-0 z-20 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-6 py-3">
+            {renderBulkActions!({ selectedRows, clearSelection })}
+          </div>
+        )}
       </div>
 
       <div className="lg:hidden px-4 py-3 flex flex-col gap-3">
@@ -297,7 +301,7 @@ export function DataTable<TData, TValue>({
           </p>
         )}
 
-        {bulkBar}
+        {renderMobileBulkBar?.()}
       </div>
 
       {!isError && (pagination || isLoading) && onPageChange && (
