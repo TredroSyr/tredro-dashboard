@@ -125,15 +125,15 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
         <div
           dir="ltr"
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border border-input bg-muted/30 px-2.5 py-1 text-sm w-fit",
+            "inline-flex items-center gap-1.5 rounded-full border border-input bg-muted/30 px-2.5 py-1 text-xs w-fit",
             className,
           )}
         >
           <CountryFlag iso2={country.iso2} className="h-3.5 w-5 shrink-0" />
-          <span dir="ltr" className="text-sm tabular-nums">
+          <span dir="ltr" className="text-xs tabular-nums">
             +{country.dialCode}
           </span>
-          <span className="tabular-nums">{inputValue || "—"}</span>
+          <span className="tabular-nums text-xs">{inputValue || "—"}</span>
 
           <button
             type="button"

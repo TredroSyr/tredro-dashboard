@@ -28,9 +28,9 @@ export const columns: ColumnDef<Customer>[] = [
         {row.index + 1}
       </span>
     ),
-    size: 50,
-    minSize: 50,
-    maxSize: 50,
+    size: 20,
+    minSize: 20,
+    maxSize: 20,
   },
   {
     accessorKey: "name",
@@ -64,8 +64,8 @@ export const columns: ColumnDef<Customer>[] = [
       const value = row.getValue(id) as string;
       return value.toLowerCase().includes(filterValue.toLowerCase());
     },
-    size: 140,
-    minSize: 120,
+    size: 100,
+    minSize: 100,
     maxSize: 160,
   },
   {

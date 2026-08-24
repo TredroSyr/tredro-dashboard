@@ -27,19 +27,17 @@ export function EditableStatusCell({ customer }: { customer: Customer }) {
       onValueChange={handleChange}
       disabled={isPending}
     >
-      <SelectTrigger className="h-8 w-[110px] border-none bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:opacity-50">
-        <SelectValue asChild>
-          <span className="flex items-center gap-1.5">
-            {isPending && (
-              <Loader2 className="size-3 shrink-0 animate-spin text-muted-foreground" />
-            )}
-            <Badge
-              variant={customer.is_active ? "default" : "destructive"}
-              className="font-normal cursor-pointer"
-            >
-              {customer.is_active ? "مفعّل" : "موقوف"}
-            </Badge>
-          </span>
+      <SelectTrigger className="h-8 w-[70px] border-none bg-transparent p-0 shadow-none focus:ring-0 [&>svg]:opacity-50">
+        <SelectValue >
+          {isPending && (
+            <Loader2 className="size-3 shrink-0 animate-spin text-muted-foreground" />
+          )}
+          <Badge
+            variant={customer.is_active ? "default" : "destructive"}
+            className="font-normal cursor-pointer"
+          >
+            {customer.is_active ? "مفعّل" : "موقوف"}
+          </Badge>
         </SelectValue>
       </SelectTrigger>
       <SelectContent align="end">
