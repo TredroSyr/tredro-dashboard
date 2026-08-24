@@ -985,12 +985,8 @@ function ActivitySection({ loading }: { loading: boolean }) {
    ============================================================ */
 
 export default function PlatformOverview() {
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const id = setTimeout(() => setLoading(false), 2000);
-    return () => clearTimeout(id);
-  }, []);
+
 
   return (
     <div
@@ -1007,25 +1003,21 @@ export default function PlatformOverview() {
           </p>
         </div>
 
-        <KpiRow loading={loading} />
+        <KpiRow  />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          {loading ? (
-            <OrdersDistributionSkeleton />
-          ) : (
-            <OrdersDistributionCard />
-          )}
-          {loading ? <ForecastBannerSkeleton /> : <ForecastBanner />}
+          <OrdersDistributionCard />
+          <ForecastBanner />
         </div>
 
-        {loading ? <AnalysisSkeleton /> : <AnalysisSection />}
+        <AnalysisSection />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          {loading ? <TopRepsSkeleton /> : <TopRepsSection />}
-          {loading ? <TopProductsSkeleton /> : <TopProductsSection />}
+          <TopRepsSection />
+          <TopProductsSection />
         </div>
 
-        <ActivitySection loading={loading} />
+        <ActivitySection />
       </div>
     </div>
   );
