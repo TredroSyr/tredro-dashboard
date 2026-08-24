@@ -10,6 +10,7 @@ import { EditableStatusCell } from "./editable-status-cell";
 import { Customer } from "../types";
 import { useLongPress } from "../hook/use-long-press";
 import { IndeterminateCheckbox } from "./indeterminate-checkbox";
+import { PhoneInput } from "@/components/tredro/phone-input";
 
 interface CustomerCardProps {
   customer: Customer;
@@ -48,7 +49,7 @@ export function CustomerCard({
         <EditableStatusCell customer={customer} />
       </div>
 
-      <EditablePhoneCell customer={customer} />
+      <PhoneInput value={customer.phone} readOnly />
 
       <EditableTextCell
         value={customer.email ?? ""}

@@ -10,6 +10,7 @@ import { EditableStatusCell } from "./editable-status-cell";
 import { CategoryCell } from "./category-cell";
 
 import { Customer } from "../types";
+import { PhoneInput } from "@/components/tredro/phone-input";
 
 export const columns: ColumnDef<Customer>[] = [
   {
@@ -38,7 +39,7 @@ export const columns: ColumnDef<Customer>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="رقم الهاتف" />
     ),
-    cell: ({ row }) => <EditablePhoneCell customer={row.original} />,
+    cell: ({ row }) => <PhoneInput value={row.original.phone} readOnly />,
   },
   {
     accessorKey: "email",
