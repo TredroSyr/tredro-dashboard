@@ -1,3 +1,12 @@
+export type WorkDay =
+  | "sunday"
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday";
+
 export interface Rep {
   id: number;
   name: string;
@@ -6,6 +15,8 @@ export interface Rep {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // Default work days for the rep
+  work_days?: WorkDay[];
 }
 
 export interface CreateRepPayload {

@@ -1,9 +1,19 @@
+export type WorkDay =
+  | "sunday"
+  | "monday"
+  | "tuesday"
+  | "wednesday"
+  | "thursday"
+  | "friday"
+  | "saturday";
+
 export interface AssignedRepDetail {
   id: number;
   name: string;
   phone: string;
   company_id?: number;
   referral_code?: string;
+  work_days?: WorkDay[];
 }
 
 export interface CategoryDetail {
@@ -44,9 +54,17 @@ export interface UpdateCustomerPayload {
   is_active?: boolean;
 }
 
+export interface Assignment {
+  rep_id: number;
+  work_days?: WorkDay[];
+}
+
 export interface AssignRepsPayload {
   id: number;
-  rep_ids: number[];
+  // Legacy format
+  rep_ids?: number[];
+  // New format with work days
+  assignments?: Assignment[];
 }
 
 export interface RemoveRepsPayload {

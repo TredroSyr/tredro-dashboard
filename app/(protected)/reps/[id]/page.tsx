@@ -2,12 +2,25 @@
 // Server Component — no "use client" here
 
 import { RepDetailClient } from "@/module/reps/_components/rep-detail-client";
+import type { Metadata } from "next";
 
-export async function generateStaticParams() {
-  // TODO: replace with real rep IDs from your API/DB at build time
-  return [{ id: "1" }, { id: "2" }, { id: "3" }];
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  return {
+    title: `تفاصيل المندوب #${id}`,
+    description: "عرض تفاصيل المندوب والزبائن المسندين له",
+  };
 }
 
-export default function RepDetailPage({ params }: { params: { id: string } }) {
-  return <RepDetailClient repId={params.id} />;
+export default async function RepDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  return <RepDetailClient repId={id} />;
 }

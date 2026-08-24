@@ -1,42 +1,51 @@
 // app/(protected)/reps/[id]/rep-detail-client.tsx
 "use client";
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { RepDetailHeader } from "./rep-detail-header";
 import { RepDetailTabs } from "./rep-detail-tabs";
 import RepOverview from "./rep-overview";
 import CustomersView from "@/module/customers/_components/customers-view";
-
-const dummyRep = {
-  name: "أحمد الشريف",
-  phone: "+963 987 654 321",
-  isOnline: true,
-  customersCount: 24,
-};
+import { useRepQuery } from "../hooks";
 
 type TabValue = "overview" | "invoices" | "orders" | "customers";
 
 export function RepDetailClient({ repId }: { repId: string }) {
-  const router = useRouter();
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
+  const { data: repData, isLoading, isError } = useRepQuery(repId);
+  const rep = repData?.data?.rep;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-muted-foreground">جاري تحميل بيانات المندوب...</div>
+      </div>
+    );
+  }
+
+  if (isError || !rep) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-red-500">حدث خطأ أثناء تحميل بيانات المندوب</div>
+      </div>
+    );
+  }
 
   return (
     <div>
       <RepDetailHeader
-        name={dummyRep.name}
-        phone={dummyRep.phone}
-        isOnline={dummyRep.isOnline}
-        customersCount={dummyRep.customersCount}
-        onBack={() => router.back()}
+        name={rep.name}
+        phone={rep.phone}
+        isOnline={rep.is_active}
+        customersCount={0} // TODO: Update when we have customer count API for rep
       />
 
       <RepDetailTabs
         value={activeTab}
         onValueChange={setActiveTab}
-        counts={{ invoices: 24, orders: 12, customers: 340 }}
+        counts={{ invoices: 0, orders: 0, customers: 0 }} // TODO: Update with real counts when APIs are available
         trends={{
-          invoices: { direction: "up", percentage: 12 },
-          orders: { direction: "down", percentage: 5 },
+          invoices: { direction: "up", percentage: 0 },
+          orders: { direction: "up", percentage: 0 },
         }}
       />
       <div className="px-6 pb-6">

@@ -57,9 +57,18 @@ export const deactivateCustomer = async (
 export const assignRepsToCustomer = async (
   payload: AssignRepsPayload,
 ): Promise<CustomerResponse> => {
+  const requestBody: Record<string, unknown> = {};
+
+  // Support both formats: new (assignments) and legacy (rep_ids)
+  if (payload.assignments && payload.assignments.length > 0) {
+    requestBody.assignments = payload.assignments;
+  } else if (payload.rep_ids && payload.rep_ids.length > 0) {
+    requestBody.rep_ids = payload.rep_ids;
+  }
+
   const response = await api.post<CustomerResponse>(
     `companies/customers/${payload.id}/assign-reps/`,
-    { rep_ids: payload.rep_ids },
+    requestBody,
   );
   return response.data;
 };
