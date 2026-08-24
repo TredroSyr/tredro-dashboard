@@ -716,9 +716,7 @@ interface CustomerOverviewProps {
 }
 
 export default function CustomerOverview({ isLoading = false }: CustomerOverviewProps) {
-  const [internalLoading, setInternalLoading] = useState(false);
 
-  const loading = isLoading || internalLoading;
 
   return (
     <div
@@ -726,20 +724,16 @@ export default function CustomerOverview({ isLoading = false }: CustomerOverview
       className="w-full bg-background p-4 sm:p-6 lg:p-8"
     >
       <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-        <KpiRow loading={loading} />
+        <KpiRow  />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          {loading ? (
-            <OrdersDistributionSkeleton />
-          ) : (
-            <OrdersDistributionCard />
-          )}
-          {loading ? <InsightBannerSkeleton /> : <InsightBanner />}
+          <OrdersDistributionCard />
+          <InsightBanner />
         </div>
 
-        {loading ? <CustomerInsightsSkeleton /> : <CustomerInsights />}
+        <CustomerInsights />
 
-        <ActivitySection loading={loading} />
+        <ActivitySection />
       </div>
     </div>
   );

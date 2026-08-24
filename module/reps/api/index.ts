@@ -13,7 +13,7 @@ export const listReps = async (): Promise<RepsListResponse> => {
 };
 
 export const getRep = async (id: number | string): Promise<RepResponse> => {
-  const response = await api.get<RepResponse>(`companies/reps/${id}`);
+  const response = await api.get<RepResponse>(`companies/reps/${id}/`);
   return response.data;
 };
 

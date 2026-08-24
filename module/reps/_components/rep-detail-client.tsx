@@ -12,6 +12,7 @@ type TabValue = "overview" | "invoices" | "orders" | "customers";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
+  console.log({repId});
   const { data: repData, isLoading, isError, refetch } = useRepQuery(repId);
   const rep = repData?.data?.rep;
 

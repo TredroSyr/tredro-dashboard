@@ -755,10 +755,6 @@ interface RepOverviewProps {
 
 export default function RepOverview({ isLoading = false }: RepOverviewProps) {
   // Note: The internal loading state is kept for demo purposes
-  // When isLoading prop is provided, it takes precedence
-  const [internalLoading, setInternalLoading] = useState(false);
-
-  const loading = isLoading || internalLoading;
 
   return (
     <div
@@ -766,20 +762,18 @@ export default function RepOverview({ isLoading = false }: RepOverviewProps) {
       className="w-full bg-background p-4 sm:p-6 lg:p-8"
     >
       <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-        <KpiRow loading={loading} />
+        <KpiRow />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          {loading ? (
-            <OrdersDistributionSkeleton />
-          ) : (
+       
             <OrdersDistributionCard />
-          )}
-          {loading ? <InsightBannerSkeleton /> : <InsightBanner />}
+        
+         <InsightBanner />
         </div>
 
-        {loading ? <RepInsightsSkeleton /> : <RepInsights />}
+       <RepInsights />
 
-        <ActivitySection loading={loading} />
+        <ActivitySection  />
       </div>
     </div>
   );
