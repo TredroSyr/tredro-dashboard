@@ -11,12 +11,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { InlineSelectPopover } from "./inline-select-popover";
 import { CategoryPickerPopover } from "./category-picker-popover";
+import { WorkDayPicker } from "./work-day-picker";
 import { useRepsQuery } from "@/module/reps/hooks";
 import { useBulkActionMutation } from "../hooks";
-import { Customer } from "../types";
+import { Customer, WorkDay } from "../types";
 import { cn } from "@/lib/utils";
+import { Label } from "@/components/ui/label";
+import { Check } from "lucide-react";
 
 interface BulkActionsBarProps {
   selectedCustomers: Customer[];
@@ -33,17 +44,37 @@ export function BulkActionsBar({
   const { data: repsRes, isLoading: isLoadingReps } = useRepsQuery();
   const { mutate: runBulkAction, isPending } = useBulkActionMutation();
   const [deleteOpen, setDeleteOpen] = React.useState(false);
+  const [assignRepOpen, setAssignRepOpen] = React.useState(false);
   const [feedback, setFeedback] = React.useState<string | null>(null);
+
+  const [selectedRepId, setSelectedRepId] = React.useState<string | null>(null);
+  const [workDays, setWorkDays] = React.useState<WorkDay[]>([]);
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const isCompact = variant === "compact";
 
+  const reps = repsRes?.data?.reps ?? [];
+
   const repOptions = React.useMemo(
     () =>
-      (repsRes?.data?.reps ?? []).map((r) => ({
+      reps.map((r) => ({
         value: String(r.id),
         label: r.name,
       })),
-    [repsRes],
+    [reps],
+  );
+
+  const filteredReps = React.useMemo(
+    () =>
+      reps.filter((r) =>
+        r.name.toLowerCase().includes(searchQuery.trim().toLowerCase()),
+      ),
+    [reps, searchQuery],
+  );
+
+  const selectedRep = React.useMemo(
+    () => reps.find((r) => String(r.id) === selectedRepId),
+    [reps, selectedRepId],
   );
 
   const showResult = (res: {
@@ -60,16 +91,41 @@ export function BulkActionsBar({
     }
   };
 
-  const handleAssignRep = (repId: string) => {
+  const handleSelectRep = (repId: string) => {
+    setSelectedRepId(repId);
+    const rep = reps.find((r) => String(r.id) === repId);
+    setWorkDays(rep?.work_days ?? []);
+  };
+
+  const handleAssignRepConfirm = () => {
+    if (!selectedRepId) return;
     runBulkAction(
-      { action: "assign_rep", customer_ids: ids, rep_id: Number(repId) },
+      {
+        action: "assign_rep",
+        customer_ids: ids,
+        rep_id: Number(selectedRepId),
+        work_days: workDays.length > 0 ? workDays : undefined,
+      },
       {
         onSuccess: (res) => {
           showResult(res);
           clearSelection();
+          setAssignRepOpen(false);
+          setSelectedRepId(null);
+          setWorkDays([]);
+          setSearchQuery("");
         },
       },
     );
+  };
+
+  const handleAssignRepOpenChange = (open: boolean) => {
+    setAssignRepOpen(open);
+    if (!open) {
+      setSelectedRepId(null);
+      setWorkDays([]);
+      setSearchQuery("");
+    }
   };
 
   const handleRemoveRep = (repId: string) => {
@@ -153,24 +209,16 @@ export function BulkActionsBar({
             </div>
 
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap sm:items-center gap-2">
-              <InlineSelectPopover
-                trigger={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size={buttonSize}
-                    className={buttonClass}
-                  >
-                    <UserPlus className="size-4" />
-                    تعيين مندوب
-                  </Button>
-                }
-                options={repOptions}
-                onSelect={handleAssignRep}
-                loading={isLoadingReps}
-                searchPlaceholder="ابحث عن مندوب..."
-                emptyText="لا يوجد مندوبون"
-              />
+              <Button
+                type="button"
+                variant="outline"
+                size={buttonSize}
+                className={buttonClass}
+                onClick={() => setAssignRepOpen(true)}
+              >
+                <UserPlus className="size-4" />
+                تعيين مندوب
+              </Button>
 
               <InlineSelectPopover
                 trigger={
@@ -234,24 +282,16 @@ export function BulkActionsBar({
 
         {isCompact && (
           <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <InlineSelectPopover
-              trigger={
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className={buttonClass}
-                >
-                  <UserPlus className="size-4" />
-                  مندوب
-                </Button>
-              }
-              options={repOptions}
-              onSelect={handleAssignRep}
-              loading={isLoadingReps}
-              searchPlaceholder="ابحث عن مندوب..."
-              emptyText="لا يوجد مندوبون"
-            />
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className={buttonClass}
+              onClick={() => setAssignRepOpen(true)}
+            >
+              <UserPlus className="size-4" />
+              مندوب
+            </Button>
 
             <InlineSelectPopover
               trigger={
@@ -317,6 +357,138 @@ export function BulkActionsBar({
         )}
       </div>
 
+      {/* Assign Rep with Work Days Dialog */}
+      <Dialog open={assignRepOpen} onOpenChange={handleAssignRepOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-right">
+              {selectedRepId ? "تخصيص أيام العمل" : "تعيين مندوب للعملاء المحددين"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {!selectedRepId ? (
+            <div className="py-2">
+              <Command shouldFilter={false}>
+                <CommandInput
+                autoFocus
+                  placeholder="ابحث عن مندوب..."
+                  value={searchQuery}
+                  onValueChange={setSearchQuery}
+                />
+                <CommandList>
+                  {isLoadingReps ? (
+                    <div className="py-6 text-center text-sm font-normal text-muted-foreground">
+                      جارِ التحميل...
+                    </div>
+                  ) : reps.length === 0 ? (
+                    <CommandEmpty>لا يوجد مندوبون</CommandEmpty>
+                  ) : filteredReps.length === 0 ? (
+                    <CommandEmpty>لا توجد نتائج</CommandEmpty>
+                  ) : (
+                    <CommandGroup>
+                      {filteredReps.map((rep) => (
+                        <CommandItem
+                          key={rep.id}
+                          value={rep.name}
+                          onSelect={() => handleSelectRep(String(rep.id))}
+                          className="flex items-center gap-3"
+                        >
+                          <Check
+                            className={cn(
+                              "me-2 h-4 w-4",
+                              selectedRepId === String(rep.id)
+                                ? "opacity-100"
+                                : "opacity-0",
+                            )}
+                          />
+                          <div className="flex-1">
+                            <p className="text-sm font-normal">{rep.name}</p>
+                            {rep.work_days && rep.work_days.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                أيام العمل الافتراضية: {rep.work_days.length} يوم
+                              </p>
+                            )}
+                          </div>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  )}
+                </CommandList>
+              </Command>
+            </div>
+          ) : (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                <div className="flex size-10 items-center justify-center rounded-full bg-primary/15 text-primary font-medium">
+                  {selectedRep?.name.trim().charAt(0)}
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium">{selectedRep?.name}</p>
+                  {selectedRep?.work_days &&
+                    selectedRep.work_days.length > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        أيام العمل الافتراضية: {selectedRep.work_days.length} يوم
+                      </p>
+                    )}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedRepId(null);
+                    setWorkDays([]);
+                  }}
+                >
+                  تغيير
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-right block">
+                  أيام العمل (اختياري - اتركه فارغاً لاستخدام الافتراضي)
+                </Label>
+                <WorkDayPicker
+                  value={workDays}
+                  onChange={setWorkDays}
+                  variant="short"
+                />
+                <p className="text-xs text-muted-foreground text-right">
+                  إذا لم تختار أيام، سيتم استخدام أيام العمل الافتراضية للمندوب
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="flex-row-reverse gap-2">
+            {selectedRepId && (
+              <Button
+                type="button"
+                onClick={handleAssignRepConfirm}
+                disabled={isPending}
+              >
+                {isPending ? (
+                  <>
+                    <Loader2 className="size-4 me-2 animate-spin" />
+                    جارٍ التعيين...
+                  </>
+                ) : (
+                  "تعيين"
+                )}
+              </Button>
+            )}
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleAssignRepOpenChange(false)}
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Dialog */}
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <DialogContent>
           <DialogHeader>

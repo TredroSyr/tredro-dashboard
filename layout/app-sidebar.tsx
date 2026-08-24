@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -34,6 +33,7 @@ import { iconName } from "@/assets/icons/iconRenderer/types";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useThemeStore } from "@/store/use-theme-store";
 import { useAuthStore } from "@/module/auth/store/auth-store";
+import { useState } from "react";
 
 type NavItem = {
   key: string;
@@ -103,45 +103,6 @@ const mainNavItems: NavItem[] = [
     activeIcon: "settings_filled",
   },
 ];
-
-const BREAKPOINTS = {
-  desktop: 1024,
-  tablet: 768,
-};
-
-type ViewportBucket = "mobile" | "tablet" | "desktop";
-
-const getViewportBucket = (width: number): ViewportBucket => {
-  if (width >= BREAKPOINTS.desktop) return "desktop";
-  if (width >= BREAKPOINTS.tablet) return "tablet";
-  return "mobile";
-};
-
-const SidebarBreakpointSync = () => {
-  const { setOpen } = useSidebar();
-  const lastBucket = useRef<ViewportBucket | null>(null);
-
-  useEffect(() => {
-    const syncWithViewport = () => {
-      const bucket = getViewportBucket(window.innerWidth);
-
-      if (bucket === lastBucket.current) return;
-      lastBucket.current = bucket;
-
-      if (bucket === "desktop") {
-        setOpen(true);
-      } else if (bucket === "tablet") {
-        setOpen(false);
-      }
-    };
-
-    syncWithViewport();
-    window.addEventListener("resize", syncWithViewport);
-    return () => window.removeEventListener("resize", syncWithViewport);
-  }, [setOpen]);
-
-  return null;
-};
 
 const MobileTopBar = () => {
   return (
@@ -250,23 +211,18 @@ type AppSidebarProps = {
 
 const AppSidebarContent = ({ children }: AppSidebarProps) => {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, setOpen } = useSidebar();
+  const { isMobile, setOpenMobile, toggleSidebar } = useSidebar();
 
   // Close the sidebar automatically on small screens whenever
   // the user taps a nav link or any action item.
   const handleMobileClose = () => {
     if (isMobile) {
       setOpenMobile(false);
-    } else if (getViewportBucket(window.innerWidth) !== "desktop") {
-      // Covers the tablet bucket, where the sidebar uses `open`
-      // instead of the mobile sheet's `openMobile`.
-      setOpen(false);
     }
   };
 
   return (
     <>
-      <SidebarBreakpointSync />
       <Sidebar
         side="right"
         collapsible="icon"
@@ -385,7 +341,7 @@ const AppSidebarContent = ({ children }: AppSidebarProps) => {
 
 const AppSidebar = ({ children }: AppSidebarProps) => {
   return (
-    <SidebarProvider defaultOpen>
+    <SidebarProvider>
       <AppSidebarContent>{children}</AppSidebarContent>
     </SidebarProvider>
   );

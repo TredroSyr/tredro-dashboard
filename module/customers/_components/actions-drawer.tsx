@@ -446,9 +446,7 @@ export function CustomerFormDrawer({
                         </div>
                       )}
 
-                      <FormDescription className="text-right">
-                        يمكن ربط العميل بأكثر من مندوب، حتى من شركات مختلفة.
-                      </FormDescription>
+                   
                       <FormMessage />
                     </FormItem>
                   );
