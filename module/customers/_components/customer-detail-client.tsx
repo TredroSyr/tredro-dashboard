@@ -1,11 +1,11 @@
 "use client";
 import * as React from "react";
-;
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { useCustomerQuery } from "../hooks";
 import { CustomerDetailTabs } from "./customer-detail-tabs";
 import { CustomerDetailHeader } from "./customer-detail-header";
 import CustomerOverview from "./customer-overview";
+import RepsView from "@/module/reps/_components/reps-view";
 
 type TabValue = "overview" | "invoices" | "orders" | "reps";
 
@@ -74,13 +74,7 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
             {isLoading ? "جاري تحميل الطلبات..." : "محتوى الطلبات"}
           </div>
         )}
-        {activeTab === "reps" && (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            {isLoading
-              ? "جاري تحميل المندوبين المسندين..."
-              : "محتوى المندوبين المسندين"}
-          </div>
-        )}
+        {activeTab === "reps" && <RepsView customerId={customerId} />}
       </div>
     </div>
   );

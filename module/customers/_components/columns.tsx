@@ -1,7 +1,7 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
-import { DataTableColumnHeader } from "@/module/reps/_components/data-table-column-header";
+import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { AssignRepCell } from "./assign-rep-cell";
 import { EditableTextCell } from "./editable-text-cell";
@@ -9,7 +9,7 @@ import { EditablePhoneCell } from "./editable-phone-cell";
 import { EditableStatusCell } from "./editable-status-cell";
 import { CategoryCell } from "./category-cell";
 import { WorkDaysCell } from "./work-days-cell";
-import { Customer } from "../types";
+import { Customer, AssignedRepDetail } from "../types";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { WORK_DAYS } from "./work-day-picker";
 
@@ -28,30 +28,50 @@ export const columns: ColumnDef<Customer>[] = [
         {row.index + 1}
       </span>
     ),
+    size: 50,
+    minSize: 50,
+    maxSize: 50,
   },
   {
     accessorKey: "name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="الاسم" />
+      <DataTableColumnHeader column={column} title="الاسم" type="text" />
     ),
     cell: ({ row }) => (
       <EditableTextCell
         value={row.original.name}
         onSave={(v) => ({ id: row.original.id, name: v })}
+        maxWidth="120px"
       />
     ),
+    filterFn: (row, id, filterValue: string) => {
+      if (!filterValue?.trim()) return true;
+      const value = row.getValue(id) as string;
+      return value.toLowerCase().includes(filterValue.toLowerCase());
+    },
+    size: 150,
+    minSize: 100,
+    maxSize: 200,
   },
   {
     accessorKey: "phone",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="رقم الهاتف" />
+      <DataTableColumnHeader column={column} title="رقم الهاتف" type="text" />
     ),
     cell: ({ row }) => <PhoneInput value={row.original.phone} readOnly />,
+    filterFn: (row, id, filterValue: string) => {
+      if (!filterValue?.trim()) return true;
+      const value = row.getValue(id) as string;
+      return value.toLowerCase().includes(filterValue.toLowerCase());
+    },
+    size: 140,
+    minSize: 120,
+    maxSize: 160,
   },
   {
     accessorKey: "email",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="البريد الإلكتروني" />
+      <DataTableColumnHeader column={column} title="البريد الإلكتروني" type="text" />
     ),
     cell: ({ row }) => (
       <EditableTextCell
@@ -59,8 +79,17 @@ export const columns: ColumnDef<Customer>[] = [
         placeholder="-"
         dir="ltr"
         onSave={(v) => ({ id: row.original.id, email: v })}
+        maxWidth="150px"
       />
     ),
+    filterFn: (row, id, filterValue: string) => {
+      if (!filterValue?.trim()) return true;
+      const value = (row.getValue(id) as string) ?? "";
+      return value.toLowerCase().includes(filterValue.toLowerCase());
+    },
+    size: 180,
+    minSize: 120,
+    maxSize: 250,
   },
   {
     id: "category",
@@ -73,13 +102,30 @@ export const columns: ColumnDef<Customer>[] = [
       if (!filterValue?.length) return true;
       return filterValue.includes(String(row.getValue(id)));
     },
+    size: 100,
+    minSize: 80,
+    maxSize: 140,
   },
   {
     id: "assigned_reps",
+    accessorFn: (row) => {
+      // Return array of rep IDs for filtering (as strings)
+      return (row.assigned_reps_details ?? []).map((r) => String(r.id));
+    },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="المندوبون" />
     ),
     cell: ({ row }) => <AssignRepCell customer={row.original} />,
+    filterFn: (row, id, filterValue: string[]) => {
+      // filterValue is array of selected rep IDs (strings)
+      if (!filterValue?.length) return true;
+      const customerRepIds = row.getValue(id) as string[];
+      // Check if customer has at least one of the selected reps
+      return filterValue.some((repId) => customerRepIds.includes(repId));
+    },
+    size: 280,
+    minSize: 200,
+    maxSize: 350,
   },
   {
     id: "work_days",
@@ -114,6 +160,9 @@ export const columns: ColumnDef<Customer>[] = [
       // Check if customer has at least one of the filter days
       return filterValue.some((day) => customerDays.includes(day));
     },
+    size: 120,
+    minSize: 100,
+    maxSize: 150,
   },
   {
     accessorKey: "is_active",
@@ -133,9 +182,15 @@ export const columns: ColumnDef<Customer>[] = [
       if (!filterValue?.length) return true;
       return filterValue.includes(String(row.getValue(id)));
     },
+    size: 90,
+    minSize: 70,
+    maxSize: 100,
   },
   {
     id: "actions",
     cell: ({ row }) => <DataTableRowActions row={row} />,
+    size: 80,
+    minSize: 70,
+    maxSize: 100,
   },
 ];

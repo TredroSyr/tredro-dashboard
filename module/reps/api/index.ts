@@ -7,8 +7,9 @@ import {
   ApiEnvelope,
 } from "../types";
 
-export const listReps = async (): Promise<RepsListResponse> => {
-  const response = await api.get<RepsListResponse>("companies/reps/");
+export const listReps = async (customerId?: string | number): Promise<RepsListResponse> => {
+  const params = customerId ? { customer_id: customerId } : {};
+  const response = await api.get<RepsListResponse>("companies/reps/", { params });
   return response.data;
 };
 

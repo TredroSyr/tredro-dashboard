@@ -9,6 +9,7 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
+  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
@@ -28,6 +29,11 @@ import { DataTableToolbar } from "./data-table-toolbar";
 import { DataTablePagination } from "./data-table-pagination";
 import { IndeterminateCheckbox } from "./indeterminate-checkbox";
 
+interface PaginationInfo {
+  page: number;
+  totalPages: number;
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
@@ -38,7 +44,7 @@ interface DataTableProps<TData, TValue> {
   isError?: boolean;
   errorMessage?: string;
   onRetry?: () => void;
-  pagination?: Pick<PaginatedResponse<TData>, "page" | "totalPages">;
+  pagination?: PaginationInfo;
   onPageChange?: (page: number) => void;
   renderCard?: (row: TData) => React.ReactNode;
   actionsColumnId?: string;
@@ -52,6 +58,17 @@ interface DataTableProps<TData, TValue> {
   renderMobileHeader?: () => React.ReactNode;
   /** الموبايل: عنصر جاهز بالكامل (الصفحة نفسها بتبني الـ selection state) */
   renderMobileBulkBar?: () => React.ReactNode;
+  /** Internal pagination - when true, the table handles pagination internally */
+  internalPagination?: {
+    pageSize: number;
+    onTotalPagesChange?: (totalPages: number) => void;
+  };
+  /** Called after table is created - useful for filters, etc. */
+  onTableReady?: (table: any) => void;
+  /** Called when filter button is clicked in toolbar */
+  onFilterClick?: () => void;
+  /** Number of active filters to show in badge */
+  activeFilterCount?: number;
 }
 
 export function DataTable<TData, TValue>({
@@ -73,12 +90,17 @@ export function DataTable<TData, TValue>({
   renderBulkActions,
   renderMobileHeader,
   renderMobileBulkBar,
+  internalPagination,
+  onTableReady,
+  onFilterClick,
+  activeFilterCount = 0,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     [],
   );
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
+  const [internalPage, setInternalPage] = React.useState(1);
 
   const tableColumns = React.useMemo(() => {
     if (!enableRowSelection) return columns;
@@ -95,22 +117,69 @@ export function DataTable<TData, TValue>({
     return [selectColumn, ...columns];
   }, [columns, enableRowSelection]);
 
+  const usingInternalPagination = !!internalPagination;
+
   const table = useReactTable({
     data,
     columns: tableColumns,
-    state: { sorting, columnFilters, rowSelection },
+    state: { 
+      sorting, 
+      columnFilters, 
+      rowSelection,
+      ...(usingInternalPagination ? {
+        pagination: {
+          pageIndex: internalPage - 1,
+          pageSize: internalPagination.pageSize,
+        }
+      } : {})
+    },
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onRowSelectionChange: setRowSelection,
+    onPaginationChange: usingInternalPagination ? (updater) => {
+      if (typeof updater === "function") {
+        const newState = updater({
+          pageIndex: internalPage - 1,
+          pageSize: internalPagination.pageSize,
+        });
+        setInternalPage(newState.pageIndex + 1);
+      }
+    } : undefined,
     getRowId: getRowId ? (row) => getRowId(row) : undefined,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    manualPagination: true,
+    ...(usingInternalPagination ? {
+      getPaginationRowModel: getPaginationRowModel(),
+    } : {
+      manualPagination: true,
+    }),
     enableRowSelection,
   });
 
+  // Notify parent when table is ready
+  React.useEffect(() => {
+    onTableReady?.(table as any);
+  }, [table, onTableReady]);
+
   const rows = table.getRowModel().rows;
+
+  // Calculate pagination info for internal pagination
+  const internalTotalPages = usingInternalPagination
+    ? Math.max(1, Math.ceil(table.getFilteredRowModel().rows.length / internalPagination.pageSize))
+    : undefined;
+
+  // Notify parent of total pages change
+  React.useEffect(() => {
+    if (usingInternalPagination && internalPagination.onTotalPagesChange && internalTotalPages !== undefined) {
+      internalPagination.onTotalPagesChange(internalTotalPages);
+    }
+  }, [usingInternalPagination, internalTotalPages, internalPagination]);
+
+  // Handle external pagination controls for internal mode
+  const handleInternalPageChange = (page: number) => {
+    setInternalPage(page);
+  };
   const pageRowIds = React.useMemo(() => rows.map((r) => r.id), [rows]);
   const selectedIdsInPage = pageRowIds.filter((id) => rowSelection[id]);
   const allPageSelected =
@@ -144,6 +213,8 @@ export function DataTable<TData, TValue>({
         total={total}
         search={search}
         onSearchChange={onSearchChange}
+        onFilterClick={onFilterClick}
+        activeFilterCount={activeFilterCount}
       />
 
       <div className="hidden lg:block px-6 overflow-x-auto">
@@ -304,10 +375,13 @@ export function DataTable<TData, TValue>({
         {renderMobileBulkBar?.()}
       </div>
 
-      {!isError && (pagination || isLoading) && onPageChange && (
+      {!isError && ((pagination || isLoading) && onPageChange || usingInternalPagination) && (
         <DataTablePagination
-          pagination={pagination}
-          onPageChange={onPageChange}
+          pagination={usingInternalPagination 
+            ? { page: internalPage, totalPages: internalTotalPages ?? 1 }
+            : pagination ?? { page: 1, totalPages: 1 }
+          }
+          onPageChange={usingInternalPagination ? handleInternalPageChange : (onPageChange ?? (() => {}))}
           isLoading={isLoading}
         />
       )}

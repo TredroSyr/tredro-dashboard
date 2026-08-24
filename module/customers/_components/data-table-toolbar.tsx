@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Plus, Search, X } from "lucide-react";
+import { Plus, Search, X, Filter } from "lucide-react";
 import { Table } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
@@ -9,12 +9,15 @@ import { Input } from "@/components/ui/input";
 import { CustomerFormDrawer } from "./actions-drawer";
 import { ImportExcelDialog } from "./import-excel-dialog";
 import { CategoryFilterPopover } from "./category-filter-popover";
+import { RepFilterPopover } from "./rep-filter-popover";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
   total?: number;
   search: string;
   onSearchChange?: (value: string) => void;
+  onFilterClick?: () => void;
+  activeFilterCount?: number;
 }
 
 export function DataTableToolbar<TData>({
@@ -22,13 +25,19 @@ export function DataTableToolbar<TData>({
   total,
   search,
   onSearchChange,
+  onFilterClick,
+  activeFilterCount = 0,
 }: DataTableToolbarProps<TData>) {
   const [addDrawerOpen, setAddDrawerOpen] = React.useState(false);
 
-  const isFiltered = table.getState().columnFilters.length > 0;
+  const isFiltered = table.getState().columnFilters.length > 0 || activeFilterCount > 0;
   const categoryColumn = table.getColumn("category");
+  const repsColumn = table.getColumn("assigned_reps");
+
   const categoryFilterValue =
     (categoryColumn?.getFilterValue() as string[]) ?? [];
+  const repsFilterValue =
+    (repsColumn?.getFilterValue() as string[]) ?? [];
 
   return (
     <>
@@ -53,12 +62,45 @@ export function DataTableToolbar<TData>({
             />
           </div>
 
-          <CategoryFilterPopover
-            value={categoryFilterValue}
-            onChange={(v) =>
-              categoryColumn?.setFilterValue(v.length ? v : undefined)
-            }
-          />
+          {/* Desktop filters - visible on lg screens and above */}
+          <div className="hidden lg:flex items-center gap-2">
+            <CategoryFilterPopover
+              value={categoryFilterValue}
+              onChange={(v) =>
+                categoryColumn?.setFilterValue(v.length ? v : undefined)
+              }
+            />
+
+            <RepFilterPopover
+              value={repsFilterValue}
+              onChange={(v) =>
+                repsColumn?.setFilterValue(v.length ? v : undefined)
+              }
+            />
+          </div>
+
+          {/* Mobile filter button - visible only on screens below lg */}
+          <div className="lg:hidden">
+            {onFilterClick && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onFilterClick}
+                className="gap-1.5"
+              >
+                <Filter className="size-4" />
+                فلترة
+                {activeFilterCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="rounded-full px-1.5 h-5 flex items-center justify-center text-xs"
+                  >
+                    {activeFilterCount}
+                  </Badge>
+                )}
+              </Button>
+            )}
+          </div>
 
           {isFiltered && (
             <Button

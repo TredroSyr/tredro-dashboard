@@ -19,10 +19,10 @@ import {
   BulkActionPayload,
 } from "../types";
 
-export const useCustomersQuery = () =>
+export const useCustomersQuery = (repId?: string | number) =>
   useQuery({
-    queryKey: ["customers"],
-    queryFn: listCustomers,
+    queryKey: ["customers", repId],
+    queryFn: () => listCustomers(repId),
   });
 
 export const useCustomerQuery = (

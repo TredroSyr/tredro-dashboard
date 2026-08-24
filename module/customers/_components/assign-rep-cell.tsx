@@ -55,7 +55,7 @@ export function AssignRepCell({ customer }: { customer: Customer }) {
   };
 
   return (
-    <div className="flex flex-col items-start gap-1.5 max-w-[280px]">
+    <div className="flex flex-wrap items-center gap-1.5 max-w-[350px]">
       {assignedReps.length === 0 && (
         <span className="text-sm font-normal text-muted-foreground">
           بدون مندوب
@@ -115,7 +115,6 @@ function RepBadgeWithWorkDays({
     (rep.work_days as WorkDay[]) ?? [],
   );
 
-  const hasWorkDays = rep.work_days && rep.work_days.length > 0;
 
   const handleSave = () => {
     onUpdateWorkDays(workDays);
@@ -160,7 +159,6 @@ function RepBadgeWithWorkDays({
     
       </Badge>
 
-      {/* Edit Work Days Dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

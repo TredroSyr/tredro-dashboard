@@ -76,7 +76,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
             {isLoading ? "جاري تحميل الطلبات..." : "محتوى الطلبات"}
           </div>
         )}
-        {activeTab === "customers" && <CustomersView />}
+        {activeTab === "customers" && <CustomersView repId={repId} />}
       </div>
     </div>
   );
