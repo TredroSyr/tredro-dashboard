@@ -5,38 +5,50 @@ import { RepDetailHeader } from "./rep-detail-header";
 import { RepDetailTabs } from "./rep-detail-tabs";
 import RepOverview from "./rep-overview";
 import CustomersView from "@/module/customers/_components/customers-view";
+import { ErrorDisplay } from "@/components/ui/error-display";
 import { useRepQuery } from "../hooks";
 
 type TabValue = "overview" | "invoices" | "orders" | "customers";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
-  const { data: repData, isLoading, isError } = useRepQuery(repId);
+  const { data: repData, isLoading, isError, refetch } = useRepQuery(repId);
   const rep = repData?.data?.rep;
 
-  if (isLoading) {
+  // Show error state with retry button
+  if (isError) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-muted-foreground">جاري تحميل بيانات المندوب...</div>
+      <div className="px-6 py-8">
+        <ErrorDisplay
+          title="حدث خطأ أثناء تحميل بيانات المندوب"
+          message="يرجى التحقق من الاتصال بالإنترنت وإعادة المحاولة"
+          onRetry={refetch}
+        />
       </div>
     );
   }
 
-  if (isError || !rep) {
+  // Show no data state if rep is null/undefined but no error
+  if (!isLoading && !rep) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-red-500">حدث خطأ أثناء تحميل بيانات المندوب</div>
+      <div className="px-6 py-8">
+        <ErrorDisplay
+          title="المندوب غير موجود"
+          message="المندوب الذي تحاول الوصول إليه غير موجود أو تم حذفه"
+        />
       </div>
     );
   }
 
   return (
     <div>
+      {/* Pass isLoading to all components to show skeletons */}
       <RepDetailHeader
-        name={rep.name}
-        phone={rep.phone}
-        isOnline={rep.is_active}
+        name={rep?.name}
+        phone={rep?.phone}
+        isOnline={rep?.is_active}
         customersCount={0} // TODO: Update when we have customer count API for rep
+        isLoading={isLoading}
       />
 
       <RepDetailTabs
@@ -47,14 +59,21 @@ export function RepDetailClient({ repId }: { repId: string }) {
           invoices: { direction: "up", percentage: 0 },
           orders: { direction: "up", percentage: 0 },
         }}
+        isLoading={isLoading}
       />
+
+      {/* Only show content areas when not loading OR show skeletons */}
       <div className="px-6 pb-6">
-        {activeTab === "overview" && <RepOverview />}
+        {activeTab === "overview" && <RepOverview isLoading={isLoading} />}
         {activeTab === "invoices" && (
-          <div className="text-sm text-muted-foreground">محتوى الفواتير</div>
+          <div className="text-sm text-muted-foreground py-8 text-center">
+            {isLoading ? "جاري تحميل الفواتير..." : "محتوى الفواتير"}
+          </div>
         )}
         {activeTab === "orders" && (
-          <div className="text-sm text-muted-foreground">محتوى الطلبات</div>
+          <div className="text-sm text-muted-foreground py-8 text-center">
+            {isLoading ? "جاري تحميل الطلبات..." : "محتوى الطلبات"}
+          </div>
         )}
         {activeTab === "customers" && <CustomersView />}
       </div>

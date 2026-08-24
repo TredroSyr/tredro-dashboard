@@ -4,15 +4,7 @@ import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
 
-/* ============================================================
-   Dummy Data (بديل مؤقت لحد ما نربط الـ API)
-   ============================================================ */
 
-const REP = {
-  name: "محمد الأحمد",
-  type: "مندوب مفرّق",
-  avatarInitials: "م أ",
-};
 
 const KPIS: {
   key: string;
@@ -23,55 +15,56 @@ const KPIS: {
   icon: iconName;
 }[] = [
   {
-    key: "customers",
-    label: "الزبائن المسندين",
-    value: 42,
-    change: 8,
-    icon: "users_outlined",
-  },
-  {
     key: "orders",
     label: "الطلبيات هالشهر",
-    value: 128,
+    value: 15,
     change: 12,
     icon: "cart_outlined",
   },
   {
     key: "revenue",
-    label: "قيمة المبيعات",
-    value: "18,450,000",
+    label: "إجمالي المبيعات",
+    value: "2,450,000",
     suffix: "ل.س",
     change: 5,
     icon: "revenue_outlined",
   },
   {
-    key: "newCustomers",
-    label: "زبائن جدد (إحالة)",
-    value: 6,
-    change: 20,
-    icon: "add_user_outlined",
-  },
-  {
-    key: "pending",
-    label: "بانتظار التسليم",
-    value: 4,
-    change: -10,
+    key: "lastOrder",
+    label: "آخر طلبية",
+    value: "24 أغسطس",
+    change: null,
     icon: "clock_outlined",
   },
   {
-    key: "visits",
-    label: "الزيارات هالأسبوع",
-    value: 31,
-    change: 3,
-    icon: "map_outlined",
+    key: "avgOrder",
+    label: "متوسط الطلبية",
+    value: "163,333",
+    suffix: "ل.س",
+    change: -2,
+    icon: "revenue_outlined",
+  },
+  {
+    key: "totalOrders",
+    label: "إجمالي الطلبيات",
+    value: 47,
+    change: 8,
+    icon: "cart_outlined",
+  },
+  {
+    key: "assignedReps",
+    label: "المندوبين المسندين",
+    value: 2,
+    change: 0,
+    icon: "users_outlined",
   },
 ];
 
 const ORDERS_DISTRIBUTION = [
-  { label: "مكتملة", value: 86 },
-  { label: "قيد الانتظار", value: 22 },
-  { label: "مرتجعة", value: 14 },
-  { label: "ملغية", value: 6 },
+  { label: "مكتملة", value: 42 },
+  { label: "قيد الانتظار", value: 3 },
+  { label: "مرتجعة", value: 2 },
+  { label: "ملغية", value: 0 },
 ];
 
 const ACTIVITY_GROUPS: {
@@ -92,14 +85,14 @@ const ACTIVITY_GROUPS: {
     icon: "cart_outlined",
     tiles: [
       {
-        value: "18,450,000",
+        value: "2,450,000",
         suffix: "ل.س",
         change: 12,
-        label: "إجمالي المبيعات",
+        label: "إجمالي المشتريات",
         sub: "آخر 30 يوم",
       },
-      { value: 128, change: 8, label: "عدد الطلبيات", sub: "آخر 30 يوم" },
-      { value: 4, change: -15, label: "طلبيات معلّقة", sub: "بانتظار الشركة" },
+      { value: 15, change: 8, label: "عدد الطلبيات", sub: "آخر 30 يوم" },
+      { value: 1, change: -15, label: "طلبيات معلّقة", sub: "قيد التجهيز" },
     ],
   },
   {
@@ -107,22 +100,21 @@ const ACTIVITY_GROUPS: {
     title: "الزيارات",
     icon: "map_outlined",
     tiles: [
-      { value: 31, change: 4, label: "زيارات هالأسبوع", sub: "آخر 7 أيام" },
-      { value: 5, change: -6, label: "محلات غير مزارة", sub: "هالأسبوع" },
+      { value: 8, change: 4, label: "زيارات هالأسبوع", sub: "آخر 7 أيام" },
+      { value: 3, change: -1, label: "أيام منذ آخر زيارة", sub: "أخر زيارة قبل 3 أيام" },
     ],
   },
   {
-    key: "customers",
-    title: "الزبائن",
-    icon: "users_outlined",
+    key: "payments",
+    title: "المدفوعات",
+    icon: "payment_outlined",
     tiles: [
-      { value: 42, change: 8, label: "إجمالي الزبائن", sub: "مسندين للمندوب" },
-      { value: 6, change: 20, label: "زبائن جدد", sub: "عبر كود الإحالة" },
+      { value: "1,800,000", change: 5, label: "مدفوع", sub: "آخر 30 يوم" },
+      { value: "650,000", change: -10, label: "متبقي", sub: "رصيد دائن" },
     ],
   },
 ];
 
-/** بانر فوق — توقعات وتنبؤات قصيرة (rotating) */
 const FORECAST_BANNER: {
   indicator: "error" | "warning" | "success" | "info";
   label: string;
@@ -130,27 +122,26 @@ const FORECAST_BANNER: {
 }[] = [
   {
     indicator: "success",
-    label: "توقع تجاوز الهدف",
+    label: "عميل نشط جداً",
     description:
-      "بمعدلك الحالي، متوقع توصل لـ 145 طلبية نهاية الشهر — أعلى من هدفك بـ 5%.",
-  },
-  {
-    indicator: "warning",
-    label: "خطر فقدان زبائن",
-    description:
-      "إذا استمرت 5 محلات بدون زيارة لأسبوعين كمان، فيه احتمال يتوجهوا لمندوب تاني.",
+      "هذا العميل من أكثر العملاء نشاطاً في الشهر الحالي، بمعدل 3 طلبات أسبوعياً.",
   },
   {
     indicator: "info",
-    label: "تغطية الزبائن",
+    label: "نمو إيجابي",
     description:
-      "بمعدل الزيارات الحالي، رح تغطي كل زبائنك المسندين خلال 3 أسابيع.",
+      "قيمة مشتريات العميل زادت بنسبة 5% مقارنة بالشهر الماضي، مع احتمال استمرار النمو.",
+  },
+  {
+    indicator: "warning",
+    label: "رصيد دائن",
+    description:
+      "يوجد رصيد دائن بقيمة 650,000 ل.س على العميل، يُنصح بمتابعة الدفعات.",
   },
 ];
 
-/** القسم تحت — تنقيب بيانات: الوضع الحالي ← التوقع لو استمر نفس المعدل */
 const ANALYSIS_INTRO =
-  "بناءً على تحليل بيانات أداء المندوب خلال الفترة الحالية، وبافتراض استمرار نفس المعدلات لنهاية الشهر:";
+  "بناءً على تحليل بيانات أداء العميل خلال الفترة الحالية، وبافتراض استمرار نفس المعدلات لنهاية الشهر:";
 
 const PERFORMANCE_PROJECTIONS: {
   metric: string;
@@ -160,35 +151,34 @@ const PERFORMANCE_PROJECTIONS: {
 }[] = [
   {
     metric: "الطلبيات",
-    current: "الوضع الحالي: 128 طلبية منذ بداية الشهر",
-    projected: "التوقع: ≈ 145 طلبية نهاية الشهر (+13%)",
+    current: "الوضع الحالي: 15 طلبية منذ بداية الشهر",
+    projected: "التوقع: ≈ 20 طلبية نهاية الشهر (+33%)",
     trend: "up",
   },
   {
     metric: "الزيارات",
-    current: "الوضع الحالي: 31 زيارة هالأسبوع",
-    projected: "التوقع: تغطية كامل الزبائن المسندين خلال 3 أسابيع بنفس المعدل",
+    current: "الوضع الحالي: 8 زيارة هالأسبوع",
+    projected: "التوقع: استمرار النشاط بنفس المعدل",
     trend: "up",
   },
   {
-    metric: "الزبائن غير المُزارين",
-    current: "الوضع الحالي: 5 محلات بدون زيارة من أكثر من أسبوع",
-    projected:
-      "التوقع: خطر فقدان 1-2 زبون خلال أسبوعين إذا استمر الوضع متل ما هو",
+    metric: "الرصيد الدائن",
+    current: "الوضع الحالي: 650,000 ل.س رصيد دائن",
+    projected: "التوقع: خطر زيادة الرصيد إذا لم يتم المتابعة",
     trend: "down",
   },
   {
     metric: "المرتجعات",
-    current: "الوضع الحالي: 11% من إجمالي الطلبيات مرتجعة",
-    projected: "التوقع: بتضل ثابتة ضمن المعدل الطبيعي (10-12%)",
+    current: "الوضع الحالي: 4% من إجمالي الطلبيات مرتجعة",
+    projected: "التوقع: بتضل ثابتة ضمن المعدل الطبيعي",
     trend: "steady",
   },
 ];
 
 const PERFORMANCE_RECOMMENDATIONS = [
-  "جدولة زيارة للزبائن الخمسة يلي ما تمت زيارتهم هالأسبوع قبل ما تفقدهم لمندوب تاني.",
-  "الحفاظ على معدل الطلبيات الحالي لتحقيق أو تجاوز هدف الشهر.",
-  "متابعة أسباب نسبة المرتجع كل فترة حتى تضل ضمن الحد الطبيعي.",
+  "متابعة الرصيد الدائن مع العميل لضمان تحصيل المبالغ المستحقة.",
+  "الاستمرار في تقديم العروض الخاصة لهذا العميل نظراً لنشاطه.",
+  "تنسيق مع المندوب المسند لزيادة عدد الزيارات الأسبوعية.",
 ];
 
 const TREND_ICON: Record<string, iconName> = {
@@ -224,17 +214,14 @@ const INDICATOR_ICON_CLASS: Record<string, string> = {
   info: "text-white/80",
 };
 
-/* ============================================================
-   Skeleton
-   ============================================================ */
-
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-muted ${className}`} />;
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      className={`animate-pulse rounded-md bg-muted ${className}`}
+      {...props}
+    />
+  );
 }
-
-/* ============================================================
-   Drag scroll (helper محلي داخل نفس الملف)
-   ============================================================ */
 
 function useDragScroll() {
   const ref = useRef<HTMLDivElement>(null);
@@ -271,10 +258,6 @@ function useDragScroll() {
     onPointerCancel: endDrag,
   };
 }
-
-/* ============================================================
-   KPI Row
-   ============================================================ */
 
 function KpiCardSkeleton() {
   return (
@@ -360,10 +343,6 @@ function KpiRow({ loading }: { loading: boolean }) {
   );
 }
 
-/* ============================================================
-   Orders Distribution
-   ============================================================ */
-
 function OrdersDistributionSkeleton() {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 flex flex-col h-full">
@@ -447,10 +426,6 @@ function OrdersDistributionCard() {
   );
 }
 
-/* ============================================================
-   Insight Banner (rotating)
-   ============================================================ */
-
 function InsightBannerSkeleton() {
   return (
     <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 h-full min-h-[220px] flex flex-col justify-between">
@@ -493,7 +468,7 @@ function InsightBanner() {
   return (
     <div className="rounded-2xl bg-primary p-5 sm:p-6 text-primary-foreground relative overflow-hidden h-full flex flex-col justify-between min-h-[220px]">
       <div className="flex items-center justify-between">
-        <span className="text-base sm:text-lg font-medium">توقعات وتنبؤات</span>
+        <span className="text-base sm:text-lg font-medium">تحليلات العملاء</span>
         <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-medium flex items-center gap-1">
           <IconRenderer name="ai_outlined" className="size-3" />
           AI
@@ -519,7 +494,7 @@ function InsightBanner() {
             <button
               key={i}
               onClick={() => setActive(i)}
-              aria-label={`توقع ${i + 1}`}
+              aria-label={`تحليل ${i + 1}`}
               className={`h-1.5 rounded-full transition-all ${
                 i === active ? "w-5 bg-white" : "w-1.5 bg-white/40"
               }`}
@@ -531,11 +506,7 @@ function InsightBanner() {
   );
 }
 
-/* ============================================================
-   ملخص أداء المندوب
-   ============================================================ */
-
-function RepInsightsSkeleton() {
+function CustomerInsightsSkeleton() {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -571,7 +542,7 @@ function RepInsightsSkeleton() {
   );
 }
 
-function RepInsights() {
+function CustomerInsights() {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-center gap-2 mb-4">
@@ -587,7 +558,6 @@ function RepInsights() {
         {ANALYSIS_INTRO}
       </p>
 
-      {/* الوضع الحالي ← التوقع، لكل مؤشر */}
       <ul className="space-y-3">
         {PERFORMANCE_PROJECTIONS.map((p, idx) => (
           <li
@@ -618,7 +588,7 @@ function RepInsights() {
 
       <div className="mt-6 pt-6 border-t border-border">
         <h3 className="text-sm font-semibold mb-3 text-foreground">
-          شو لازم يعمل المندوب بناءً عالتوقعات
+          التوصيات بناءً على التوقعات
         </h3>
         <ul className="list-disc ps-5 space-y-2">
           {PERFORMANCE_RECOMMENDATIONS.map((rec, idx) => (
@@ -634,10 +604,6 @@ function RepInsights() {
     </div>
   );
 }
-
-/* ============================================================
-   Activity Section
-   ============================================================ */
 
 function ActivityTileSkeleton() {
   return (
@@ -745,17 +711,11 @@ function ActivitySection({ loading }: { loading: boolean }) {
   );
 }
 
-/* ============================================================
-   Page
-   ============================================================ */
-
-interface RepOverviewProps {
+interface CustomerOverviewProps {
   isLoading?: boolean;
 }
 
-export default function RepOverview({ isLoading = false }: RepOverviewProps) {
-  // Note: The internal loading state is kept for demo purposes
-  // When isLoading prop is provided, it takes precedence
+export default function CustomerOverview({ isLoading = false }: CustomerOverviewProps) {
   const [internalLoading, setInternalLoading] = useState(false);
 
   const loading = isLoading || internalLoading;
@@ -777,7 +737,7 @@ export default function RepOverview({ isLoading = false }: RepOverviewProps) {
           {loading ? <InsightBannerSkeleton /> : <InsightBanner />}
         </div>
 
-        {loading ? <RepInsightsSkeleton /> : <RepInsights />}
+        {loading ? <CustomerInsightsSkeleton /> : <CustomerInsights />}
 
         <ActivitySection loading={loading} />
       </div>

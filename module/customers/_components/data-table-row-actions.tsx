@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
-import { MoreVertical, Pencil, Ban, RotateCcw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { MoreVertical, Pencil, Ban, RotateCcw, Eye } from "lucide-react";
 import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,6 +32,7 @@ export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
   const item = row.original as Customer;
+  const router = useRouter();
 
   const [deactivateDialogOpen, setDeactivateDialogOpen] = React.useState(false);
   const [editDrawerOpen, setEditDrawerOpen] = React.useState(false);
@@ -42,8 +44,15 @@ export function DataTableRowActions<TData>({
 
   return (
     <>
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={() => router.push(`/customers/detail?id=${item.id}`)}
+      >
+        <Eye className="size-4 text-muted-foreground" />
+      </Button>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger>
           <Button variant="ghost" size="icon">
             <MoreVertical className="size-4" />
           </Button>

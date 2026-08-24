@@ -84,6 +84,7 @@ export interface BulkActionPayload {
   customer_ids: number[];
   rep_id?: number;
   category_id?: number;
+  work_days?: WorkDay[];
 }
 
 export interface BulkActionResult {

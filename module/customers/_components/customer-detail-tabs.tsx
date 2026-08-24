@@ -27,16 +27,16 @@ const TABS = [
     countKey: "orders",
   },
   {
-    value: "customers",
-    label: "زبائن",
+    value: "reps",
+    label: "مندوبون",
     iconFilled: "users_filled" as iconName,
     iconOutlined: "users_outlined" as iconName,
-    countKey: "customers",
+    countKey: "reps",
   },
 ] as const;
 
 type TabValue = (typeof TABS)[number]["value"];
-type CountKey = "invoices" | "orders" | "customers";
+type CountKey = "invoices" | "orders" | "reps";
 type TrendDirection = "up" | "down";
 
 interface TrendData {
@@ -44,7 +44,7 @@ interface TrendData {
   percentage?: number;
 }
 
-interface RepDetailTabsProps {
+interface CustomerDetailTabsProps {
   value: TabValue;
   onValueChange: (value: TabValue) => void;
   counts?: Partial<Record<CountKey, number>>;
@@ -52,13 +52,13 @@ interface RepDetailTabsProps {
   isLoading?: boolean;
 }
 
-export function RepDetailTabs({
+export function CustomerDetailTabs({
   value,
   onValueChange,
   counts,
   trends,
   isLoading = false,
-}: RepDetailTabsProps) {
+}: CustomerDetailTabsProps) {
   if (isLoading) {
     return (
       <div className="px-6 py-4">

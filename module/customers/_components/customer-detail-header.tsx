@@ -1,4 +1,3 @@
-// rep-detail-header.tsx
 "use client";
 import * as React from "react";
 import type { DateRange } from "react-day-picker";
@@ -22,29 +21,31 @@ interface BreadcrumbItemType {
   href?: string;
 }
 
-interface RepDetailHeaderProps {
+interface CustomerDetailHeaderProps {
   name?: string;
   phone?: string;
-  isOnline?: boolean;
-  customersCount?: number;
+  email?: string;
+  isActive?: boolean;
+  repsCount?: number;
   breadcrumbItems?: BreadcrumbItemType[];
   dateRange?: DateRange;
   onDateRangeChange?: (range: DateRange | undefined) => void;
   isLoading?: boolean;
 }
 
-export function RepDetailHeader({
+export function CustomerDetailHeader({
   name,
   phone,
-  isOnline,
+  email,
+  isActive,
   breadcrumbItems = [
     { label: "الرئيسية", href: "/" },
-    { label: "المناديب", href: "/reps" },
+    { label: "الزبائن", href: "/customers" },
   ],
   dateRange,
   onDateRangeChange,
   isLoading = false,
-}: RepDetailHeaderProps) {
+}: CustomerDetailHeaderProps) {
   return (
     <div className="flex flex-col gap-4 border-b px-4 py-4 border-border sm:px-6 sm:py-6">
       <Breadcrumb>
@@ -85,19 +86,22 @@ export function RepDetailHeader({
               <Skeleton className="h-6 w-16 rounded-full" />
             ) : (
               <Badge
-                variant={isOnline ? "default" : "destructive"}
+                variant={isActive ? "default" : "destructive"}
                 className="flex items-center gap-1 shrink-0"
               >
-                {isOnline ? "متصل" : "غير متصل"}
+                {isActive ? "مفعّل" : "موقوف"}
               </Badge>
             )}
           </div>
 
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             {isLoading ? (
               <Skeleton className="h-10 w-48" />
             ) : (
               <PhoneInput value={phone ?? ""} readOnly className="w-full sm:w-auto" />
+            )}
+            {!isLoading && email && (
+              <span className="text-sm text-muted-foreground">{email}</span>
             )}
           </div>
         </div>

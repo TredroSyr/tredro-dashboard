@@ -11,7 +11,7 @@ import { useState, useMemo } from "react";
 
 const PAGE_SIZE = 8;
 
-export default function SubUsersPage() {
+export default function RepsPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
