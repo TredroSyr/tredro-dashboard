@@ -53,13 +53,7 @@ const mainNavItems: NavItem[] = [
     icon: "home_outlined",
     activeIcon: "home_filled",
   },
-  {
-    key: "profile",
-    label: "الملف الشخصي",
-    href: "/profile",
-    icon: "user_outlined",
-    activeIcon: "user_filled",
-  },
+
   {
     key: "reps",
     label: "المناديب",
@@ -393,9 +387,8 @@ const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
 
       <SidebarInset>
         <MobileTopBar />
-        <div className="flex h-full flex-col">
+        <div className="flex h-full flex-col pt-16 md:pt-0">
           <div className="m-2">
-
           {banner}
           </div>
           <main className="flex-1 overflow-auto">{children}</main>
