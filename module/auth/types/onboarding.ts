@@ -1,3 +1,5 @@
+import { Company } from "../types";
+
 export interface GovernorateLocation {
   governorate: string;
   regions: string[];
@@ -15,6 +17,10 @@ export interface OnboardingPayload {
   region?: string;
   description?: string;
   business_type?: string;
+}
+
+export interface OnboardingResponseData {
+  company: Company;
 }
 
 export interface ApiSuccessResponse<T> {

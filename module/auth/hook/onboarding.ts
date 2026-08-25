@@ -7,7 +7,11 @@ import {
   getBusinessTypes,
   submitOnboarding,
 } from "../api/onboarding";
-import { OnboardingPayload } from "../types/onboarding";
+import {
+  OnboardingPayload,
+  OnboardingResponseData,
+  ApiSuccessResponse,
+} from "../types/onboarding";
 import { ApiErrorResponse } from "../types";
 
 export const useLocationsQuery = () =>
@@ -26,6 +30,8 @@ export const useBusinessTypesQuery = () =>
 
 export const useOnboardingMutation = (options?: {
   onError?: (error: AxiosError<ApiErrorResponse>) => void;
+  onSuccess?: (response: ApiSuccessResponse<OnboardingResponseData>) => void;
+  skipRedirect?: boolean;
 }) => {
   const router = useRouter();
 
@@ -34,8 +40,17 @@ export const useOnboardingMutation = (options?: {
     mutationFn: (payload: OnboardingPayload) => submitOnboarding(payload),
     onSuccess: (response) => {
       if (response?.success) {
-        toast.success(response.message || "تم إعداد الشركة بنجاح!");
-        router.push("/");
+        // Call custom onSuccess callback if provided
+        if (options?.onSuccess) {
+          options.onSuccess(response);
+        }
+
+        toast.success(response.message || "تم حفظ البيانات بنجاح!");
+
+        // Only redirect if not skipped
+        if (!options?.skipRedirect) {
+          router.push("/");
+        }
       } else {
         toast.error(response?.message || "حدث خطأ أثناء الإعداد");
       }

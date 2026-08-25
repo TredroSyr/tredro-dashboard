@@ -4,25 +4,26 @@ import {
   BusinessType,
   GovernorateLocation,
   OnboardingPayload,
+  OnboardingResponseData,
 } from "../types/onboarding";
 
 export const getLocations = async (): Promise<GovernorateLocation[]> => {
   const response = await api.get<
     ApiSuccessResponse<{ locations: GovernorateLocation[] }>
-  >("/companies/locations");
+  >("/locations");
   return response.data.data.locations;
 };
 
 export const getBusinessTypes = async (): Promise<BusinessType[]> => {
   const response = await api.get<
     ApiSuccessResponse<{ business_types: BusinessType[] }>
-  >("/companies/business-types");
+  >("/business-types");
   return response.data.data.business_types;
 };
 
 export const submitOnboarding = async (
   payload: OnboardingPayload,
-): Promise<ApiSuccessResponse<{ company: unknown }>> => {
+): Promise<ApiSuccessResponse<OnboardingResponseData>> => {
   const formData = new FormData();
 
   if (payload.logo) formData.append("logo", payload.logo);

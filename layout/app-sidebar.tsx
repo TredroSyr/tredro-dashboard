@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { iconName } from "@/assets/icons/iconRenderer/types";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useThemeStore } from "@/store/use-theme-store";
@@ -51,6 +52,13 @@ const mainNavItems: NavItem[] = [
     href: "/home",
     icon: "home_outlined",
     activeIcon: "home_filled",
+  },
+  {
+    key: "profile",
+    label: "الملف الشخصي",
+    href: "/profile",
+    icon: "user_outlined",
+    activeIcon: "user_filled",
   },
   {
     key: "reps",
@@ -205,13 +213,21 @@ const LogoutMenuItem = ({ onAction }: { onAction: () => void }) => {
   );
 };
 
-type AppSidebarProps = {
+interface AppSidebarProps {
   children: React.ReactNode;
-};
+  banner?: React.ReactNode;
+}
 
-const AppSidebarContent = ({ children }: AppSidebarProps) => {
+const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
   const pathname = usePathname();
-  const { isMobile, setOpenMobile, toggleSidebar } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
+  const user = useAuthStore((state) => state.user);
+  const router = useRouter();
+
+  const companyName = user?.company?.name || "Tredro";
+  const companyLogo = user?.company?.logo;
+  const onboardingCompleted = user?.company?.onboarding_completed;
+  const userName = user?.name || "";
 
   // Close the sidebar automatically on small screens whenever
   // the user taps a nav link or any action item.
@@ -219,6 +235,11 @@ const AppSidebarContent = ({ children }: AppSidebarProps) => {
     if (isMobile) {
       setOpenMobile(false);
     }
+  };
+
+  const handleProfileClick = () => {
+    handleMobileClose();
+    router.push("/profile");
   };
 
   return (
@@ -248,6 +269,8 @@ const AppSidebarContent = ({ children }: AppSidebarProps) => {
               className="hidden h-auto w-8 cursor-pointer object-contain transition-all duration-200 group-data-[collapsible=icon]:block"
             />
           </div>
+
+         
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
@@ -263,7 +286,36 @@ const AppSidebarContent = ({ children }: AppSidebarProps) => {
                     return (
                       <SidebarMenuItem key={key} className="group/menu-item">
                         <SidebarMenuButton
-                          asChild
+                          render={
+                            <Link
+                              href={href}
+                              onClick={handleMobileClose}
+                              className="flex w-full flex-nowrap items-center gap-2 overflow-hidden"
+                            >
+                              <IconRenderer
+                                name={isActive ? activeIcon : icon}
+                                className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                                  isActive
+                                    ? "scale-110 text-primary"
+                                    : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
+                                }`}
+                              />
+                              <span className="truncate group-data-[collapsible=icon]:hidden">
+                                {label}
+                              </span>
+                              {addable && (
+                                <Badge
+                                  variant="secondary"
+                                  className="mr-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-full p-0 transition-transform duration-200 group-hover/menu-item:scale-110 group-data-[collapsible=icon]:hidden"
+                                >
+                                  <IconRenderer
+                                    name="plus_outlined"
+                                    className="h-2.5 w-2.5 text-primary"
+                                  />
+                                </Badge>
+                              )}
+                            </Link>
+                          }
                           tooltip={label}
                           isActive={isActive}
                           className={`relative cursor-pointer overflow-hidden transition-all duration-200 ease-out hover:translate-x-1 hover:bg-primary/10 active:scale-[0.97] ${
@@ -271,36 +323,7 @@ const AppSidebarContent = ({ children }: AppSidebarProps) => {
                               ? "bg-primary/10 font-semibold text-primary before:absolute before:right-0 before:top-1/2 before:h-4/5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-primary group-data-[collapsible=icon]:before:right-0"
                               : "text-foreground"
                           }`}
-                        >
-                          <Link
-                            href={href}
-                            onClick={handleMobileClose}
-                            className="flex w-full flex-nowrap items-center gap-2 overflow-hidden"
-                          >
-                            <IconRenderer
-                              name={isActive ? activeIcon : icon}
-                              className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                                isActive
-                                  ? "scale-110 text-primary"
-                                  : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
-                              }`}
-                            />
-                            <span className="truncate group-data-[collapsible=icon]:hidden">
-                              {label}
-                            </span>
-                            {addable && (
-                              <Badge
-                                variant="secondary"
-                                className="mr-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-full p-0 transition-transform duration-200 group-hover/menu-item:scale-110 group-data-[collapsible=icon]:hidden"
-                              >
-                                <IconRenderer
-                                  name="plus_outlined"
-                                  className="h-2.5 w-2.5 text-primary"
-                                />
-                              </Badge>
-                            )}
-                          </Link>
-                        </SidebarMenuButton>
+                        />
                       </SidebarMenuItem>
                     );
                   },
@@ -312,6 +335,42 @@ const AppSidebarContent = ({ children }: AppSidebarProps) => {
 
         <SidebarFooter className="gap-3 px-2 pb-4">
           <SidebarMenu className="gap-3">
+                   {/* Company Profile Card */}
+          <div
+            onClick={handleProfileClick}
+            className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-primary/5 p-3 transition-all duration-200 hover:bg-primary/10 active:scale-[0.97]"
+          >
+            <Avatar className="h-10 w-10 shrink-0 border-2 border-background">
+              {companyLogo && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={companyLogo}
+                  alt={companyName}
+                  className="h-full w-full object-cover"
+                />
+              )}
+              <AvatarFallback className="bg-primary/20 text-primary">
+                {companyName.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 group-data-[collapsible=icon]:hidden">
+              <p className="truncate text-sm font-semibold text-foreground">
+                {companyName}
+              </p>
+              <div className="flex items-center gap-2">
+               
+                {!onboardingCompleted && (
+                  <Badge
+                    variant="secondary"
+                    className="h-4 bg-amber-100 px-1.5 text-[10px] text-amber-700 dark:bg-amber-950/50 dark:text-amber-400"
+                  >
+                    غير مكتمل
+                  </Badge>
+                )}
+              </div>
+            </div>
+         
+          </div>
             <ThemeToggle onAction={handleMobileClose} />
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -327,22 +386,29 @@ const AppSidebarContent = ({ children }: AppSidebarProps) => {
               </SidebarMenuButton>
             </SidebarMenuItem>
             <LogoutMenuItem onAction={handleMobileClose} />
+      
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
         <MobileTopBar />
-        <main className="pt-16 md:pt-0">{children}</main>
+        <div className="flex h-full flex-col">
+          <div className="m-2">
+
+          {banner}
+          </div>
+          <main className="flex-1 overflow-auto">{children}</main>
+        </div>
       </SidebarInset>
     </>
   );
 };
 
-const AppSidebar = ({ children }: AppSidebarProps) => {
+const AppSidebar = ({ children, banner }: AppSidebarProps) => {
   return (
     <SidebarProvider>
-      <AppSidebarContent>{children}</AppSidebarContent>
+      <AppSidebarContent banner={banner}>{children}</AppSidebarContent>
     </SidebarProvider>
   );
 };

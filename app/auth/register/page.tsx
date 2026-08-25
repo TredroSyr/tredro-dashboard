@@ -70,7 +70,10 @@ const registerSchema = z
       .string()
       .min(9, "رقم الهاتف غير صالح")
       .regex(/^[0-9+]+$/, "رقم الهاتف غير صالح"),
-    password: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
+    password: z
+      .string()
+      .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+      .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])/, "كلمة المرور يجب أن تحتوي على أحرف وأرقام على الأقل"),
     confirmPassword: z.string().min(8, "تأكيد كلمة المرور مطلوب"),
   })
   .refine((data) => data.password === data.confirmPassword, {

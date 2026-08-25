@@ -18,7 +18,10 @@ export const registerSchema = z
   .object({
     company: z.string().trim().min(1, "اسم الشركة مطلوب").max(100),
     phone: phoneSchema,
-    password: z.string().min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل"),
+    password: z
+      .string()
+      .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
+      .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])/, "كلمة المرور يجب أن تحتوي على أحرف وأرقام على الأقل"),
     confirm: z.string().min(1, "تأكيد كلمة المرور مطلوب"),
   })
   .refine((data) => data.password === data.confirm, {

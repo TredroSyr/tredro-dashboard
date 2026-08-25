@@ -70,6 +70,7 @@ const OnboardingPage = () => {
   const coverInputRef = useRef<HTMLInputElement>(null);
 
   const user = useAuthStore((state) => state.user);
+  const updateUser = useAuthStore((state) => state.updateUser);
   const companyName = user?.company?.name;
   const phoneNumber = user?.phone || null;
 
@@ -79,6 +80,14 @@ const OnboardingPage = () => {
     useBusinessTypesQuery();
 
   const onboardingMutation = useOnboardingMutation({
+    onSuccess: (response) => {
+      if (response?.success && response.data?.company) {
+        // Update store with actual company data from API response
+        updateUser({
+          company: response.data.company,
+        });
+      }
+    },
     onError: (error: AxiosError<ApiErrorResponse>) => {
       const errors = error.response?.data?.errors;
       if (errors) {

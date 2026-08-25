@@ -56,7 +56,7 @@ export const useRegisterMutation = (options?: {
       if (response?.success && response.data?.tokens) {
         setAuth(response.data.user, response.data.tokens);
         toast.success(response.message || "تم إنشاء الحساب بنجاح!");
-        router.push("/onboarding");
+        router.push("/auth/onboarding");
       } else {
         toast.error(response?.message || "فشل حفظ بيانات المستخدم");
       }
