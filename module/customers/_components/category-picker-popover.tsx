@@ -54,6 +54,12 @@ export function CategoryPickerPopover({
           setPendingQuery(q);
           setCreateOpen(true);
         }}
+        showCreateButton
+        createButtonLabel="إضافة تصنيف جديد"
+        onCreateButtonClick={() => {
+          setPendingQuery("");
+          setCreateOpen(true);
+        }}
       />
 
       <CreateCategoryDialog

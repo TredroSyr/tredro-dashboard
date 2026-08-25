@@ -5,7 +5,7 @@ import { CreateRepPayload, UpdateRepPayload } from "../types";
 
 export const useRepsQuery = (customerId?: string | number) =>
   useQuery({
-    queryKey: ["reps", customerId],
+    queryKey: ["reps", "list", customerId],
     queryFn: () => listReps(customerId),
   });
 
@@ -14,7 +14,7 @@ export const useRepQuery = (
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["reps", id],
+    queryKey: ["reps", "detail", id],
     queryFn: () => getRep(id as string | number),
     enabled: (options?.enabled ?? true) && Boolean(id),
   });
@@ -24,7 +24,8 @@ export const useCreateRepMutation = () => {
   return useMutation({
     mutationFn: (payload: CreateRepPayload) => createRep(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reps"] });
+      // بس اللستة، ما إلها علاقة بـ detail queries
+      queryClient.invalidateQueries({ queryKey: ["reps", "list"] });
     },
   });
 };
@@ -33,8 +34,12 @@ export const useUpdateRepMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateRepPayload) => updateRep(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reps"] });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["reps", "list"] });
+      // إذا بدك كمان تحدّث الـ detail cache لنفس المندوب
+      if (variables?.id) {
+        queryClient.invalidateQueries({ queryKey: ["reps", "detail", variables.id] });
+      }
     },
   });
 };
@@ -44,7 +49,7 @@ export const useDeleteRepMutation = () => {
   return useMutation({
     mutationFn: (id: number) => deleteRep(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["reps"] });
+      queryClient.invalidateQueries({ queryKey: ["reps", "list"] });
     },
   });
 };

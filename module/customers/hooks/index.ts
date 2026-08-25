@@ -21,7 +21,7 @@ import {
 
 export const useCustomersQuery = (repId?: string | number) =>
   useQuery({
-    queryKey: ["customers", repId],
+    queryKey: ["customers", "list", repId],
     queryFn: () => listCustomers(repId),
   });
 
@@ -30,8 +30,11 @@ export const useCustomerQuery = (
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["customers", id],
-    queryFn: () => getCustomer(id as string | number),
+    queryKey: ["customers", "detail", id],
+    queryFn: () => {
+      if (!id) throw new Error("getCustomer called without id");
+      return getCustomer(id);
+    },
     enabled: (options?.enabled ?? true) && Boolean(id),
   });
 
@@ -40,7 +43,7 @@ export const useCreateCustomerMutation = () => {
   return useMutation({
     mutationFn: (payload: CreateCustomerPayload) => createCustomer(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customers", "list"] });
     },
   });
 };
@@ -49,8 +52,13 @@ export const useUpdateCustomerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateCustomerPayload) => updateCustomer(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["customers", "list"] });
+      if (variables?.id) {
+        queryClient.invalidateQueries({
+          queryKey: ["customers", "detail", variables.id],
+        });
+      }
     },
   });
 };
@@ -59,8 +67,9 @@ export const useDeactivateCustomerMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deactivateCustomer(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: ["customers", "list"] });
+      queryClient.invalidateQueries({ queryKey: ["customers", "detail", id] });
     },
   });
 };
@@ -70,7 +79,7 @@ export const useAssignRepsMutation = () => {
   return useMutation({
     mutationFn: (payload: AssignRepsPayload) => assignRepsToCustomer(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customers", "list"] });
     },
   });
 };
@@ -80,7 +89,7 @@ export const useRemoveRepsMutation = () => {
   return useMutation({
     mutationFn: (payload: RemoveRepsPayload) => removeRepsFromCustomer(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customers", "list"] });
     },
   });
 };
@@ -90,7 +99,7 @@ export const useBulkActionMutation = () => {
   return useMutation({
     mutationFn: (payload: BulkActionPayload) => bulkAction(payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customers", "list"] });
     },
   });
 };
@@ -100,7 +109,7 @@ export const useImportCustomersExcelMutation = () => {
   return useMutation({
     mutationFn: (file: File) => importCustomersExcel(file),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["customers", "list"] });
     },
   });
 };

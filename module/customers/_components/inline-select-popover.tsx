@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Check } from "lucide-react";
+import { Check, Plus } from "lucide-react";
 import {
   Command,
   CommandEmpty,
@@ -34,6 +34,9 @@ interface InlineSelectPopoverProps {
   createLabel?: (query: string) => string;
   onCreateRequest?: (query: string) => void;
   align?: "start" | "center" | "end";
+  showCreateButton?: boolean;
+  createButtonLabel?: string;
+  onCreateButtonClick?: () => void;
 }
 
 export function InlineSelectPopover({
@@ -49,13 +52,24 @@ export function InlineSelectPopover({
   createLabel = (q) => `إضافة "${q}"`,
   onCreateRequest,
   align = "start",
+  showCreateButton = false,
+  createButtonLabel = "إضافة جديد",
+  onCreateButtonClick,
 }: InlineSelectPopoverProps) {
   const [open, setOpen] = React.useState(false);
   const [query, setQuery] = React.useState(initialQuery);
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+  const [triggerWidth, setTriggerWidth] = React.useState<number>();
 
   React.useEffect(() => {
     if (open) setQuery(initialQuery);
   }, [open, initialQuery]);
+
+  React.useEffect(() => {
+    if (open && triggerRef.current) {
+      setTriggerWidth(triggerRef.current.offsetWidth);
+    }
+  }, [open]);
 
   const filtered = options.filter((o) =>
     o.label.toLowerCase().includes(query.trim().toLowerCase()),
@@ -90,10 +104,13 @@ export function InlineSelectPopover({
         if (!o) setQuery("");
       }}
     >
-      <PopoverTrigger>{trigger}</PopoverTrigger>
+      <PopoverTrigger>
+        <div ref={triggerRef}>{trigger}</div>
+      </PopoverTrigger>
       <PopoverContent
-        className="p-0 "
+        className="p-0"
         align={align}
+        style={triggerWidth ? { width: triggerWidth } : undefined}
       >
         <Command shouldFilter={false}>
           <CommandInput
@@ -142,6 +159,21 @@ export function InlineSelectPopover({
             )}
           </CommandList>
         </Command>
+        {showCreateButton && (
+          <div className="border-t border-border p-2">
+            <button
+              type="button"
+              className="w-full flex items-center justify-center gap-2 text-sm font-normal text-muted-foreground hover:text-foreground hover:bg-accent rounded-md py-2 transition-colors"
+              onClick={() => {
+                setOpen(false);
+                onCreateButtonClick?.();
+              }}
+            >
+              <Plus className="h-4 w-4" />
+              {createButtonLabel}
+            </button>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
