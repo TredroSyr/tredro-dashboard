@@ -5,6 +5,7 @@ import { Capacitor } from "@capacitor/core";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { Drawer, DrawerClose, DrawerContent } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
 
 export default function AppDownloadDrawer() {
   const [open, setOpen] = useState(false);
@@ -78,21 +79,24 @@ export default function AppDownloadDrawer() {
             <span className="absolute inset-0 rounded-2xl bg-primary/10 animate-ping [animation-duration:2s]" />
             <span className="absolute inset-0 rounded-2xl bg-primary/10 animate-pulse" />
 
-            <IconRenderer
-              name="download_outlined"
-              className="relative h-9 w-9 text-primary animate-bounce [animation-duration:2s]"
-            />
+            <Image
+  src="/tredro/logo.svg"
+  alt="Tredro"
+  width={36}
+  height={36}
+  className="relative h-9 w-9 animate-bounce object-contain [animation-duration:2s]"
+/>
           </div>
 
           <span className="mb-2 text-sm font-medium text-primary">Tredro</span>
 
           <h2 className="mb-3 text-2xl font-bold leading-snug text-foreground">
-            لعروضٍ أفضل وتجربةٍ أمتع
+            إدارة أسهل لمندوبيك وطلباتك
           </h2>
 
           <p className="mb-6 max-w-xs text-sm leading-relaxed text-muted-foreground">
-            حمّل التطبيق والحق العروض أولاً — تصفّح أسرع، إشعارات بالخصومات،
-            وتتبّع طلبك خطوة بخطوة.
+            حمّل تطبيق تريدرو وتابع مندوبي المبيعات، الطلبات، والمخزون
+            أينما كنت — إشعارات فورية، وتحكّم كامل من جوالك.
           </p>
 
           <Button
