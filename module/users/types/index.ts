@@ -41,6 +41,9 @@ export interface CreateSubUserPayload {
 export interface UpdateSubUserPayload {
   id: number;
   name?: string;
+  phone?: string;
+  email?: string;
+  password?: string;
   is_active?: boolean;
   permissions?: Permission[];
 }
@@ -54,5 +57,6 @@ export interface ApiEnvelope<T> {
 
 export type ModulesResponse = ApiEnvelope<{ modules: ModuleOption[] }>;
 export type SubUsersListResponse = ApiEnvelope<{ subusers: SubUser[] }>;
+export type SubUserResponse = ApiEnvelope<{ subuser: SubUser }>;
 export type CreateSubUserResponse = ApiEnvelope<{ subuser: SubUser }>;
 export type UpdateSubUserResponse = ApiEnvelope<{ subuser: SubUser }>;

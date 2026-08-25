@@ -15,6 +15,7 @@ import {
 } from "./mobile-filter-drawer";
 import { Badge } from "@/components/ui/badge";
 import { Table } from "@tanstack/react-table";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 const PAGE_SIZE = 8;
 
@@ -124,23 +125,27 @@ export default function CustomersView({ repId }: CustomersViewProps) {
         enableRowSelection
         getRowId={(c: Customer) => String(c.id)}
         renderBulkActions={({ selectedRows, clearSelection }) => (
-          <BulkActionsBar
-            selectedCustomers={selectedRows}
-            clearSelection={clearSelection}
-          />
+          <PermissionGate module="customers" requireAction fallback={null}>
+            <BulkActionsBar
+              selectedCustomers={selectedRows}
+              clearSelection={clearSelection}
+            />
+          </PermissionGate>
         )}
         renderMobileHeader={() =>
           !mobileSelectionMode ? (
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setMobileSelectionMode(true)}
-                className="gap-1.5"
-              >
-                <CheckSquare className="size-4" />
-                تحديد
-              </Button>
+              <PermissionGate module="customers" requireAction fallback={null}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setMobileSelectionMode(true)}
+                  className="gap-1.5"
+                >
+                  <CheckSquare className="size-4" />
+                  تحديد
+                </Button>
+              </PermissionGate>
               <Button
                 variant="outline"
                 size="sm"
@@ -194,13 +199,15 @@ export default function CustomersView({ repId }: CustomersViewProps) {
         renderMobileBulkBar={() =>
           mobileSelectedIds.size > 0 ? (
             <div className="sticky bottom-0 z-20 -mx-4 border-t border-border bg-background/95 backdrop-blur-sm shadow-[0_-4px_16px_rgba(0,0,0,0.06)] px-4 py-3">
-              <BulkActionsBar
-                selectedCustomers={searchFilteredCustomers.filter((c) =>
-                  mobileSelectedIds.has(c.id)
-                )}
-                clearSelection={clearMobileSelection}
-                variant="compact"
-              />
+              <PermissionGate module="customers" requireAction fallback={null}>
+                <BulkActionsBar
+                  selectedCustomers={searchFilteredCustomers.filter((c) =>
+                    mobileSelectedIds.has(c.id)
+                  )}
+                  clearSelection={clearMobileSelection}
+                  variant="compact"
+                />
+              </PermissionGate>
             </div>
           ) : null
         }

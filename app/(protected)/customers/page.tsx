@@ -2,7 +2,12 @@
 "use client";
 
 import CustomersView from "@/module/customers/_components/customers-view";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 export default function CustomersPage() {
-  return <CustomersView />;
+  return (
+    <PermissionGate module="customers">
+      <CustomersView />
+    </PermissionGate>
+  );
 }

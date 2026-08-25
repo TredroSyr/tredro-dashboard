@@ -10,6 +10,7 @@ import { CustomerFormDrawer } from "./actions-drawer";
 import { ImportExcelDialog } from "./import-excel-dialog";
 import { CategoryFilterPopover } from "./category-filter-popover";
 import { RepFilterPopover } from "./rep-filter-popover";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -116,11 +117,13 @@ export function DataTableToolbar<TData>({
         </div>
 
         <div className="flex items-center gap-2">
-          <ImportExcelDialog />
-          <Button size="sm" onClick={() => setAddDrawerOpen(true)}>
-            <Plus className="size-4" />
-            إضافة عميل
-          </Button>
+          <PermissionGate module="customers" requireAction fallback={null}>
+            <ImportExcelDialog />
+            <Button size="sm" onClick={() => setAddDrawerOpen(true)}>
+              <Plus className="size-4" />
+              إضافة عميل
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 

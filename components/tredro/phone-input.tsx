@@ -157,7 +157,7 @@ export const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
       <div
         dir="ltr"
         className={cn(
-          "flex h-12 w-full items-stretch overflow-hidden rounded-xl border border-border shadow-sm transition-colors",
+          "flex h-12 w-full items-stretch overflow-hidden rounded-xl border border-border  transition-colors",
           "focus-within:outline-none focus-within:ring-1 focus-within:ring-primary",
           error && "border-destructive focus-within:ring-destructive",
           disabled && "cursor-not-allowed opacity-50 pointer-events-none",

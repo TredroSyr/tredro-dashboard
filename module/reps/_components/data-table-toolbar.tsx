@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { RepFormDrawer } from "./actions-drawer";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -42,10 +43,12 @@ export function DataTableToolbar<TData>({
             className="pr-9"
           />
         </div>
-        <Button size="sm" onClick={() => setAddDrawerOpen(true)}>
-          <Plus className="size-4" />
-          إضافة مندوب
-        </Button>
+        <PermissionGate module="reps" requireAction fallback={null}>
+          <Button size="sm" onClick={() => setAddDrawerOpen(true)}>
+            <Plus className="size-4" />
+            إضافة مندوب
+          </Button>
+        </PermissionGate>
       </div>
 
       <RepFormDrawer

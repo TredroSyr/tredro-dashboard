@@ -1,6 +1,7 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { RepDetailClient } from "@/module/reps/_components/rep-detail-client";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 export default function RepDetailPage() {
   const searchParams = useSearchParams();
@@ -8,5 +9,9 @@ export default function RepDetailPage() {
 
   if (!id) return null;
 
-  return <RepDetailClient repId={id} />;
+  return (
+    <PermissionGate module="reps">
+      <RepDetailClient repId={id} />
+    </PermissionGate>
+  );
 }

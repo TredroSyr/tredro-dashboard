@@ -92,7 +92,7 @@ export function InlineSelectPopover({
     >
       <PopoverTrigger>{trigger}</PopoverTrigger>
       <PopoverContent
-        className="p-0 w-[min(280px,calc(100vw-2rem))]"
+        className="p-0 "
         align={align}
       >
         <Command shouldFilter={false}>

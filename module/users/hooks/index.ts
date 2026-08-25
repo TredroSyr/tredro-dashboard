@@ -1,13 +1,17 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "sonner";
 import {
   getModules,
   listSubUsers,
+  getSubUser,
   createSubUser,
   updateSubUser,
   deleteSubUser,
 } from "../api";
 import { CreateSubUserPayload, UpdateSubUserPayload, SubUser } from "../types";
+import { ApiErrorResponse } from "@/module/auth/types";
 
 export const useModulesQuery = () =>
   useQuery({
@@ -22,42 +26,54 @@ export const useSubUsersQuery = () =>
     queryFn: listSubUsers,
   });
 
-// NOTE: no dedicated "get sub-user by id" endpoint is documented in api.ts.
-// This derives the single sub-user from the already-fetched list cache
-// instead of firing a new network call. If a real
-// GET companies/subusers/:id endpoint gets added later, swap the
-// queryFn below to call it directly with queryKey: ["subusers", id].
 export const useSubUserQuery = (
   id?: string | number,
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["subusers"],
-    queryFn: listSubUsers,
+    queryKey: ["subusers", id],
+    queryFn: () => getSubUser(Number(id)),
     enabled: (options?.enabled ?? true) && Boolean(id),
-    select: (response) => {
-      const subusers = response.data.subusers as SubUser[];
-      const found = subusers.find((u) => String(u.id) === String(id));
-      return { ...response, data: found as SubUser };
-    },
   });
 
-export const useCreateSubUserMutation = () => {
+export const useCreateSubUserMutation = (options?: {
+  onSuccess?: () => void;
+  onError?: (error: AxiosError<ApiErrorResponse>) => void;
+}) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateSubUserPayload) => createSubUser(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subusers"] });
+      options?.onSuccess?.();
+    },
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      if (options?.onError) {
+        options.onError(error);
+      } else {
+        toast.error(error.response?.data?.message || "فشل إنشاء المستخدم");
+      }
     },
   });
 };
 
-export const useUpdateSubUserMutation = () => {
+export const useUpdateSubUserMutation = (options?: {
+  onSuccess?: () => void;
+  onError?: (error: AxiosError<ApiErrorResponse>) => void;
+}) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateSubUserPayload) => updateSubUser(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["subusers"] });
+      options?.onSuccess?.();
+    },
+    onError: (error: AxiosError<ApiErrorResponse>) => {
+      if (options?.onError) {
+        options.onError(error);
+      } else {
+        toast.error(error.response?.data?.message || "فشل تحديث المستخدم");
+      }
     },
   });
 };

@@ -28,6 +28,7 @@ import {
   useOnboardingMutation,
 } from "@/module/auth/hook/onboarding";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
+import { ImageWithFallback } from "@/components/tredro/image-with-fallback";
 import { ApiErrorResponse } from "@/module/auth/types";
 import { useBannerStore } from "@/store/use-banner-store";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
@@ -220,16 +221,11 @@ const ProfilePage = () => {
             className="hidden"
             onChange={handleCoverChange}
           />
-          {coverPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={coverPreview}
-              alt="صورة غلاف الشركة"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-l from-primary/30 to-primary/10" />
-          )}
+          <ImageWithFallback
+            src={coverPreview}
+            alt="صورة غلاف الشركة"
+            iconSize={64}
+          />
           <button
             type="button"
             onClick={() => coverInputRef.current?.click()}
@@ -261,28 +257,14 @@ const ProfilePage = () => {
           />
           <div className="relative">
             <Avatar className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl border-4 border-card bg-card overflow-hidden shadow-lg">
-              {logoPreview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoPreview}
-                  alt="شعار الشركة"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <>
-                  {companyLogo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={companyLogo}
-                      alt="شعار الشركة"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : null}
-                  <AvatarFallback className="bg-primary/20 text-primary text-2xl font-bold">
-                    {companyName.charAt(0)}
-                  </AvatarFallback>
-                </>
-              )}
+              <AvatarImage
+                src={logoPreview || companyLogo || undefined}
+                alt="شعار الشركة"
+                className="w-full h-full object-cover rounded-2xl"
+              />
+              <AvatarFallback className="bg-primary/20 text-primary flex items-center justify-center rounded-2xl">
+                <IconRenderer name="no_image_filled" className="w-10 h-10 text-primary/50" />
+              </AvatarFallback>
             </Avatar>
             <button
               type="button"

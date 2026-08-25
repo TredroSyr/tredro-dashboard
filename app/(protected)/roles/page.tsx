@@ -7,10 +7,11 @@ import { DataTable } from "@/module/users/_components/data-table";
 import { DataTableRowActions } from "@/module/users/_components/data-table-row-actions";
 import { useSubUsersQuery } from "@/module/users/hooks";
 import { useState, useMemo } from "react";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 const PAGE_SIZE = 8;
 
-export default function SubUsersPage() {
+function SubUsersPageContent() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
@@ -73,5 +74,13 @@ export default function SubUsersPage() {
         </div>
       )}
     />
+  );
+}
+
+export default function SubUsersPage() {
+  return (
+    <PermissionGate ownerOnly>
+      <SubUsersPageContent />
+    </PermissionGate>
   );
 }

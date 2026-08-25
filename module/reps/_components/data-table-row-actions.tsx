@@ -14,6 +14,7 @@ import {
 import { Rep } from "../types";
 import { useDeleteRepMutation } from "../hooks";
 import { RepFormDrawer } from "./actions-drawer";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -40,20 +41,22 @@ export function DataTableRowActions<TData>({
         >
           <Eye className="size-4 text-muted-foreground" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setEditDrawerOpen(true)}
-        >
-          <Pencil className="size-4 text-muted-foreground" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setDeleteDialogOpen(true)}
-        >
-          <Trash2 className="size-4 text-destructive" />
-        </Button>
+        <PermissionGate module="reps" requireAction fallback={null}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setEditDrawerOpen(true)}
+          >
+            <Pencil className="size-4 text-muted-foreground" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setDeleteDialogOpen(true)}
+          >
+            <Trash2 className="size-4 text-destructive" />
+          </Button>
+        </PermissionGate>
       </div>
 
       <RepFormDrawer

@@ -2,6 +2,7 @@ import api from "@/lib/axios";
 import {
   ModulesResponse,
   SubUsersListResponse,
+  SubUserResponse,
   CreateSubUserPayload,
   CreateSubUserResponse,
   UpdateSubUserPayload,
@@ -11,7 +12,7 @@ import {
 
 // GET companies/modules
 export const getModules = async (): Promise<ModulesResponse> => {
-  const response = await api.get<ModulesResponse>("companies/modules");
+  const response = await api.get<ModulesResponse>("/modules");
   return response.data;
 };
 
@@ -19,6 +20,14 @@ export const getModules = async (): Promise<ModulesResponse> => {
 export const listSubUsers = async (): Promise<SubUsersListResponse> => {
   const response = await api.get<SubUsersListResponse>(
     "companies/subusers/list",
+  );
+  return response.data;
+};
+
+// GET companies/subusers/:id
+export const getSubUser = async (id: number): Promise<SubUserResponse> => {
+  const response = await api.get<SubUserResponse>(
+    `companies/subusers/${id}`,
   );
   return response.data;
 };

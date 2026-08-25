@@ -23,6 +23,7 @@ import {
   useUpdateCustomerMutation,
 } from "../hooks";
 import { CustomerFormDrawer } from "./actions-drawer";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -51,36 +52,38 @@ export function DataTableRowActions<TData>({
       >
         <Eye className="size-4 text-muted-foreground" />
       </Button>
-      <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setEditDrawerOpen(true)}>
-            <Pencil className="size-4" />
-            تعديل
-          </DropdownMenuItem>
-          {item.is_active ? (
-            <DropdownMenuItem
-              onClick={() => setDeactivateDialogOpen(true)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Ban className="size-4" />
-              تعطيل
+      <PermissionGate module="customers" requireAction fallback={null}>
+        <DropdownMenu>
+          <DropdownMenuTrigger>
+            <Button variant="ghost" size="icon">
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => setEditDrawerOpen(true)}>
+              <Pencil className="size-4" />
+              تعديل
             </DropdownMenuItem>
-          ) : (
-            <DropdownMenuItem
-              disabled={isReactivating}
-              onClick={() => updateCustomer({ id: item.id, is_active: true })}
-            >
-              <RotateCcw className="size-4" />
-              إعادة تفعيل
-            </DropdownMenuItem>
-          )}
-        </DropdownMenuContent>
-      </DropdownMenu>
+            {item.is_active ? (
+              <DropdownMenuItem
+                onClick={() => setDeactivateDialogOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Ban className="size-4" />
+                تعطيل
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem
+                disabled={isReactivating}
+                onClick={() => updateCustomer({ id: item.id, is_active: true })}
+              >
+                <RotateCcw className="size-4" />
+                إعادة تفعيل
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </PermissionGate>
 
       <CustomerFormDrawer
         mode="edit"
