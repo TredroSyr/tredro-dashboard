@@ -94,7 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-thmanyah">
+      <body className="overflow-hidden flex flex-col font-thmanyah">
         {/* <WarmupConnection /> */}
         <QueryProvider>
           {children}

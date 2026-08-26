@@ -471,7 +471,7 @@ const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
 
       <SidebarInset>
         <MobileTopBar />
-        <div className="flex h-full flex-col pt-16 md:pt-0">
+        <div className="flex h-full flex-col ">
           <div className="m-2">{banner}</div>
           <main className="flex-1 overflow-auto">{children}</main>
         </div>

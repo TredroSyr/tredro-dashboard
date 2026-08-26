@@ -12,12 +12,12 @@ type ProtectedLayoutProps = {
 
 /**
  * Protected Layout
- * 
+ *
  * Wraps protected routes with:
  * 1. ProtectedRoute - authentication check
  * 2. PermissionsProvider - fetches and provides permissions via Context
  * 3. AppSidebar - sidebar with permission-gated nav items
- * 
+ *
  * Data Flow:
  * 1. User authenticated (ProtectedRoute)
  * 2. PermissionsProvider fetches from API: GET /companies/subusers/:id
@@ -31,9 +31,7 @@ const ProtectedLayout = ({ children }: ProtectedLayoutProps) => {
   return (
     <ProtectedRoute>
       <PermissionsProvider>
-        <AppSidebar banner={<OnboardingWarningBanner />}>
-          {children}
-        </AppSidebar>
+        <AppSidebar banner={<OnboardingWarningBanner />}>{children}</AppSidebar>
       </PermissionsProvider>
     </ProtectedRoute>
   );
