@@ -15,7 +15,7 @@ export function Content({
   return (
     <SlotComponent
       slotType="content"
-      className={cn(className, "overflow-y-auto max-h-[110vh]")}
+      className={cn(className, "min-h-[100vh]")}
     >
       {children}
     </SlotComponent>
