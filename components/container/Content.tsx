@@ -13,10 +13,7 @@ export function Content({
   const heightStyle = useContentHeightStyle();
 
   return (
-    <SlotComponent
-      slotType="content"
-      className={cn(className, "min-h-[100vh]")}
-    >
+    <SlotComponent slotType="content" className={cn(className, "h-[110vh] ")}>
       {children}
     </SlotComponent>
   );
