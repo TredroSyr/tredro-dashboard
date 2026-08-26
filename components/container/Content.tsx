@@ -15,7 +15,7 @@ export function Content({
   return (
     <SlotComponent
       slotType="content"
-      className={cn(className, !noScroll && "overflow-y-auto")}
+      className={cn(className, "overflow-y-auto")}
     >
       {children}
     </SlotComponent>
