@@ -77,7 +77,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="ar"
       dir="rtl"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${thmanyahSans.variable}  h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${thmanyahSans.variable}   antialiased`}
     >
       <head>
         <link rel="preconnect" href={process.env.NEXT_PUBLIC_BASE_URL} />
@@ -94,7 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
       </head>
-      <body className="overflow-hidden flex flex-col font-thmanyah">
+      <body className=" flex flex-col font-thmanyah">
         {/* <WarmupConnection /> */}
         <QueryProvider>
           {children}

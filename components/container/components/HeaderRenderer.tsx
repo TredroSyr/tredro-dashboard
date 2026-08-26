@@ -111,7 +111,7 @@ export function HeaderRenderer({
         >
           <div
             className={cn(
-              "flex-1 flex px-3 sm:px-6 min-h-14 h-auto w-full rounded-t-2xl transition-all relative bg-primary/4",
+              "flex-1 flex px-3 sm:px-6 min-h-14 h-auto w-full rounded-t-2xl transition-all relative ",
               !hasHeaderList && "rounded-tl-2xl",
             )}
           >
@@ -134,7 +134,7 @@ export function HeaderRenderer({
         {hasBreadcrumb && (
           <div
             className={cn(
-              "px-3 sm:px-6 bg-primary/4 pt-3 sm:pt-4",
+              "px-3 sm:px-6  pt-3 sm:pt-4",
               !hasHeaderList && "rounded-tl-2xl",
             )}
           >
@@ -154,7 +154,7 @@ export function HeaderRenderer({
       >
         <div
           className={cn(
-            "flex-1 flex bg-primary/4 items-center px-3 sm:px-6 w-full rounded-t-2xl h-full min-h-14 transition-all relative",
+            "flex-1 flex  items-center px-3 sm:px-6 w-full rounded-t-2xl h-full min-h-14 transition-all relative",
             !hasHeaderList && "rounded-tl-2xl",
           )}
         >

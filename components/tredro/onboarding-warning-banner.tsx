@@ -40,7 +40,7 @@ export function OnboardingWarningBanner() {
               handleGoToProfile();
             }
           }}
-          className="relative cursor-pointer rounded-lg border border-warning/30 bg-warning/10 transition-colors hover:bg-warning/15"
+          className="relative m-2 cursor-pointer rounded-lg border border-warning/30 bg-warning/10 transition-colors hover:bg-warning/15"
         >
           <motion.div
             initial={{ opacity: 0 }}
