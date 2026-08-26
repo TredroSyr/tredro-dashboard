@@ -79,6 +79,11 @@ export const PRODUCT_TABS = [
 
 export type ProductTabValue = (typeof PRODUCT_TABS)[number]["value"];
 
+export const getVisibleTabs = (mode: "create" | "edit") =>
+  mode === "create"
+    ? PRODUCT_TABS.filter((tab) => tab.value !== "overview")
+    : PRODUCT_TABS;
+
 export const getTabHasError = (
   tabValue: ProductTabValue,
   errors: Partial<Record<keyof ProductFormValues, unknown>>,

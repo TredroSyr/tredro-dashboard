@@ -2,18 +2,19 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useForm, FormProvider } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CreateProductPayload, ProductDetail } from "../types";
-import { PRODUCT_TABS, ProductTabValue } from "../constant";
+import { Form } from "@/components/ui/form";
+import {
+  CreateProductPayload,
+  ProductDetail,
+  ProductImagePayload,
+  ProductPricePayload,
+} from "../types";
+import { getVisibleTabs, ProductTabValue } from "../constant";
 import { productFormSchema, ProductFormValues } from "../schema";
 import { getProductFormDefaultValues } from "../schema/product-form-defaults";
-import {
-  useCreateProductMutation,
-  useCreateProductPriceMutation,
-  useUpdateProductMutation,
-  useUploadProductImageMutation,
-} from "../hook";
+import { useCreateProductMutation, useUpdateProductMutation } from "../hook";
 import { ProductFormHeader } from "./product-form-header";
 import { ProductDetailTabs } from "./product-detail-tabs";
 import { ProductBasicInfoTab } from "./product-basic-info-tab";
@@ -30,13 +31,24 @@ interface ProductFormClientProps {
   isLoading?: boolean;
 }
 
+const fileToBase64 = (file: File): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
 export const ProductFormClient = ({
   mode,
   product,
   isLoading = false,
 }: ProductFormClientProps) => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = React.useState<ProductTabValue>("basic");
+  const visibleTabs = getVisibleTabs(mode);
+  const [activeTab, setActiveTab] = React.useState<ProductTabValue>(
+    visibleTabs[0].value,
+  );
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitError, setSubmitError] = React.useState<string | null>(null);
 
@@ -50,20 +62,36 @@ export const ProductFormClient = ({
   }, [product]);
 
   const { mutateAsync: createProduct } = useCreateProductMutation();
-  const { mutateAsync: createPrice } = useCreateProductPriceMutation();
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
-  //   const { mutateAsync: updatePrice } = useUpdateProductPriceMutation();
-  //   const { mutateAsync: deletePrice } = useDeleteProductPriceMutation();
-  const { mutateAsync: uploadImage } = useUploadProductImageMutation();
 
   const goToFirstErrorTab = (errors: Record<string, unknown>) => {
-    const tabWithError = PRODUCT_TABS.find((tab) =>
+    const tabWithError = visibleTabs.find((tab) =>
       tab.fields.some((field) => Boolean(errors[field])),
     );
     if (tabWithError) setActiveTab(tabWithError.value);
   };
 
   const persist = async (values: ProductFormValues) => {
+    const images: ProductImagePayload[] = [];
+    let sortOrder = 0;
+    for (const img of values.images) {
+      const image = img.file ? await fileToBase64(img.file) : img.previewUrl;
+      images.push({
+        image,
+        alt_text: img.alt_text || undefined,
+        is_primary: img.is_primary,
+        sort_order: sortOrder++,
+      });
+    }
+
+    const prices: ProductPricePayload[] = values.prices.map((price) => ({
+      currency: price.currency,
+      price_type: price.price_type,
+      customer_category: price.customer_category ?? undefined,
+      price: price.price,
+      is_default: price.is_default,
+    }));
+
     const payload: CreateProductPayload = {
       name: values.name.trim(),
       description: values.description || undefined,
@@ -92,66 +120,23 @@ export const ProductFormClient = ({
         Object.keys(values.custom_fields).length > 0
           ? values.custom_fields
           : undefined,
+      images,
+      prices,
     };
 
-    const productId =
-      mode === "edit" && product
-        ? (await updateProduct({ productId: product.id, payload })).data.product
-            .id
-        : (await createProduct(payload)).data.product.id;
-
-    const existingPriceIds = new Set(product?.prices?.map((p) => p.id) ?? []);
-    const currentPriceIds = new Set(
-      values.prices.map((p) => p.id).filter((id): id is number => Boolean(id)),
-    );
-
-    for (const price of values.prices) {
-      const pricePayload = {
-        currency: price.currency,
-        price_type: price.price_type,
-        customer_category: price.customer_category,
-        price: price.price,
-        is_default: price.is_default,
-      };
-      //   if (price.id) {
-      //     await updatePrice({
-      //       productId,
-      //       priceId: price.id,
-      //       payload: pricePayload,
-      //     });
-      //   } else {
-      //     await createPrice({ productId, payload: pricePayload });
-      //   }
-    }
-
-    // for (const id of existingPriceIds) {
-    //   if (!currentPriceIds.has(id)) {
-    //     await deletePrice({ productId, priceId: id });
-    //   }
-    // }
-
-    let sortOrder = 0;
-    for (const img of values.images) {
-      if (!img.file) {
-        sortOrder++;
-        continue;
-      }
-      await uploadImage({
-        productId,
-        file: img.file,
-        meta: {
-          alt_text: img.alt_text || undefined,
-          is_primary: img.is_primary,
-          sort_order: sortOrder++,
-        },
-      });
+    if (mode === "edit" && product) {
+      await updateProduct({ id: product.id, ...payload });
+    } else {
+      await createProduct(payload);
     }
   };
 
-  const submitAs = async (status: "draft" | "published") => {
-    form.setValue("status", status);
+  const submitAs = async (published: boolean) => {
+    form.setValue("is_active", published);
+    form.setValue("status", published ? "published" : "draft");
     const values = form.getValues();
-    values.status = status;
+    values.is_active = published;
+    values.status = published ? "published" : "draft";
 
     setSubmitError(null);
     setIsSubmitting(true);
@@ -170,31 +155,31 @@ export const ProductFormClient = ({
   };
 
   const handleSaveDraft = form.handleSubmit(
-    () => submitAs("draft"),
+    () => submitAs(false),
     (errors) => goToFirstErrorTab(errors),
   );
 
   const handlePublish = form.handleSubmit(
-    () => submitAs("published"),
+    () => submitAs(true),
     (errors) => goToFirstErrorTab(errors),
   );
 
   const watchedName = form.watch("name");
   const watchedDescription = form.watch("description");
-  const watchedStatus = form.watch("status");
+  const watchedIsActive = form.watch("is_active");
   const watchedImages = form.watch("images");
   const primaryImage =
     watchedImages.find((img) => img.is_primary) ?? watchedImages[0];
 
   return (
-    <FormProvider {...form}>
+    <Form {...form}>
       <div className="flex flex-col gap-4 ">
         <div className="sticky top-0 z-20 bg-card">
           <ProductFormHeader
             title={watchedName || (mode === "edit" ? "" : "إضافة منتج جديد")}
             description={watchedDescription}
             imageUrl={primaryImage?.previewUrl}
-            status={watchedStatus}
+            isActive={watchedIsActive}
             isEditMode={mode === "edit"}
             isSubmitting={isSubmitting}
             isLoading={isLoading}
@@ -203,6 +188,7 @@ export const ProductFormClient = ({
           />
 
           <ProductDetailTabs
+            mode={mode}
             value={activeTab}
             onValueChange={setActiveTab}
             errors={form.formState.errors}
@@ -219,9 +205,13 @@ export const ProductFormClient = ({
           )}
 
           <div className="rounded-md border border-border p-4 sm:p-6">
-            {activeTab === "overview" && <ProductOverview />}
-            {activeTab === "basic" && <ProductBasicInfoTab />}
-            {activeTab === "details" && <ProductDetailsTab />}
+            {activeTab === "overview" && mode === "edit" && <ProductOverview />}
+            {activeTab === "basic" && (
+              <ProductBasicInfoTab isLoading={isLoading} />
+            )}
+            {activeTab === "details" && (
+              <ProductDetailsTab isLoading={isLoading} />
+            )}
             {activeTab === "custom-fields" && <ProductCustomFieldsTab />}
             {activeTab === "pricing" && <ProductPricingTab />}
             {activeTab === "images" && <ProductImagesTab />}
@@ -229,6 +219,6 @@ export const ProductFormClient = ({
           </div>
         </div>
       </div>
-    </FormProvider>
+    </Form>
   );
 };

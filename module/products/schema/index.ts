@@ -48,7 +48,7 @@ export const productFormSchema = z
     is_active: z.boolean(),
     status: z.enum(["draft", "published"]),
     custom_fields: z.record(z.string(), z.string()),
-    prices: z.array(draftPriceSchema),
+    prices: z.array(draftPriceSchema).min(1, "يجب إضافة سعر واحد على الأقل"),
     images: z.array(draftImageSchema),
   })
   .superRefine((data, ctx) => {

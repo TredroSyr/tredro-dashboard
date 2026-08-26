@@ -20,13 +20,11 @@ interface BreadcrumbItemType {
   href?: string;
 }
 
-type ProductStatus = "draft" | "published";
-
 interface ProductFormHeaderProps {
   title: string;
   description?: string;
   imageUrl?: string;
-  status: ProductStatus;
+  isActive: boolean;
   isEditMode: boolean;
   isSubmitting: boolean;
   isLoading?: boolean;
@@ -39,7 +37,7 @@ export const ProductFormHeader = ({
   title,
   description,
   imageUrl,
-  status,
+  isActive,
   isEditMode,
   isSubmitting,
   isLoading = false,
@@ -100,10 +98,8 @@ export const ProductFormHeader = ({
                 </h1>
               )}
               {!isLoading && (
-                <Badge
-                  variant={status === "published" ? "default" : "secondary"}
-                >
-                  {status === "published" ? "منشور" : "مسودة"}
+                <Badge variant={isActive ? "default" : "secondary"}>
+                  {isActive ? "منشور" : "مسودة"}
                 </Badge>
               )}
             </div>
@@ -131,7 +127,7 @@ export const ProductFormHeader = ({
             disabled={isSubmitting || isLoading}
             className="flex-1 sm:flex-none"
           >
-            {isSubmitting ? "جارٍ النشر..." : "حفظ كمنشور"}
+            {isSubmitting ? "جارٍ النشر..." : "نشر المنتج"}
           </Button>
         </div>
       </div>

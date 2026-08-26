@@ -1,117 +1,269 @@
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ProductFormValues } from "../schema";
 
-export const ProductDetailsTab = () => {
-  const {
-    register,
-    control,
-    watch,
-    formState: { errors },
-  } = useFormContext<ProductFormValues>();
+interface ProductDetailsTabProps {
+  isLoading?: boolean;
+}
 
+export const ProductDetailsTab = ({
+  isLoading = false,
+}: ProductDetailsTabProps) => {
+  const { control, watch } = useFormContext<ProductFormValues>();
   const isTaxable = watch("is_taxable");
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-12 w-full" />
+        </div>
+        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-24 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-5">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">الوزن</Label>
-          <Input
-            {...register("weight")}
-            placeholder="2.500"
-            dir="ltr"
-            className="h-12"
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">وحدة الوزن</Label>
-          <Input
-            {...register("weight_unit")}
-            placeholder="kg"
-            dir="ltr"
-            className="h-12"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">الطول</Label>
-          <Input {...register("length")} dir="ltr" className="h-12" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">العرض</Label>
-          <Input {...register("width")} dir="ltr" className="h-12" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">الارتفاع</Label>
-          <Input {...register("height")} dir="ltr" className="h-12" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">وحدة القياس</Label>
-          <Input
-            {...register("dimension_unit")}
-            placeholder="cm"
-            dir="ltr"
-            className="h-12"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">حد إعادة الطلب</Label>
-          <Input {...register("reorder_point")} dir="ltr" className="h-12" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">كمية إعادة الطلب</Label>
-          <Input {...register("reorder_quantity")} dir="ltr" className="h-12" />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between rounded-md border border-border p-3">
-        <Label>خاضع للضريبة</Label>
-        <Controller
+        <FormField
           control={control}
-          name="is_taxable"
+          name="weight"
           render={({ field }) => (
-            <Switch checked={field.value} onCheckedChange={field.onChange} />
+            <FormItem>
+              <FormLabel className="text-right block">الوزن</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder="2.500"
+                  dir="ltr"
+                  className="h-12"
+                />
+              </FormControl>
+              <FormDescription className="text-right">
+                وزن الوحدة الواحدة من المنتج، يستخدم في حساب تكاليف الشحن
+              </FormDescription>
+              <FormMessage className="text-right" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="weight_unit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">وحدة الوزن</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="kg" dir="ltr" className="h-12" />
+              </FormControl>
+              <FormDescription className="text-right">
+                الوحدة المستخدمة لقياس وزن المنتج مثل كجم أو جرام
+              </FormDescription>
+              <FormMessage className="text-right" />
+            </FormItem>
           )}
         />
       </div>
 
-      {isTaxable && (
-        <div className="flex flex-col gap-2">
-          <Label className="text-right block">نسبة الضريبة (%)</Label>
-          <Input
-            {...register("tax_rate")}
-            placeholder="10.00"
-            dir="ltr"
-            className="h-12"
-          />
-          {errors.tax_rate && (
-            <p className="text-xs text-destructive text-right">
-              {errors.tax_rate.message}
-            </p>
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <FormField
+          control={control}
+          name="length"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">الطول</FormLabel>
+              <FormControl>
+                <Input {...field} dir="ltr" className="h-12" />
+              </FormControl>
+              <FormMessage className="text-right" />
+            </FormItem>
           )}
-        </div>
+        />
+        <FormField
+          control={control}
+          name="width"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">العرض</FormLabel>
+              <FormControl>
+                <Input {...field} dir="ltr" className="h-12" />
+              </FormControl>
+              <FormMessage className="text-right" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="height"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">الارتفاع</FormLabel>
+              <FormControl>
+                <Input {...field} dir="ltr" className="h-12" />
+              </FormControl>
+              <FormMessage className="text-right" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="dimension_unit"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">وحدة القياس</FormLabel>
+              <FormControl>
+                <Input {...field} placeholder="cm" dir="ltr" className="h-12" />
+              </FormControl>
+              <FormMessage className="text-right" />
+            </FormItem>
+          )}
+        />
+      </div>
+      <p className="text-xs text-muted-foreground text-right -mt-3">
+        أبعاد المنتج تساعد في حساب مساحة التخزين وتكلفة الشحن بدقة
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField
+          control={control}
+          name="reorder_point"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">حد إعادة الطلب</FormLabel>
+              <FormControl>
+                <Input {...field} dir="ltr" className="h-12" />
+              </FormControl>
+              <FormDescription className="text-right">
+                الكمية التي عند الوصول إليها يجب إعادة طلب المنتج
+              </FormDescription>
+              <FormMessage className="text-right" />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="reorder_quantity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">
+                كمية إعادة الطلب
+              </FormLabel>
+              <FormControl>
+                <Input {...field} dir="ltr" className="h-12" />
+              </FormControl>
+              <FormDescription className="text-right">
+                الكمية المقترحة لطلبها من المورد عند نفاد المخزون
+              </FormDescription>
+              <FormMessage className="text-right" />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <FormField
+        control={control}
+        name="is_taxable"
+        render={({ field }) => (
+          <FormItem className="flex items-center justify-between rounded-md border border-border p-3">
+            <div className="flex flex-col gap-1">
+              <Label>خاضع للضريبة</Label>
+              <FormDescription>
+                فعّل هذا الخيار إذا كان يجب إضافة ضريبة على سعر المنتج
+              </FormDescription>
+            </div>
+            <FormControl>
+              <Switch checked={field.value} onCheckedChange={field.onChange} />
+            </FormControl>
+          </FormItem>
+        )}
+      />
+
+      {isTaxable && (
+        <FormField
+          control={control}
+          name="tax_rate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="text-right block">
+                نسبة الضريبة (%)
+              </FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  placeholder="10.00"
+                  dir="ltr"
+                  className="h-12"
+                />
+              </FormControl>
+              <FormDescription className="text-right">
+                النسبة المئوية للضريبة التي تضاف على سعر المنتج
+              </FormDescription>
+              <FormMessage className="text-right" />
+            </FormItem>
+          )}
+        />
       )}
 
-      <div className="flex flex-col gap-2">
-        <Label className="text-right block">المرجع الخارجي</Label>
-        <Input {...register("external_reference")} dir="ltr" className="h-12" />
-      </div>
+      <FormField
+        control={control}
+        name="external_reference"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-right block">المرجع الخارجي</FormLabel>
+            <FormControl>
+              <Input {...field} dir="ltr" className="h-12" />
+            </FormControl>
+            <FormDescription className="text-right">
+              رقم أو كود مرجعي مرتبط بنظام خارجي مثل نظام المحاسبة أو المورد
+            </FormDescription>
+            <FormMessage className="text-right" />
+          </FormItem>
+        )}
+      />
 
-      <div className="flex flex-col gap-2">
-        <Label className="text-right block">ملاحظات</Label>
-        <Textarea {...register("notes")} className="text-right min-h-24" />
-      </div>
+      <FormField
+        control={control}
+        name="notes"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel className="text-right block">ملاحظات</FormLabel>
+            <FormControl>
+              <Textarea {...field} className="text-right min-h-24" />
+            </FormControl>
+            <FormDescription className="text-right">
+              أي ملاحظات داخلية إضافية خاصة بالمنتج، لا تظهر للعميل
+            </FormDescription>
+            <FormMessage className="text-right" />
+          </FormItem>
+        )}
+      />
     </div>
   );
 };

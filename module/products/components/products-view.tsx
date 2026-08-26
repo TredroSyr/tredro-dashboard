@@ -1,16 +1,34 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardAction,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useProductsQuery } from "../hook";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { DataTableRowActions } from "./data-table-row-actions";
+import { ImageWithFallback } from "@/components/tredro/image-with-fallback";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Barcode, Hash } from "lucide-react";
+import type { Product } from "../types"; // adjust import path to your actual Product type
 
 const PAGE_SIZE = 8;
 
 export default function ProductsView() {
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
 
@@ -47,6 +65,11 @@ export default function ProductsView() {
     setPage(1);
   };
 
+  // Opens the product details view — adjust to match your routing
+  const handleOpenProduct = (product: Product) => {
+    router.push(`/products/detail?id=${product.id}`);
+  };
+
   return (
     <DataTable
       data={paginated}
@@ -63,28 +86,88 @@ export default function ProductsView() {
       pagination={{ page, totalPages }}
       onPageChange={setPage}
       renderCard={(product) => (
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <span className="font-semibold text-foreground">
-              {product.name}
-            </span>
-            <Badge variant={product.is_active ? "default" : "destructive"}>
-              {product.is_active ? "مفعّل" : "موقوف"}
+        <Card
+          key={product.id}
+          onClick={() => handleOpenProduct(product)}
+          className="relative mx-auto w-full max-w-sm pt-0 cursor-pointer transition-shadow hover:shadow-md"
+        >
+          <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
+            <ImageWithFallback
+              src={product.primary_image}
+              alt={product.name}
+              iconSize={32}
+            />
+
+            {/* Category badge - top corner of image */}
+            {product.category_name && (
+              <Badge
+                variant="secondary"
+                className="absolute top-2 left-2 bg-background/90 backdrop-blur-sm"
+              >
+                {product.category_name}
+              </Badge>
+            )}
+
+            {/* Active/Inactive badge - opposite corner */}
+            <Badge
+              variant={product.is_active ? "default" : "secondary"}
+              className="absolute top-2 right-2"
+            >
+              {product.is_active ? "منشور" : "غير منشور"}
             </Badge>
           </div>
-          <span className="text-sm text-muted-foreground" dir="ltr">
-            {product.sku ?? "-"}
-          </span>
-          {product.default_price && (
-            <span className="text-sm font-medium">
-              {product.default_price.currency_symbol}
-              {product.default_price.price}
-            </span>
-          )}
-          <div className="flex justify-end pt-2 border-t border-border">
-            <DataTableRowActions row={{ original: product } as any} />
-          </div>
-        </div>
+
+          <CardHeader>
+            <CardTitle>{product.name}</CardTitle>
+            <CardDescription className="flex flex-col gap-1">
+              <div className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger onClick={(e) => e.stopPropagation()}>
+                    <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>رمز المنتج (SKU)</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span>{product.sku || "-"}</span>
+              </div>
+
+              <div className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger onClick={(e) => e.stopPropagation()}>
+                    <Barcode className="h-3.5 w-3.5 text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>الباركود</p>
+                  </TooltipContent>
+                </Tooltip>
+                <span>{product.barcode || "-"}</span>
+              </div>
+            </CardDescription>
+          </CardHeader>
+
+          <CardFooter className="justify-between gap-2">
+            <div>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {product.brand && (
+                  <Badge variant="outline">{product.brand}</Badge>
+                )}
+                <Badge variant="outline">{product.unit_name}</Badge>
+                {product.default_price != null && (
+                  <Badge variant="outline">
+                    {product.default_price.price}{" "}
+                    {product.default_price.currency_symbol}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            {/* Stop click from bubbling to the Card's onClick */}
+            <div onClick={(e) => e.stopPropagation()}>
+              <DataTableRowActions row={{ original: product } as any} />
+            </div>
+          </CardFooter>
+        </Card>
       )}
     />
   );

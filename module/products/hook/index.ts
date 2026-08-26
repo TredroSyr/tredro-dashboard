@@ -7,16 +7,17 @@ import {
   updateProduct,
   deleteProduct,
   listCategories,
+  createCategory,
   listUnits,
   listCurrencies,
   listCustomFieldDefinitions,
-  createProductPrice,
-  uploadProductImage,
+  createCustomFieldDefinition,
 } from "../api";
 import {
   CreateProductPayload,
   UpdateProductPayload,
-  CreateProductPricePayload,
+  CreateProductCategoryPayload,
+  CreateCustomFieldDefinitionPayload,
 } from "../types";
 
 export const useProductsQuery = (params?: {
@@ -41,6 +42,17 @@ export const useProductQuery = (
 export const useCategoriesQuery = () =>
   useQuery({ queryKey: ["product-categories"], queryFn: listCategories });
 
+export const useCreateCategoryMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateProductCategoryPayload) =>
+      createCategory(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+    },
+  });
+};
+
 export const useUnitsQuery = () =>
   useQuery({ queryKey: ["units-of-measure"], queryFn: listUnits });
 
@@ -52,6 +64,19 @@ export const useCustomFieldDefinitionsQuery = () =>
     queryKey: ["custom-field-definitions"],
     queryFn: listCustomFieldDefinitions,
   });
+
+export const useCreateCustomFieldDefinitionMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateCustomFieldDefinitionPayload) =>
+      createCustomFieldDefinition(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["custom-field-definitions"],
+      });
+    },
+  });
+};
 
 export const useCreateProductMutation = () => {
   const queryClient = useQueryClient();
@@ -87,27 +112,3 @@ export const useDeleteProductMutation = () => {
     },
   });
 };
-
-export const useCreateProductPriceMutation = () =>
-  useMutation({
-    mutationFn: ({
-      productId,
-      payload,
-    }: {
-      productId: number;
-      payload: CreateProductPricePayload;
-    }) => createProductPrice(productId, payload),
-  });
-
-export const useUploadProductImageMutation = () =>
-  useMutation({
-    mutationFn: ({
-      productId,
-      file,
-      meta,
-    }: {
-      productId: number;
-      file: File;
-      meta: { alt_text?: string; is_primary?: boolean; sort_order?: number };
-    }) => uploadProductImage(productId, file, meta),
-  });

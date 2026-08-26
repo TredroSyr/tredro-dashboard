@@ -1,12 +1,14 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useProductQuery } from "@/module/products/hook";
 import { ProductFormClient } from "@/module/products/components/product-form-client";
 
 export default function EditProductPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data, isLoading } = useProductQuery(id);
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
+
+  const { data, isLoading } = useProductQuery(id ?? undefined);
   const product = data?.data?.product;
 
   return (

@@ -71,7 +71,6 @@ export interface CustomFieldDefinition {
   updated_at: string;
 }
 
-/** Lightweight item as returned by the list endpoint */
 export interface Product {
   id: number;
   name: string;
@@ -95,7 +94,6 @@ export interface Product {
   created_at: string;
 }
 
-/** Full detail as returned by the detail endpoint */
 export interface ProductDetail
   extends Omit<Product, "primary_image" | "default_price"> {
   description: string | null;
@@ -129,13 +127,31 @@ export type ProductResponse = ApiEnvelope<{ product: ProductDetail }>;
 export type CategoriesResponse = ApiEnvelope<{ categories: ProductCategory[] }>;
 export type UnitsResponse = ApiEnvelope<{ units: UnitOfMeasure[] }>;
 export type CurrenciesResponse = ApiEnvelope<{ currencies: Currency[] }>;
-export type ProductPricesResponse = ApiEnvelope<{ prices: ProductPrice[] }>;
-export type ProductPriceResponse = ApiEnvelope<{ price: ProductPrice }>;
 export type ProductImagesResponse = ApiEnvelope<{ images: ProductImage[] }>;
-export type ProductImageResponse = ApiEnvelope<{ image: ProductImage }>;
 export type CustomFieldDefinitionsResponse = ApiEnvelope<{
   definitions: CustomFieldDefinition[];
 }>;
+export type ProductCategoryResponse = ApiEnvelope<{
+  category: ProductCategory;
+}>;
+export type CustomFieldDefinitionResponse = ApiEnvelope<{
+  definition: CustomFieldDefinition;
+}>;
+
+export interface ProductImagePayload {
+  image: string;
+  alt_text?: string;
+  is_primary: boolean;
+  sort_order: number;
+}
+
+export interface ProductPricePayload {
+  currency: number;
+  price_type: string;
+  customer_category?: number | null;
+  price: string;
+  is_default?: boolean;
+}
 
 export interface CreateProductPayload {
   name: string;
@@ -160,34 +176,38 @@ export interface CreateProductPayload {
   external_reference?: string;
   notes?: string;
   is_active: boolean;
+  status?: "draft" | "published";
   custom_fields?: Record<string, string>;
+  images?: ProductImagePayload[];
+  prices?: ProductPricePayload[];
 }
 
 export type UpdateProductPayload = Partial<CreateProductPayload> & {
   id: number;
 };
 
-export interface CreateProductPricePayload {
-  currency: number;
-  price_type: string;
-  customer_category?: number | null;
-  price: string;
-  is_default: boolean;
-  valid_from?: string | null;
-  valid_until?: string | null;
+export interface CreateProductCategoryPayload {
+  name: string;
+  parent?: number | null;
+  is_active: boolean;
 }
 
-/** Local (not-yet-persisted) representation used inside the wizard */
-export interface DraftPrice extends CreateProductPricePayload {
+export interface CreateCustomFieldDefinitionPayload {
+  key: string;
+  label: string;
+  is_active: boolean;
+}
+
+export interface DraftPrice extends ProductPricePayload {
   _localId: string;
+  id?: number;
   currency_code?: string;
   currency_symbol?: string;
 }
 
-/** Local (not-yet-persisted) image used inside the wizard */
 export interface DraftImage {
   _localId: string;
-  file: File;
+  file?: File;
   previewUrl: string;
   alt_text: string;
   is_primary: boolean;

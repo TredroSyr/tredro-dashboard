@@ -4,10 +4,11 @@ import { AlertCircle } from "lucide-react";
 import { FieldErrors } from "react-hook-form";
 import { cn } from "@/lib/utils";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
-import { getTabHasError, PRODUCT_TABS, ProductTabValue } from "../constant";
+import { getTabHasError, getVisibleTabs, ProductTabValue } from "../constant";
 import { ProductFormValues } from "../schema";
 
 interface ProductDetailTabsProps {
+  mode: "create" | "edit";
   value: ProductTabValue;
   onValueChange: (value: ProductTabValue) => void;
   errors: FieldErrors<ProductFormValues>;
@@ -16,12 +17,14 @@ interface ProductDetailTabsProps {
 }
 
 export const ProductDetailTabs = ({
+  mode,
   value,
   onValueChange,
   errors,
   pricesCount,
   imagesCount,
 }: ProductDetailTabsProps) => {
+  const tabs = getVisibleTabs(mode);
   const counts: Record<string, number> = {
     pricing: pricesCount,
     images: imagesCount,
@@ -30,16 +33,22 @@ export const ProductDetailTabs = ({
   return (
     <div className="px-6 py-4">
       <div
-        className="flex gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-7 sm:overflow-visible"
+        className={cn(
+          "flex gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:overflow-visible",
+          mode === "create"
+            ? "sm:grid sm:grid-cols-6"
+            : "sm:grid sm:grid-cols-7",
+        )}
         dir="rtl"
       >
-        {PRODUCT_TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = value === tab.value;
           const hasError = getTabHasError(
             tab.value,
             errors as Record<string, unknown>,
           );
           const count = counts[tab.value];
+          const isRequiredEmpty = tab.value === "pricing" && count === 0;
 
           return (
             <button
@@ -70,6 +79,9 @@ export const ProductDetailTabs = ({
                   )}
                 >
                   {tab.label}
+                  {isRequiredEmpty && (
+                    <span className="text-destructive"> *</span>
+                  )}
                 </span>
               </div>
 

@@ -6,21 +6,26 @@ import {
   UnitsResponse,
   CurrenciesResponse,
   CustomFieldDefinitionsResponse,
-  ProductImageResponse,
-  ProductPriceResponse,
   CreateProductPayload,
   UpdateProductPayload,
-  CreateProductPricePayload,
+  CreateProductCategoryPayload,
+  CreateCustomFieldDefinitionPayload,
+  ProductCategoryResponse,
+  CustomFieldDefinitionResponse,
   ApiEnvelope,
 } from "../types";
 
-// ---- Lookups ----
 export const listCategories = async (): Promise<CategoriesResponse> =>
   (
     await api.get("companies/product-categories/", {
       params: { is_active: true },
     })
   ).data;
+
+export const createCategory = async (
+  payload: CreateProductCategoryPayload,
+): Promise<ProductCategoryResponse> =>
+  (await api.post("companies/product-categories/", payload)).data;
 
 export const listUnits = async (): Promise<UnitsResponse> =>
   (await api.get("units-of-measure/")).data;
@@ -36,7 +41,11 @@ export const listCustomFieldDefinitions =
       })
     ).data;
 
-// ---- Products ----
+export const createCustomFieldDefinition = async (
+  payload: CreateCustomFieldDefinitionPayload,
+): Promise<CustomFieldDefinitionResponse> =>
+  (await api.post("companies/custom-field-definitions/", payload)).data;
+
 export const listProducts = async (params?: {
   search?: string;
   category?: number;
@@ -63,31 +72,3 @@ export const updateProduct = async (
 
 export const deleteProduct = async (id: number): Promise<ApiEnvelope<null>> =>
   (await api.delete(`companies/products/${id}/`)).data;
-
-// ---- Nested: Prices ----
-export const createProductPrice = async (
-  productId: number,
-  payload: CreateProductPricePayload,
-): Promise<ProductPriceResponse> =>
-  (await api.post(`companies/products/${productId}/prices/`, payload)).data;
-
-// ---- Nested: Images ----
-export const uploadProductImage = async (
-  productId: number,
-  file: File,
-  meta: { alt_text?: string; is_primary?: boolean; sort_order?: number },
-): Promise<ProductImageResponse> => {
-  const form = new FormData();
-  form.append("image", file);
-  if (meta.alt_text) form.append("alt_text", meta.alt_text);
-  if (meta.is_primary !== undefined)
-    form.append("is_primary", String(meta.is_primary));
-  if (meta.sort_order !== undefined)
-    form.append("sort_order", String(meta.sort_order));
-
-  return (
-    await api.post(`companies/products/${productId}/images/`, form, {
-      headers: { "Content-Type": "multipart/form-data" },
-    })
-  ).data;
-};

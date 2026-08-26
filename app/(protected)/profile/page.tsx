@@ -31,7 +31,6 @@ import { ImageWithFallback } from "@/components/tredro/image-with-fallback";
 import { ApiErrorResponse } from "@/module/auth/types";
 import { useBannerStore } from "@/store/use-banner-store";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
-import { Container } from "@/components/container";
 
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
 const MAX_COVER_SIZE = 5 * 1024 * 1024;

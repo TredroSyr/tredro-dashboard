@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { Check, ChevronsUpDown, Loader2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Command,
@@ -33,6 +33,8 @@ interface SearchableSelectProps {
   disabled?: boolean;
   loading?: boolean;
   className?: string;
+  onCreateNew?: () => void;
+  createNewLabel?: string;
 }
 
 export function SearchableSelect({
@@ -45,6 +47,8 @@ export function SearchableSelect({
   disabled,
   loading,
   className,
+  onCreateNew,
+  createNewLabel = "إضافة جديد",
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [triggerWidth, setTriggerWidth] = useState<number>();
@@ -56,6 +60,11 @@ export function SearchableSelect({
       setTriggerWidth(triggerRef.current.offsetWidth);
     }
   }, [open]);
+
+  const handleCreateNew = () => {
+    setOpen(false);
+    onCreateNew?.();
+  };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -90,9 +99,37 @@ export function SearchableSelect({
         align="start"
       >
         <Command>
-          <CommandInput placeholder={searchPlaceholder} />
+          <div className="relative">
+            <CommandInput
+              placeholder={searchPlaceholder}
+              className={onCreateNew ? "pe-10" : undefined}
+            />
+            {onCreateNew && (
+              <button
+                type="button"
+                onClick={handleCreateNew}
+                title={createNewLabel}
+                className="absolute end-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent z-10"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            )}
+          </div>
           <CommandList>
-            <CommandEmpty>{emptyText}</CommandEmpty>
+            <CommandEmpty>
+              {onCreateNew ? (
+                <button
+                  type="button"
+                  onClick={handleCreateNew}
+                  className="w-full flex items-center justify-center gap-2 py-2 text-sm text-primary"
+                >
+                  <Plus className="h-4 w-4" />
+                  {createNewLabel}
+                </button>
+              ) : (
+                emptyText
+              )}
+            </CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
                 <CommandItem

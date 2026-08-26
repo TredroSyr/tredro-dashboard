@@ -9,6 +9,7 @@ import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { useFormContext } from "react-hook-form";
 import { ProductFormValues } from "../schema";
 import { useCustomFieldDefinitionsQuery } from "../hook";
+import { CustomFieldCreateDialog } from "./custom-field-create-dialog";
 
 export const ProductCustomFieldsTab = () => {
   const { watch, setValue } = useFormContext<ProductFormValues>();
@@ -17,6 +18,7 @@ export const ProductCustomFieldsTab = () => {
 
   const customFields = watch("custom_fields");
   const [selectedKey, setSelectedKey] = useState<string>("");
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const usedKeys = Object.keys(customFields);
   const availableOptions = definitions
@@ -50,6 +52,8 @@ export const ProductCustomFieldsTab = () => {
             onChange={setSelectedKey}
             placeholder="اختر حقلاً"
             loading={isLoading}
+            onCreateNew={() => setDialogOpen(true)}
+            createNewLabel="إضافة حقل"
           />
         </div>
         <Button
@@ -97,6 +101,17 @@ export const ProductCustomFieldsTab = () => {
           })}
         </div>
       )}
+
+      <CustomFieldCreateDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onCreated={(definition) => {
+          setValue("custom_fields", {
+            ...customFields,
+            [definition.key]: "",
+          });
+        }}
+      />
     </div>
   );
 };
