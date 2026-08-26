@@ -122,39 +122,6 @@ export const ProductBasicInfoTab = () => {
           </p>
         )}
       </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="flex items-center justify-between rounded-md border border-border p-3">
-          <Label>مفعّل</Label>
-          <Controller
-            control={control}
-            name="is_active"
-            render={({ field }) => (
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            )}
-          />
-        </div>
-        <div className="flex items-center justify-between rounded-md border border-border p-3">
-          <Label>قابل للبيع</Label>
-          <Controller
-            control={control}
-            name="is_sellable"
-            render={({ field }) => (
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            )}
-          />
-        </div>
-        <div className="flex items-center justify-between rounded-md border border-border p-3">
-          <Label>قابل للشراء</Label>
-          <Controller
-            control={control}
-            name="is_purchasable"
-            render={({ field }) => (
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
-            )}
-          />
-        </div>
-      </div>
     </div>
   );
 };

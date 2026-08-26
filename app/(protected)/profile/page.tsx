@@ -205,16 +205,14 @@ const ProfilePage = () => {
   };
 
   return (
-    <Container.Content>
-      {/* Profile Header with Cover Photo */}
-
+    <div>
       <div className="relative ">
         {/* Cover Photo */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="relative h-40 rounded-t-xl sm:h-52 md:h-60 overflow-hidden"
+          className="relative h-40 rounded-t-3xl  mt-3 sm:h-52 md:h-60 overflow-hidden"
         >
           <input
             ref={coverInputRef}
@@ -289,237 +287,240 @@ const ProfilePage = () => {
           aria-hidden="true"
         />
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.4 }}
-        className="mt-14"
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-              {companyName}
-            </h1>
-            <p className="text-sm text-muted-foreground mt-0.5">{userName}</p>
-            {categoryData && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-2.5 py-0.5 rounded-full mt-2">
-                <IconRenderer name="tick_filled" className="w-3 h-3" />
-                {categoryData.label}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3 shrink-0">
-            {!onboardingCompleted && (
-              <span className="inline-flex items-center bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 text-xs font-medium px-2 py-1 rounded-full">
-                غير مكتمل
-              </span>
-            )}
-            <Button
-              type="submit"
-              form={FORM_ID}
-              disabled={onboardingMutation.isPending}
-              className="h-10 sm:h-11 rounded-xl text-sm font-medium gap-2 text-white"
-            >
-              <span>
-                {onboardingMutation.isPending ? "جارِ الحفظ..." : "حفظ"}
-              </span>
-            </Button>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Form Cards */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.3, delay: 0.5 }}
-        className="flex-1 py-6"
-      >
-        <Form {...form}>
-          <form
-            id={FORM_ID}
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="space-y-6"
-          >
-            {/* Location + Description side by side */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Location Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.55 }}
-                className="bg-card border border-border rounded-2xl p-5 sm:p-6"
-              >
-                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <IconRenderer
-                    name="star_outlined"
-                    className="h-5 w-5 text-primary"
-                  />
-                  <span>الموقع</span>
-                </h2>
-                <div className="space-y-3">
-                  <FormField
-                    control={form.control}
-                    name="governorate"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <SearchableSelect
-                            options={governorateOptions}
-                            value={field.value}
-                            onChange={(val) => {
-                              field.onChange(val);
-                              form.setValue("region", "");
-                            }}
-                            placeholder="اختر المحافظة"
-                            searchPlaceholder="ابحث عن محافظة..."
-                            emptyText="لا توجد محافظات مطابقة"
-                            loading={locationsLoading}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="region"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <SearchableSelect
-                            options={regionOptions}
-                            value={field.value}
-                            onChange={field.onChange}
-                            placeholder="اختر المنطقة"
-                            searchPlaceholder="ابحث عن منطقة..."
-                            emptyText="لا توجد مناطق مطابقة"
-                            disabled={!watchedGovernorate}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </motion.div>
-
-              {/* Description Card */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.6 }}
-                className="bg-card border border-border rounded-2xl p-5 sm:p-6"
-              >
-                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <IconRenderer
-                    name="star_outlined"
-                    className="h-5 w-5 text-primary"
-                  />
-                  <span>وصف الشركة</span>
-                </h2>
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea
-                          placeholder="مثال: شركة متخصصة بتوزيع المواد الغذائية الجافة والمعلبات..."
-                          className="min-h-32 sm:min-h-36 rounded-xl resize-none"
-                          {...field}
-                        />
-                      </FormControl>
-                      <div className="flex items-center justify-between">
-                        <FormMessage />
-                        <span className="text-xs text-muted-foreground shrink-0">
-                          {field.value?.length ?? 0}/500
-                        </span>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </motion.div>
+      <div className="px-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+          className="mt-14"
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground">
+                {companyName}
+              </h1>
+              <p className="text-sm text-muted-foreground mt-0.5">{userName}</p>
+              {categoryData && (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 px-2.5 py-0.5 rounded-full mt-2">
+                  <IconRenderer name="tick_filled" className="w-3 h-3" />
+                  {categoryData.label}
+                </span>
+              )}
             </div>
 
-            {/* Business Type Card */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.7 }}
-              className="bg-card border border-border rounded-2xl p-5 sm:p-6"
-            >
-              <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                <IconRenderer
-                  name="star_outlined"
-                  className="h-5 w-5 text-primary"
-                />
-                <span>نوع النشاط</span>
-              </h2>
+            <div className="flex items-center gap-3 shrink-0">
+              {!onboardingCompleted && (
+                <span className="inline-flex items-center bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 text-xs font-medium px-2 py-1 rounded-full">
+                  غير مكتمل
+                </span>
+              )}
+              <Button
+                type="submit"
+                form={FORM_ID}
+                disabled={onboardingMutation.isPending}
+                className="h-10 sm:h-11 rounded-xl text-sm font-medium gap-2 text-white"
+              >
+                <span>
+                  {onboardingMutation.isPending ? "جارِ الحفظ..." : "حفظ"}
+                </span>
+              </Button>
+            </div>
+          </div>
+        </motion.div>
 
-              {businessTypesLoading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {Array.from({ length: 8 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-20 rounded-xl bg-primary/5 animate-pulse"
+        {/* Form Cards */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.5 }}
+          className="flex-1 py-6"
+        >
+          <Form {...form}>
+            <form
+              id={FORM_ID}
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-6"
+            >
+              {/* Location + Description side by side */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Location Card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.55 }}
+                  className="bg-card border border-border rounded-2xl p-5 sm:p-6"
+                >
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <IconRenderer
+                      name="star_outlined"
+                      className="h-5 w-5 text-primary"
                     />
-                  ))}
-                </div>
-              ) : (
-                <div className="max-h-[260px] overflow-y-auto p-4">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-3">
-                    {businessTypeOptions.map((option) => {
-                      const isSelected = selectedCategory === option.value;
-                      return (
-                        <button
-                          key={option.value}
-                          type="button"
-                          onClick={() => {
-                            setSelectedCategory(option.value);
-                            setCategoryError(null);
-                          }}
-                          className={`flex flex-col cursor-pointer items-center justify-center gap-2 rounded-xl border-2 p-3 h-20 text-center transition-all duration-200 hover:scale-[1.02] active:scale-[0.97] ${
-                            isSelected
-                              ? "border-primary bg-primary/10"
-                              : "border-border bg-primary/5 hover:bg-primary/10"
-                          }`}
-                        >
-                          <IconRenderer
-                            name={isSelected ? "tick_filled" : "star_outlined"}
-                            className={`w-5 h-5 ${
-                              isSelected
-                                ? "text-primary"
-                                : "text-muted-foreground"
-                            }`}
+                    <span>الموقع</span>
+                  </h2>
+                  <div className="space-y-3">
+                    <FormField
+                      control={form.control}
+                      name="governorate"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <SearchableSelect
+                              options={governorateOptions}
+                              value={field.value}
+                              onChange={(val) => {
+                                field.onChange(val);
+                                form.setValue("region", "");
+                              }}
+                              placeholder="اختر المحافظة"
+                              searchPlaceholder="ابحث عن محافظة..."
+                              emptyText="لا توجد محافظات مطابقة"
+                              loading={locationsLoading}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="region"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormControl>
+                            <SearchableSelect
+                              options={regionOptions}
+                              value={field.value}
+                              onChange={field.onChange}
+                              placeholder="اختر المنطقة"
+                              searchPlaceholder="ابحث عن منطقة..."
+                              emptyText="لا توجد مناطق مطابقة"
+                              disabled={!watchedGovernorate}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </motion.div>
+
+                {/* Description Card */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.6 }}
+                  className="bg-card border border-border rounded-2xl p-5 sm:p-6"
+                >
+                  <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                    <IconRenderer
+                      name="star_outlined"
+                      className="h-5 w-5 text-primary"
+                    />
+                    <span>وصف الشركة</span>
+                  </h2>
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Textarea
+                            placeholder="مثال: شركة متخصصة بتوزيع المواد الغذائية الجافة والمعلبات..."
+                            className="min-h-32 sm:min-h-36 rounded-xl resize-none"
+                            {...field}
                           />
-                          <span
-                            className={`text-xs font-medium leading-tight line-clamp-2 ${
-                              isSelected ? "text-primary" : "text-foreground"
+                        </FormControl>
+                        <div className="flex items-center justify-between">
+                          <FormMessage />
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            {field.value?.length ?? 0}/500
+                          </span>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              </div>
+
+              {/* Business Type Card */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.7 }}
+                className="bg-card border border-border rounded-2xl p-5 sm:p-6"
+              >
+                <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <IconRenderer
+                    name="star_outlined"
+                    className="h-5 w-5 text-primary"
+                  />
+                  <span>نوع النشاط</span>
+                </h2>
+
+                {businessTypesLoading ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {Array.from({ length: 8 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="h-20 rounded-xl bg-primary/5 animate-pulse"
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="max-h-[260px] overflow-y-auto p-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-4 gap-3">
+                      {businessTypeOptions.map((option) => {
+                        const isSelected = selectedCategory === option.value;
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory(option.value);
+                              setCategoryError(null);
+                            }}
+                            className={`flex flex-col cursor-pointer items-center justify-center gap-2 rounded-xl border-2 p-3 h-20 text-center transition-all duration-200 hover:scale-[1.02] active:scale-[0.97] ${
+                              isSelected
+                                ? "border-primary bg-primary/10"
+                                : "border-border bg-primary/5 hover:bg-primary/10"
                             }`}
                           >
-                            {option.label}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            <IconRenderer
+                              name={
+                                isSelected ? "tick_filled" : "star_outlined"
+                              }
+                              className={`w-5 h-5 ${
+                                isSelected
+                                  ? "text-primary"
+                                  : "text-muted-foreground"
+                              }`}
+                            />
+                            <span
+                              className={`text-xs font-medium leading-tight line-clamp-2 ${
+                                isSelected ? "text-primary" : "text-foreground"
+                              }`}
+                            >
+                              {option.label}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {categoryError && (
-                <p className="text-xs text-destructive text-center mt-3">
-                  {categoryError}
-                </p>
-              )}
-            </motion.div>
-          </form>
-        </Form>
-      </motion.div>
-    </Container.Content>
+                {categoryError && (
+                  <p className="text-xs text-destructive text-center mt-3">
+                    {categoryError}
+                  </p>
+                )}
+              </motion.div>
+            </form>
+          </Form>
+        </motion.div>
+      </div>
+    </div>
   );
 };
 
