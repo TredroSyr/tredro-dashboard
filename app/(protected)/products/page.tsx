@@ -1,7 +1,12 @@
-import React from "react";
+"use client";
 
-const page = () => {
-  return <div>ddd</div>;
-};
+import { PermissionGate } from "@/components/tredro/PermissionGate";
+import ProductsView from "@/module/products/components/products-view";
 
-export default page;
+export default function ProductsPage() {
+  return (
+    <PermissionGate module="products">
+      <ProductsView />
+    </PermissionGate>
+  );
+}
