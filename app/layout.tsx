@@ -95,7 +95,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         />
       </head>
       <body className=" flex flex-col font-thmanyah">
-        {/* <WarmupConnection /> */}
+        <WarmupConnection />
         <QueryProvider>
           {children}
           <AppDownloadDrawer />
