@@ -31,14 +31,6 @@ interface ProductFormClientProps {
   isLoading?: boolean;
 }
 
-const fileToBase64 = (file: File): Promise<string> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-
 export const ProductFormClient = ({
   mode,
   product,
@@ -60,7 +52,7 @@ export const ProductFormClient = ({
   React.useEffect(() => {
     if (product) form.reset(getProductFormDefaultValues(product));
   }, [product]);
-
+  console.log(form.formState.errors,"errors"  )
   const { mutateAsync: createProduct } = useCreateProductMutation();
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
 
@@ -71,26 +63,66 @@ export const ProductFormClient = ({
     if (tabWithError) setActiveTab(tabWithError.value);
   };
 
-  const persist = async (values: ProductFormValues) => {
-    const images: ProductImagePayload[] = [];
+  // Images: لا يوجد تحويل base64 إطلاقاً.
+  // - صورة جديدة (رفعها المستخدم للتو) => img.file موجود => نبعت File الحقيقي
+  // - صورة موجودة مسبقاً (وضع التعديل) => img.file غير موجود => نبعت url الموجود فقط
+  //   (حتى الباك اند يعرف إنها صورة قديمة ما تحتاج رفع من جديد)
+  // مهم: أي صف صورة ما فيه لا file ولا url منرميه، لأنه هو سبب
+  // خطأ الباك اند "images.0.image: No file was submitted".
+  const buildImagesPayload = (
+    values: ProductFormValues,
+  ): ProductImagePayload[] => {
     let sortOrder = 0;
-    for (const img of values.images) {
-      const image = img.file ? await fileToBase64(img.file) : img.previewUrl;
-      images.push({
-        image,
+    return values.images
+      .filter((img) => Boolean(img.file) || Boolean(img.id) || Boolean(img.url))
+      .map((img) => ({
+        id: img.id,
+        file: img.file ?? undefined,
+        url: img.file || img.id ? undefined : img.url,
         alt_text: img.alt_text || undefined,
         is_primary: img.is_primary,
         sort_order: sortOrder++,
-      });
-    }
+      }));
+  };
 
-    const prices: ProductPricePayload[] = values.prices.map((price) => ({
+  // Prices: منرمي أي صف تسعير ناقص (بدون عملة أو بدون سعر) بدل ما
+  // نبعته فاضي للباك اند ويرجع خطأ "This field is required.".
+  const buildPricesPayload = (
+    values: ProductFormValues,
+  ): { prices: ProductPricePayload[]; invalidCount: number } => {
+    const rawPrices = values.prices ?? [];
+
+    const isRowValid = (price: (typeof rawPrices)[number]) =>
+      price.currency !== undefined &&
+      price.currency !== null &&
+      (price.currency as unknown) !== "" &&
+      price.price !== undefined &&
+      price.price !== null &&
+      (price.price as unknown) !== "";
+
+    const validRows = rawPrices.filter(isRowValid);
+    const invalidCount = rawPrices.length - validRows.length;
+
+    const prices: ProductPricePayload[] = validRows.map((price) => ({
       currency: price.currency,
       price_type: price.price_type,
       customer_category: price.customer_category ?? undefined,
       price: price.price,
       is_default: price.is_default,
     }));
+
+    return { prices, invalidCount };
+  };
+
+  const persist = async (values: ProductFormValues) => {
+    const images = buildImagesPayload(values);
+    const { prices, invalidCount } = buildPricesPayload(values);
+
+    if (invalidCount > 0) {
+      throw new Error(
+        "في صف تسعير ناقص (بدون عملة أو سعر). تأكد من تعبئة كل صفوف التسعير أو احذف الصفوف الفارغة قبل الحفظ.",
+      );
+    }
 
     const payload: CreateProductPayload = {
       name: values.name.trim(),
@@ -149,6 +181,10 @@ export const ProductFormClient = ({
           ? err.message
           : "حدث خطأ أثناء حفظ المنتج، حاول مرة أخرى",
       );
+      // إذا الخطأ متعلق بالتسعير، وجّه المستخدم لتاب التسعير مباشرة
+      if (err instanceof Error && err.message.includes("تسعير")) {
+        setActiveTab("pricing" as ProductTabValue);
+      }
     } finally {
       setIsSubmitting(false);
     }

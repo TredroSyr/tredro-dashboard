@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useFormContext } from "react-hook-form";
 import {
   FormControl,
@@ -11,10 +12,10 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Skeleton } from "@/components/ui/skeleton";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { ProductFormValues } from "../schema";
 import { useCategoriesQuery, useUnitsQuery } from "../hook";
+import { CategoryCreateDialog } from "./category-create-dialog";
 
 interface ProductBasicInfoTabProps {
   isLoading?: boolean;
@@ -23,7 +24,8 @@ interface ProductBasicInfoTabProps {
 export const ProductBasicInfoTab = ({
   isLoading = false,
 }: ProductBasicInfoTabProps) => {
-  const { control } = useFormContext<ProductFormValues>();
+  const { control, setValue } = useFormContext<ProductFormValues>();
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
 
   const { data: categoriesRes, isLoading: loadingCategories } =
     useCategoriesQuery();
@@ -41,30 +43,6 @@ export const ProductBasicInfoTab = ({
     label: `${u.name} (${u.code})`,
   }));
 
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-4 w-16" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-        <Skeleton className="h-12 w-full" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-5">
       <FormField
@@ -78,6 +56,7 @@ export const ProductBasicInfoTab = ({
                 {...field}
                 placeholder="أدخل اسم المنتج"
                 className="text-right h-12"
+                isLoading={isLoading}
               />
             </FormControl>
             <FormDescription className="text-right">
@@ -99,6 +78,7 @@ export const ProductBasicInfoTab = ({
                 {...field}
                 placeholder="وصف مختصر للمنتج"
                 className="text-right min-h-24"
+                isLoading={isLoading}
               />
             </FormControl>
             <FormDescription className="text-right">
@@ -122,6 +102,7 @@ export const ProductBasicInfoTab = ({
                   placeholder="DELL-XPS-15"
                   dir="ltr"
                   className="h-12"
+                  isLoading={isLoading}
                 />
               </FormControl>
               <FormDescription className="text-right">
@@ -143,6 +124,7 @@ export const ProductBasicInfoTab = ({
                   placeholder="1234567890123"
                   dir="ltr"
                   className="h-12"
+                  isLoading={isLoading}
                 />
               </FormControl>
               <FormDescription className="text-right">
@@ -164,7 +146,12 @@ export const ProductBasicInfoTab = ({
                 العلامة التجارية
               </FormLabel>
               <FormControl>
-                <Input {...field} placeholder="Dell" className="h-12" />
+                <Input
+                  {...field}
+                  placeholder="Dell"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormDescription className="text-right">
                 اسم الشركة المصنعة أو الماركة التجارية للمنتج
@@ -186,6 +173,8 @@ export const ProductBasicInfoTab = ({
                   onChange={(v) => field.onChange(Number(v))}
                   placeholder="اختر التصنيف"
                   loading={loadingCategories}
+                  onCreateNew={() => setCategoryDialogOpen(true)}
+                  createNewLabel="إضافة تصنيف جديد"
                 />
               </FormControl>
               <FormDescription className="text-right">
@@ -218,6 +207,14 @@ export const ProductBasicInfoTab = ({
             <FormMessage className="text-right" />
           </FormItem>
         )}
+      />
+
+      <CategoryCreateDialog
+        open={categoryDialogOpen}
+        onOpenChange={setCategoryDialogOpen}
+        onCreated={(category) => {
+          setValue("category", category.id, { shouldValidate: true });
+        }}
       />
     </div>
   );

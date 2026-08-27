@@ -31,21 +31,21 @@ export const getProductFormDefaultValues = (
   prices:
     product?.prices?.map((p) => ({
       _localId: crypto.randomUUID(),
-      id: p.id,
+      server_id: p.id,
       currency: p.currency,
       currency_code: p.currency_code,
       currency_symbol: p.currency_symbol,
       price_type: p.price_type,
-      customer_category: p.customer_category,
+      customer_category: p.customer_category ?? null,
       price: p.price,
       is_default: p.is_default,
     })) ?? [],
   images:
     product?.images?.map((img) => ({
       _localId: crypto.randomUUID(),
-      id: img.id,
-      url: img.url,
-      previewUrl: img.url,
+      server_id: img.id,
+      url: img.image,
+      previewUrl: img.image,
       alt_text: img.alt_text ?? "",
       is_primary: img.is_primary,
     })) ?? [],

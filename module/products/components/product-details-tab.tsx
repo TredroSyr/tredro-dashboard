@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
+
 import { ProductFormValues } from "../schema";
 
 interface ProductDetailsTabProps {
@@ -25,30 +25,6 @@ export const ProductDetailsTab = ({
 }: ProductDetailsTabProps) => {
   const { control, watch } = useFormContext<ProductFormValues>();
   const isTaxable = watch("is_taxable");
-
-  if (isLoading) {
-    return (
-      <div className="flex flex-col gap-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
-        </div>
-        <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-24 w-full" />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col gap-5">
@@ -65,6 +41,7 @@ export const ProductDetailsTab = ({
                   placeholder="2.500"
                   dir="ltr"
                   className="h-12"
+                  isLoading={isLoading}
                 />
               </FormControl>
               <FormDescription className="text-right">
@@ -81,7 +58,13 @@ export const ProductDetailsTab = ({
             <FormItem>
               <FormLabel className="text-right block">وحدة الوزن</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="kg" dir="ltr" className="h-12" />
+                <Input
+                  {...field}
+                  placeholder="kg"
+                  dir="ltr"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormDescription className="text-right">
                 الوحدة المستخدمة لقياس وزن المنتج مثل كجم أو جرام
@@ -100,7 +83,12 @@ export const ProductDetailsTab = ({
             <FormItem>
               <FormLabel className="text-right block">الطول</FormLabel>
               <FormControl>
-                <Input {...field} dir="ltr" className="h-12" />
+                <Input
+                  {...field}
+                  dir="ltr"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormMessage className="text-right" />
             </FormItem>
@@ -113,7 +101,12 @@ export const ProductDetailsTab = ({
             <FormItem>
               <FormLabel className="text-right block">العرض</FormLabel>
               <FormControl>
-                <Input {...field} dir="ltr" className="h-12" />
+                <Input
+                  {...field}
+                  dir="ltr"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormMessage className="text-right" />
             </FormItem>
@@ -126,7 +119,12 @@ export const ProductDetailsTab = ({
             <FormItem>
               <FormLabel className="text-right block">الارتفاع</FormLabel>
               <FormControl>
-                <Input {...field} dir="ltr" className="h-12" />
+                <Input
+                  {...field}
+                  dir="ltr"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormMessage className="text-right" />
             </FormItem>
@@ -139,7 +137,13 @@ export const ProductDetailsTab = ({
             <FormItem>
               <FormLabel className="text-right block">وحدة القياس</FormLabel>
               <FormControl>
-                <Input {...field} placeholder="cm" dir="ltr" className="h-12" />
+                <Input
+                  {...field}
+                  placeholder="cm"
+                  dir="ltr"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormMessage className="text-right" />
             </FormItem>
@@ -158,7 +162,12 @@ export const ProductDetailsTab = ({
             <FormItem>
               <FormLabel className="text-right block">حد إعادة الطلب</FormLabel>
               <FormControl>
-                <Input {...field} dir="ltr" className="h-12" />
+                <Input
+                  {...field}
+                  dir="ltr"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormDescription className="text-right">
                 الكمية التي عند الوصول إليها يجب إعادة طلب المنتج
@@ -176,7 +185,12 @@ export const ProductDetailsTab = ({
                 كمية إعادة الطلب
               </FormLabel>
               <FormControl>
-                <Input {...field} dir="ltr" className="h-12" />
+                <Input
+                  {...field}
+                  dir="ltr"
+                  className="h-12"
+                  isLoading={isLoading}
+                />
               </FormControl>
               <FormDescription className="text-right">
                 الكمية المقترحة لطلبها من المورد عند نفاد المخزون
@@ -199,7 +213,11 @@ export const ProductDetailsTab = ({
               </FormDescription>
             </div>
             <FormControl>
-              <Switch checked={field.value} onCheckedChange={field.onChange} />
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                isLoading={isLoading}
+              />
             </FormControl>
           </FormItem>
         )}
@@ -219,7 +237,11 @@ export const ProductDetailsTab = ({
                   {...field}
                   placeholder="10.00"
                   dir="ltr"
+                  isLoading={isLoading}
                   className="h-12"
+                  type="number"
+                  min={0}
+                  max={100}
                 />
               </FormControl>
               <FormDescription className="text-right">

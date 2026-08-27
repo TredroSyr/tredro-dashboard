@@ -28,14 +28,21 @@ export const ProductImagesTab = () => {
     });
   };
 
+  // NOTE: `field` here always contains an `id` injected by RHF itself
+  // (its internal row key), which is a string and is NOT the same as
+  // your schema's optional numeric `id`. Spreading it back via `update()`
+  // silently clobbers your real id and breaks zod validation
+  // ("Expected number, received string"). Strip it before spreading.
   const setPrimary = (index: number) => {
-    fields.forEach((field, i) =>
-      update(i, { ...field, is_primary: i === index }),
-    );
+    fields.forEach((field, i) => {
+      const { id: _rhfId, ...rest } = field;
+      update(i, { ...rest, is_primary: i === index });
+    });
   };
 
   const setAltText = (index: number, alt_text: string) => {
-    update(index, { ...fields[index], alt_text });
+    const { id: _rhfId, ...rest } = fields[index];
+    update(index, { ...rest, alt_text });
   };
 
   return (

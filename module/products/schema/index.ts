@@ -2,7 +2,7 @@ import { z } from "zod";
 
 export const draftPriceSchema = z.object({
   _localId: z.string(),
-  id: z.number().optional(),
+  server_id: z.number().optional(), // renamed from `id`
   currency: z.number({ required_error: "العملة مطلوبة" }),
   currency_code: z.string().optional(),
   currency_symbol: z.string().optional(),
@@ -14,7 +14,7 @@ export const draftPriceSchema = z.object({
 
 export const draftImageSchema = z.object({
   _localId: z.string(),
-  id: z.number().optional(),
+  server_id: z.number().optional(), // renamed from `id`
   file: z.instanceof(File).optional(),
   url: z.string().optional(),
   previewUrl: z.string(),

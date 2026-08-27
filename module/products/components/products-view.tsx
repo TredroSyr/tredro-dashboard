@@ -92,11 +92,11 @@ export default function ProductsView() {
           className="relative mx-auto w-full max-w-sm pt-0 cursor-pointer transition-shadow hover:shadow-md"
         >
           <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
-            <ImageWithFallback
-              src={product.primary_image}
-              alt={product.name}
-              iconSize={32}
-            />
+          <ImageWithFallback
+  images={product.images ?? (product.primary_image ? [product.primary_image] : [])}
+  alt={product.name}
+  iconSize={32}
+/>
 
             {/* Category badge - top corner of image */}
             {product.category_name && (
