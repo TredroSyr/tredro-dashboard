@@ -1,7 +1,8 @@
 "use client";
 
+import { Loading } from "@/components/tredro/loading";
 import { useAuthStore } from "@/module/auth/store/auth-store";
-import Image from "next/image";
+
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -31,17 +32,7 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }, [isMounted, isAuthenticated, router, user]);
 
   if (!isMounted) {
-    return (
-      <div className="flex h-dvh items-center justify-center bg-background">
-        <Image
-          src="/tredro/full_logo.svg"
-          alt="Tredro Logo"
-          width={160}
-          height={80}
-          className="animate-pulse"
-        />
-      </div>
-    );
+    return <Loading />;
   }
   if (!isAuthenticated) return null;
 

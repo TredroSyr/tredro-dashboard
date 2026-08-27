@@ -34,7 +34,7 @@ import { iconName } from "@/assets/icons/iconRenderer/types";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useThemeStore } from "@/store/use-theme-store";
 import { useAuthStore } from "@/module/auth/store/auth-store";
-import { usePermissions } from "@/components/provider/PermissionsProvider";
+
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { ModuleName } from "@/module/users/types";
 import { useState } from "react";
@@ -335,9 +335,6 @@ const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
   const user = useAuthStore((state) => state.user);
   const router = useRouter();
 
-  // Get permissions from Context (not Zustand)
-  const { isLoading } = usePermissions();
-
   const companyName = user?.company?.name || "Tredro";
   const companyLogo = user?.company?.logo;
   const onboardingCompleted = user?.company?.onboarding_completed;
@@ -385,28 +382,23 @@ const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
         <SidebarContent>
           <SidebarGroup>
             <SidebarGroupContent>
-              {/* Show skeleton while loading, actual nav items when ready */}
-              {isLoading ? (
-                <SidebarSkeleton />
-              ) : (
-                <SidebarMenu className="gap-3">
-                  {navConfig.map((item) => {
-                    const isActive =
-                      item.href === "/"
-                        ? pathname === "/"
-                        : pathname.startsWith(item.href);
+              <SidebarMenu className="gap-3">
+                {navConfig.map((item) => {
+                  const isActive =
+                    item.href === "/"
+                      ? pathname === "/"
+                      : pathname.startsWith(item.href);
 
-                    return (
-                      <NavItem
-                        key={item.key}
-                        item={item}
-                        isActive={isActive}
-                        onClick={handleMobileClose}
-                      />
-                    );
-                  })}
-                </SidebarMenu>
-              )}
+                  return (
+                    <NavItem
+                      key={item.key}
+                      item={item}
+                      isActive={isActive}
+                      onClick={handleMobileClose}
+                    />
+                  );
+                })}
+              </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
