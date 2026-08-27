@@ -5,7 +5,6 @@ import {
   ColumnDef,
   ColumnFiltersState,
   SortingState,
-  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getSortedRowModel,
@@ -22,24 +21,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, SearchX } from "lucide-react";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { DataTablePagination } from "./data-table-pagination";
+
+import type { EmptyStateVariant } from "@/lib/illustrations";
+import { EmptyState } from "@/components/tredro/empty-state";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   total?: number;
+  hasAnyData: boolean;
+  emptyStateVariant: EmptyStateVariant;
   search: string;
   onSearchChange?: (value: string) => void;
   isLoading?: boolean;
   isError?: boolean;
   errorMessage?: string;
   onRetry?: () => void;
-  pagination?: Pick<PaginatedResponse<TData>, "page" | "totalPages">;
-  onPageChange?: (page: number) => void;
 
-  // كيف نبني الكارت من بيانات كل صف
   getImage?: (row: TData) => string | undefined;
   getBadge?: (row: TData) => string | undefined;
   getTitle: (row: TData) => React.ReactNode;
@@ -54,14 +54,14 @@ export function DataTable<TData, TValue>({
   columns,
   data,
   total,
+  hasAnyData,
+  emptyStateVariant,
   search,
   onSearchChange,
   isLoading,
   isError,
   errorMessage,
   onRetry,
-  pagination,
-  onPageChange,
   getImage,
   getBadge,
   getTitle,
@@ -88,17 +88,20 @@ export function DataTable<TData, TValue>({
   });
 
   const rows = table.getRowModel().rows;
+  const hasActiveSearch = search.trim().length > 0;
 
   return (
     <div className="rounded-md border border-border">
-      <DataTableToolbar
-        table={table}
-        total={total}
-        search={search}
-        onSearchChange={onSearchChange}
-      />
+      <div className="sticky top-0 z-20 bg-background border-b border-border">
+        <DataTableToolbar
+          table={table}
+          total={total}
+          search={search}
+          onSearchChange={onSearchChange}
+        />
+      </div>
 
-      <div className=" py-4">
+      <div className="py-4">
         {isError ? (
           <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
             <AlertCircle className="h-8 w-8 text-destructive" />
@@ -118,8 +121,8 @@ export function DataTable<TData, TValue>({
             )}
           </div>
         ) : isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 px-2">
+            {Array.from({ length: 8 }).map((_, i) => (
               <Card key={i} className="relative w-full max-w-sm pt-0">
                 <Skeleton className="aspect-video w-full rounded-t-xl rounded-b-none" />
                 <CardHeader>
@@ -133,7 +136,7 @@ export function DataTable<TData, TValue>({
             ))}
           </div>
         ) : rows?.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-0">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 px-2">
             {rows.map((row) =>
               renderCard ? (
                 <React.Fragment key={row.id}>
@@ -142,7 +145,7 @@ export function DataTable<TData, TValue>({
               ) : (
                 <Card
                   key={row.id}
-                  className="relative mx-auto w-full max-w-sm pt-0"
+                  className="relative mx-auto w-full max-w-sm h-full flex flex-col pt-0"
                 >
                   {getImage?.(row.original) && (
                     <>
@@ -154,7 +157,7 @@ export function DataTable<TData, TValue>({
                       />
                     </>
                   )}
-                  <CardHeader>
+                  <CardHeader className="flex-1">
                     {getBadge?.(row.original) && (
                       <CardAction>
                         <Badge variant="secondary">
@@ -183,20 +186,31 @@ export function DataTable<TData, TValue>({
               ),
             )}
           </div>
-        ) : (
-          <p className="text-center text-sm text-gray-500 py-10">
-            لا توجد نتائج
-          </p>
-        )}
+        ) : !hasAnyData ? (
+          <EmptyState variant={emptyStateVariant} size="sm" />
+        ) : hasActiveSearch ? (
+          <div className="flex w-full flex-col items-center justify-center rounded-xl px-6 py-8 text-center">
+            <div className="flex size-16 items-center justify-center rounded-full bg-muted">
+              <SearchX className="size-8 text-muted-foreground" />
+            </div>
+            <h2 className="mt-4 text-base font-bold text-foreground">
+              لا توجد نتائج مطابقة
+            </h2>
+            <p className="mt-2 max-w-sm text-xs leading-6 text-muted-foreground">
+              جرّب كلمات بحث مختلفة أو امسح البحث للعودة لكل النتائج.
+            </p>
+            {onSearchChange && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="mt-6 text-sm font-medium text-primary hover:underline"
+              >
+                مسح البحث
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
-
-      {!isError && (pagination || isLoading) && onPageChange && (
-        <DataTablePagination
-          pagination={pagination}
-          onPageChange={onPageChange}
-          isLoading={isLoading}
-        />
-      )}
     </div>
   );
 }

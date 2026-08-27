@@ -14,7 +14,7 @@ import {
 import { Product } from "../types";
 
 import { PermissionGate } from "@/components/tredro/PermissionGate";
-import { useDeleteProductMutation } from "../hook";
+import { useDeleteProductMutation, useUpdateProductMutation } from "../hook";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 
 interface DataTableRowActionsProps<TData> {
@@ -28,8 +28,12 @@ export function DataTableRowActions<TData>({
   const router = useRouter();
 
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
+  const [restoreDialogOpen, setRestoreDialogOpen] = React.useState(false);
+
   const { mutate: deleteProduct, isPending: isDeleting } =
     useDeleteProductMutation();
+  const { mutate: updateProduct, isPending: isRestoring } =
+    useUpdateProductMutation();
 
   return (
     <>
@@ -41,17 +45,31 @@ export function DataTableRowActions<TData>({
         >
           <IconRenderer name="eye_visible_outlined" className="size-4" />
         </Button>
+
         <PermissionGate module="products" requireAction fallback={null}>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <IconRenderer
-              name="bin_outlined"
-              className="size-4 text-destructive"
-            />
-          </Button>
+          {item.is_active ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setDeleteDialogOpen(true)}
+            >
+              <IconRenderer
+                name="bin_outlined"
+                className="size-4 text-destructive"
+              />
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setRestoreDialogOpen(true)}
+            >
+              <IconRenderer
+                name="refresh_outlined"
+                className="size-4 text-primary"
+              />
+            </Button>
+          )}
         </PermissionGate>
       </div>
 
@@ -80,6 +98,38 @@ export function DataTableRowActions<TData>({
             <Button
               variant="outline"
               onClick={() => setDeleteDialogOpen(false)}
+            >
+              إلغاء
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-right">استعادة المنتج</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground text-right">
+            هل تريد استعادة{" "}
+            <span className="font-medium text-foreground">{item?.name}</span>{" "}
+            وإعادة تفعيله؟
+          </p>
+          <DialogFooter className="flex-row-reverse gap-2">
+            <Button
+              disabled={isRestoring}
+              onClick={() =>
+                updateProduct(
+                  { id: item.id, is_active: true },
+                  { onSuccess: () => setRestoreDialogOpen(false) },
+                )
+              }
+            >
+              {isRestoring ? "جارٍ الاستعادة..." : "استعادة"}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setRestoreDialogOpen(false)}
             >
               إلغاء
             </Button>

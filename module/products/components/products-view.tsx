@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
-  CardAction,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -23,7 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Barcode, Hash } from "lucide-react";
-import type { Product } from "../types"; // adjust import path to your actual Product type
+import { Product } from "../types";
 
 const PAGE_SIZE = 8;
 
@@ -72,19 +71,19 @@ export default function ProductsView() {
 
   return (
     <DataTable
-      data={paginated}
+      data={filtered}
       columns={columns}
       total={filtered.length}
+      hasAnyData={productList.length > 0}
+      emptyStateVariant="products"
       search={search}
-      onSearchChange={handleSearchChange}
+      onSearchChange={setSearch}
       isLoading={isLoading}
       isError={isError}
       errorMessage={
         error instanceof Error ? error.message : "حدث خطأ أثناء تحميل البيانات"
       }
       onRetry={() => refetch()}
-      pagination={{ page, totalPages }}
-      onPageChange={setPage}
       renderCard={(product) => (
         <Card
           key={product.id}
@@ -92,11 +91,14 @@ export default function ProductsView() {
           className="relative mx-auto w-full max-w-sm pt-0 cursor-pointer transition-shadow hover:shadow-md"
         >
           <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
-          <ImageWithFallback
-  images={product.images ?? (product.primary_image ? [product.primary_image] : [])}
-  alt={product.name}
-  iconSize={32}
-/>
+            <ImageWithFallback
+              images={
+                product.images ??
+                (product.primary_image ? [product.primary_image] : [])
+              }
+              alt={product.name}
+              iconSize={32}
+            />
 
             {/* Category badge - top corner of image */}
             {product.category_name && (
@@ -119,30 +121,19 @@ export default function ProductsView() {
 
           <CardHeader>
             <CardTitle>{product.name}</CardTitle>
-            <CardDescription className="flex flex-col gap-1">
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger onClick={(e) => e.stopPropagation()}>
-                    <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>رمز المنتج (SKU)</p>
+            <CardDescription>
+              <Tooltip>
+                <TooltipTrigger onClick={(e) => e.stopPropagation()}>
+                  <p className="line-clamp-2 text-start">
+                    {product.description || "لا يوجد وصف"}
+                  </p>
+                </TooltipTrigger>
+                {product.description && (
+                  <TooltipContent className="max-w-xs">
+                    <p>{product.description}</p>
                   </TooltipContent>
-                </Tooltip>
-                <span>{product.sku || "-"}</span>
-              </div>
-
-              <div className="flex items-center gap-1">
-                <Tooltip>
-                  <TooltipTrigger onClick={(e) => e.stopPropagation()}>
-                    <Barcode className="h-3.5 w-3.5 text-muted-foreground" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>الباركود</p>
-                  </TooltipContent>
-                </Tooltip>
-                <span>{product.barcode || "-"}</span>
-              </div>
+                )}
+              </Tooltip>
             </CardDescription>
           </CardHeader>
 
@@ -162,9 +153,8 @@ export default function ProductsView() {
               </div>
             </div>
 
-            {/* Stop click from bubbling to the Card's onClick */}
             <div onClick={(e) => e.stopPropagation()}>
-              <DataTableRowActions row={{ original: product } as any} />
+              <DataTableRowActions row={{ original: product }} />
             </div>
           </CardFooter>
         </Card>
