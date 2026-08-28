@@ -212,7 +212,7 @@ export const ProductFormClient = ({
             title={watchedName || (mode === "edit" ? "" : "إضافة منتج جديد")}
             description={watchedDescription}
             imageUrl={primaryImage?.previewUrl}
-            isActive={watchedStatus === "published"}
+            status={watchedStatus}
             isEditMode={mode === "edit"}
             isSubmitting={isSubmitting}
             isLoading={isLoading}

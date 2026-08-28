@@ -24,7 +24,7 @@ interface ProductFormHeaderProps {
   title: string;
   description?: string;
   imageUrl?: string;
-  isActive: boolean;
+  status: string;
   isEditMode: boolean;
   isSubmitting: boolean;
   isLoading?: boolean;
@@ -37,7 +37,7 @@ export const ProductFormHeader = ({
   title,
   description,
   imageUrl,
-  isActive,
+  status,
   isEditMode,
   isSubmitting,
   isLoading = false,
@@ -97,9 +97,11 @@ export const ProductFormHeader = ({
                   {title || "منتج بدون اسم"}
                 </h1>
               )}
-              {!isLoading && (
-                <Badge variant={isActive ? "default" : "secondary"}>
-                  {isActive ? "منشور" : "مسودة"}
+              {isLoading ? (
+                <Skeleton className="h-5 w-16 rounded-full" />
+              ) : (
+                <Badge variant={status === "published" ? "success" : "warning"}>
+                  {status === "published" ? "منشور" : "مسودة"}
                 </Badge>
               )}
             </div>
