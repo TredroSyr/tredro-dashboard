@@ -68,7 +68,10 @@ export const ProductReviewTab = () => {
       rows: [
         { label: "قابل للبيع", value: values.is_sellable ? "نعم" : "لا" },
         { label: "قابل للشراء", value: values.is_purchasable ? "نعم" : "لا" },
-        { label: "الحالة", value: values.is_active ? "منشور" : "مسودة" },
+        {
+          label: "الحالة",
+          value: values.status === "published" ? "منشور" : "مسودة",
+        },
       ],
     },
   ];

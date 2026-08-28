@@ -8,6 +8,7 @@ export const draftPriceSchema = z.object({
   currency_symbol: z.string().optional(),
   price_type: z.string(),
   customer_category: z.number().nullable(),
+  customer_category_name: z.string().optional(),
   price: z.string().min(1, "السعر مطلوب"),
   is_default: z.boolean(),
 });

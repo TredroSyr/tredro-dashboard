@@ -37,6 +37,7 @@ export const getProductFormDefaultValues = (
       currency_symbol: p.currency_symbol,
       price_type: p.price_type,
       customer_category: p.customer_category ?? null,
+      customer_category_name: p.customer_category_name ?? undefined,
       price: p.price,
       is_default: p.is_default,
     })) ?? [],

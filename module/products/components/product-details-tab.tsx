@@ -42,6 +42,8 @@ export const ProductDetailsTab = ({
                   dir="ltr"
                   className="h-12"
                   isLoading={isLoading}
+                  type="number"
+                  min={0}
                 />
               </FormControl>
               <FormDescription className="text-right">
@@ -88,6 +90,8 @@ export const ProductDetailsTab = ({
                   dir="ltr"
                   className="h-12"
                   isLoading={isLoading}
+                  type="number"
+                  min={0}
                 />
               </FormControl>
               <FormMessage className="text-right" />
@@ -106,6 +110,8 @@ export const ProductDetailsTab = ({
                   dir="ltr"
                   className="h-12"
                   isLoading={isLoading}
+                  type="number"
+                  min={0}
                 />
               </FormControl>
               <FormMessage className="text-right" />
@@ -124,6 +130,8 @@ export const ProductDetailsTab = ({
                   dir="ltr"
                   className="h-12"
                   isLoading={isLoading}
+                  type="number"
+                  min={0}
                 />
               </FormControl>
               <FormMessage className="text-right" />
@@ -167,6 +175,8 @@ export const ProductDetailsTab = ({
                   dir="ltr"
                   className="h-12"
                   isLoading={isLoading}
+                  type="number"
+                  min={0}
                 />
               </FormControl>
               <FormDescription className="text-right">
@@ -189,6 +199,8 @@ export const ProductDetailsTab = ({
                   {...field}
                   dir="ltr"
                   className="h-12"
+                  type="number"
+                  min={0}
                   isLoading={isLoading}
                 />
               </FormControl>

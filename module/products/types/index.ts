@@ -82,6 +82,7 @@ export interface Product {
   unit: number;
   unit_name: string;
   is_active: boolean;
+  status: "draft" | "published";
   is_sellable: boolean;
   is_purchasable: boolean;
   primary_image: { id: number; image: string; alt_text: string | null } | null;
@@ -139,7 +140,9 @@ export type CustomFieldDefinitionResponse = ApiEnvelope<{
 }>;
 
 export interface ProductImagePayload {
-  image: string;
+  id?: number;
+  file?: File;
+  url?: string;
   alt_text?: string;
   is_primary: boolean;
   sort_order: number;

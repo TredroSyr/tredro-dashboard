@@ -121,9 +121,9 @@ export function DataTable<TData, TValue>({
             )}
           </div>
         ) : isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 px-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 auto-rows-fr gap-x-4 gap-y-4 px-2">
             {Array.from({ length: 8 }).map((_, i) => (
-              <Card key={i} className="relative w-full max-w-sm pt-0">
+              <Card key={i} className="relative w-full pt-0">
                 <Skeleton className="aspect-video w-full rounded-t-xl rounded-b-none" />
                 <CardHeader>
                   <Skeleton className="h-4 w-1/3" />
@@ -136,7 +136,7 @@ export function DataTable<TData, TValue>({
             ))}
           </div>
         ) : rows?.length ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr gap-2 px-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 auto-rows-fr gap-x-4 gap-y-4 px-2">
             {rows.map((row) =>
               renderCard ? (
                 <React.Fragment key={row.id}>
@@ -145,7 +145,7 @@ export function DataTable<TData, TValue>({
               ) : (
                 <Card
                   key={row.id}
-                  className="relative mx-auto w-full max-w-sm h-full flex flex-col pt-0"
+                  className="relative w-full h-full flex flex-col pt-0"
                 >
                   {getImage?.(row.original) && (
                     <>

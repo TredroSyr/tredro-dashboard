@@ -15,16 +15,18 @@ import { useProductsQuery } from "../hook";
 import { DataTable } from "./data-table";
 import { columns } from "./columns";
 import { DataTableRowActions } from "./data-table-row-actions";
+import { ProductStatusDropdown } from "./product-status-dropdown";
 import { ImageWithFallback } from "@/components/tredro/image-with-fallback";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Barcode, Hash } from "lucide-react";
-import { Product } from "../types";
 
-const PAGE_SIZE = 8;
+import { Product } from "../types";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
+
+const PAGE_SIZE = 80;
 
 export default function ProductsView() {
   const router = useRouter();
@@ -88,7 +90,7 @@ export default function ProductsView() {
         <Card
           key={product.id}
           onClick={() => handleOpenProduct(product)}
-          className="relative mx-auto w-full max-w-sm pt-0 cursor-pointer transition-shadow hover:shadow-md"
+          className="relative w-full h-full flex flex-col pt-0 cursor-pointer transition-shadow hover:shadow-md"
         >
           <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
             <ImageWithFallback
@@ -109,18 +111,29 @@ export default function ProductsView() {
                 {product.category_name}
               </Badge>
             )}
-
-            {/* Active/Inactive badge - opposite corner */}
-            <Badge
-              variant={product.is_active ? "default" : "secondary"}
-              className="absolute top-2 right-2"
-            >
-              {product.is_active ? "منشور" : "غير منشور"}
-            </Badge>
           </div>
 
           <CardHeader>
-            <CardTitle>{product.name}</CardTitle>
+            <CardTitle className="flex items-center justify-between gap-2">
+              <span className="truncate">{product.name}</span>
+              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                <PermissionGate
+                  module="products"
+                  requireAction
+                  fallback={
+                    <Badge
+                      variant={
+                        product.status === "published" ? "success" : "warning"
+                      }
+                    >
+                      {product.status === "published" ? "منشور" : "مسودة"}
+                    </Badge>
+                  }
+                >
+                  <ProductStatusDropdown product={product} />
+                </PermissionGate>
+              </div>
+            </CardTitle>
             <CardDescription>
               <Tooltip>
                 <TooltipTrigger onClick={(e) => e.stopPropagation()}>

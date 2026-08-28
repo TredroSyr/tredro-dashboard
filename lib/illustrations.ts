@@ -1,9 +1,11 @@
 import permissionImg from "@/public/illustration/permission-denied.png";
 import repsImg from "@/public/illustration/empty-reps.png";
 import productsImg from "@/public/illustration/empty-products.png";
+import notFoundImg from "@/public/illustration/404-robot.png";
 
 export const stateImages = {
   permissionDenied: permissionImg,
+  notFound: notFoundImg,
 };
 
 export type EmptyStateVariant =

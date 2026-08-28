@@ -33,22 +33,21 @@ export default function WarmupConnection() {
     setRunning(true);
     setResults([]);
 
-    await testServer(
-      "jsonplaceholder",
-      "https://jsonplaceholder.typicode.com/posts/1",
-    );
-    await testServer(
-      "your-server (tredro)",
-      `${process.env.NEXT_PUBLIC_BASE_URL}/health`,
-    );
-    await testServer(
-      "kadnya-backend",
-      "https://back-auth.kadnya-dev.com/health",
-    );
-    await testServer(
-      "other-render-2",
-      "https://my-json-server.typicode.com/typicode/demo/posts",
-    );
+    await Promise.all([
+      testServer(
+        "jsonplaceholder",
+        "https://jsonplaceholder.typicode.com/posts/1",
+      ),
+      testServer(
+        "your-server (tredro)",
+        `${process.env.NEXT_PUBLIC_BASE_URL}/health`,
+      ),
+      testServer("kadnya-backend", "https://back-auth.kadnya-dev.com/health"),
+      testServer(
+        "other-render-2",
+        "https://my-json-server.typicode.com/typicode/demo/posts",
+      ),
+    ]);
 
     setRunning(false);
   }, []);

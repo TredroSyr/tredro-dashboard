@@ -139,9 +139,6 @@ const buildProductFormData = (
     prices: rawPrices.length > 0 ? pricesForPayload : undefined,
   };
 
-  // status is not writable on this endpoint yet — don't send it
-  delete (dataPayload as Record<string, unknown>).status;
-
   formData.append("data", JSON.stringify(dataPayload));
 
   return formData;

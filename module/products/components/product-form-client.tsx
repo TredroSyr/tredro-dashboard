@@ -15,6 +15,7 @@ import { getVisibleTabs, ProductTabValue } from "../constant";
 import { productFormSchema, ProductFormValues } from "../schema";
 import { getProductFormDefaultValues } from "../schema/product-form-defaults";
 import { useCreateProductMutation, useUpdateProductMutation } from "../hook";
+import { useApiFormErrorHandler } from "@/hooks/use-api-form-error";
 import { ProductFormHeader } from "./product-form-header";
 import { ProductDetailTabs } from "./product-detail-tabs";
 import { ProductBasicInfoTab } from "./product-basic-info-tab";
@@ -52,9 +53,10 @@ export const ProductFormClient = ({
   React.useEffect(() => {
     if (product) form.reset(getProductFormDefaultValues(product));
   }, [product]);
-  console.log(form.formState.errors,"errors"  )
+  console.log(form.formState.errors, "errors");
   const { mutateAsync: createProduct } = useCreateProductMutation();
   const { mutateAsync: updateProduct } = useUpdateProductMutation();
+  const handleApiError = useApiFormErrorHandler(form);
 
   const goToFirstErrorTab = (errors: Record<string, unknown>) => {
     const tabWithError = visibleTabs.find((tab) =>
@@ -63,22 +65,18 @@ export const ProductFormClient = ({
     if (tabWithError) setActiveTab(tabWithError.value);
   };
 
-  // Images: لا يوجد تحويل base64 إطلاقاً.
-  // - صورة جديدة (رفعها المستخدم للتو) => img.file موجود => نبعت File الحقيقي
-  // - صورة موجودة مسبقاً (وضع التعديل) => img.file غير موجود => نبعت url الموجود فقط
-  //   (حتى الباك اند يعرف إنها صورة قديمة ما تحتاج رفع من جديد)
-  // مهم: أي صف صورة ما فيه لا file ولا url منرميه، لأنه هو سبب
-  // خطأ الباك اند "images.0.image: No file was submitted".
   const buildImagesPayload = (
     values: ProductFormValues,
   ): ProductImagePayload[] => {
     let sortOrder = 0;
     return values.images
-      .filter((img) => Boolean(img.file) || Boolean(img.id) || Boolean(img.url))
+      .filter(
+        (img) => Boolean(img.file) || Boolean(img.server_id) || Boolean(img.url),
+      )
       .map((img) => ({
-        id: img.id,
+        id: img.server_id,
         file: img.file ?? undefined,
-        url: img.file || img.id ? undefined : img.url,
+        url: img.file || img.server_id ? undefined : img.url,
         alt_text: img.alt_text || undefined,
         is_primary: img.is_primary,
         sort_order: sortOrder++,
@@ -164,10 +162,8 @@ export const ProductFormClient = ({
   };
 
   const submitAs = async (published: boolean) => {
-    form.setValue("is_active", published);
     form.setValue("status", published ? "published" : "draft");
     const values = form.getValues();
-    values.is_active = published;
     values.status = published ? "published" : "draft";
 
     setSubmitError(null);
@@ -176,13 +172,14 @@ export const ProductFormClient = ({
       await persist(values);
       router.push("/products");
     } catch (err) {
-      setSubmitError(
-        err instanceof Error
-          ? err.message
-          : "حدث خطأ أثناء حفظ المنتج، حاول مرة أخرى",
-      );
-      // إذا الخطأ متعلق بالتسعير، وجّه المستخدم لتاب التسعير مباشرة
-      if (err instanceof Error && err.message.includes("تسعير")) {
+      const { message, fields } = handleApiError(err);
+      setSubmitError(message);
+
+      if (fields.length > 0) {
+        // خطأ حقول من الباك اند (مثلاً SKU مستخدم) — وجّه المستخدم للتاب المناسب
+        goToFirstErrorTab(Object.fromEntries(fields.map((f) => [f, true])));
+      } else if (err instanceof Error && err.message.includes("تسعير")) {
+        // إذا الخطأ متعلق بالتسعير، وجّه المستخدم لتاب التسعير مباشرة
         setActiveTab("pricing" as ProductTabValue);
       }
     } finally {
@@ -202,7 +199,7 @@ export const ProductFormClient = ({
 
   const watchedName = form.watch("name");
   const watchedDescription = form.watch("description");
-  const watchedIsActive = form.watch("is_active");
+  const watchedStatus = form.watch("status");
   const watchedImages = form.watch("images");
   const primaryImage =
     watchedImages.find((img) => img.is_primary) ?? watchedImages[0];
@@ -215,7 +212,7 @@ export const ProductFormClient = ({
             title={watchedName || (mode === "edit" ? "" : "إضافة منتج جديد")}
             description={watchedDescription}
             imageUrl={primaryImage?.previewUrl}
-            isActive={watchedIsActive}
+            isActive={watchedStatus === "published"}
             isEditMode={mode === "edit"}
             isSubmitting={isSubmitting}
             isLoading={isLoading}
