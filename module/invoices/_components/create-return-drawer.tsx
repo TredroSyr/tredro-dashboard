@@ -29,6 +29,7 @@ import {
 import { useCreateReturnInvoiceMutation } from "../hooks";
 import type { SalesInvoice } from "../types";
 import { formatMoney, formatQuantity, num } from "../lib/format";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export function CreateReturnDrawer({
   invoice,
@@ -41,6 +42,7 @@ export function CreateReturnDrawer({
   onOpenChange: (open: boolean) => void;
   onCreated?: () => void;
 }) {
+  const isMobile = useIsMobile();
   const eligibleLines = React.useMemo(
     () =>
       (invoice?.lines ?? [])
@@ -107,7 +109,11 @@ export function CreateReturnDrawer({
   if (!invoice) return null;
 
   return (
-    <Drawer open={open} onOpenChange={onOpenChange}>
+    <Drawer
+      open={open}
+      onOpenChange={onOpenChange}
+      swipeDirection={isMobile ? "down" : "left"}
+    >
       <DrawerContent className="flex flex-col w-full h-[92dvh] max-h-[92dvh] rounded-t-2xl sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none md:max-w-xl">
         <Form {...form}>
           <form
@@ -160,7 +166,8 @@ export function CreateReturnDrawer({
                         <p className="text-xs text-muted-foreground">
                           الكمية المباعة القابلة للإرجاع:{" "}
                           {formatQuantity(field.max_quantity)} ·{" "}
-                          {formatMoney(field.unit_price, invoice.currency)} للوحدة
+                          {formatMoney(field.unit_price, invoice.currency)}{" "}
+                          للوحدة
                         </p>
                       </div>
                       <FormField

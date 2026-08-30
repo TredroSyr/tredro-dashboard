@@ -13,6 +13,7 @@ import {
   useReturnInvoiceQuery,
   useSalesInvoiceQuery,
 } from "../hooks";
+import { EntityLink } from "./entity-link";
 import { InvoiceDetailHeader } from "./invoice-detail-header";
 import { InvoiceHistoryTimeline } from "./invoice-history-timeline";
 import { RecordPaymentDialog } from "./record-payment-dialog";
@@ -182,7 +183,9 @@ function OverviewTab({ invoice }: { invoice: SalesInvoice }) {
             {invoice.lines?.map((line) => (
               <tr key={line.id} className="border-b border-border last:border-b-0">
                 <td className="px-4 py-3 text-foreground">
-                  {line.product_name}
+                  <EntityLink href={`/products/detail?id=${line.product}`}>
+                    {line.product_name}
+                  </EntityLink>
                   {line.product_sku && (
                     <span className="ms-1.5 text-xs text-muted-foreground">
                       ({line.product_sku})

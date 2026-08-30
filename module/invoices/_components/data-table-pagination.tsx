@@ -1,12 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { IconRenderer } from "@/assets/icons/iconRenderer";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface DataTablePaginationProps {
-  pagination: { page: number; totalPages: number };
+  pagination?: Pick<PaginatedResponse<any>, "page" | "totalPages">;
   onPageChange: (page: number) => void;
   isLoading?: boolean;
 }
@@ -30,8 +30,9 @@ export function DataTablePagination({
     );
   }
 
+  if (!pagination) return null;
+
   const { page: currentPage, totalPages } = pagination;
-  if (totalPages <= 1) return null;
 
   const goToPage = (page: number) => {
     if (page < 1 || page > totalPages) return;
@@ -39,6 +40,7 @@ export function DataTablePagination({
   };
 
   const renderPageButtons = () => {
+    if (totalPages <= 0) return null;
     const pages: React.ReactNode[] = [];
     const maxVisible = 5;
 
@@ -63,7 +65,10 @@ export function DataTablePagination({
 
     if (startPage > 2) {
       pages.push(
-        <span key="ellipsis-1" className="px-2 flex items-center text-muted-foreground text-sm">
+        <span
+          key="ellipsis-1"
+          className="px-2 flex items-center text-gray-400 text-sm"
+        >
           ...
         </span>,
       );
@@ -85,7 +90,10 @@ export function DataTablePagination({
 
     if (endPage < totalPages - 1) {
       pages.push(
-        <span key="ellipsis-2" className="px-2 flex items-center text-muted-foreground text-sm">
+        <span
+          key="ellipsis-2"
+          className="px-2 flex items-center text-gray-400 text-sm"
+        >
           ...
         </span>,
       );
@@ -116,7 +124,7 @@ export function DataTablePagination({
         onClick={() => goToPage(currentPage - 1)}
         disabled={currentPage <= 1}
       >
-        <IconRenderer name="arrow_right_outlined" className="me-2 h-4 w-4" />
+        <ArrowRight className="me-2 h-4 w-4" />
         السابق
       </Button>
 
@@ -129,7 +137,7 @@ export function DataTablePagination({
         disabled={currentPage >= totalPages}
       >
         التالي
-        <IconRenderer name="arrow_left_outlined" className="ms-2 h-4 w-4" />
+        <ArrowLeft className="ms-2 h-4 w-4" />
       </Button>
     </div>
   );

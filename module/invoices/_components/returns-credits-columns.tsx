@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import type { PendingCustomerCredit, ReturnInvoice } from "../types";
-import { formatDate, formatMoney } from "../lib/format";
+import { formatDate } from "../lib/format";
+import { AmountBadge } from "./amount-badge";
 import { CreditStatusBadge, DocumentStatusBadge } from "./status-badge";
+import { EntityLink } from "./entity-link";
 
 const REFUND_METHOD_LABEL: Record<string, string> = {
   cash_refunded_by_rep: "أعاد المندوب المبلغ نقداً",
@@ -45,9 +47,7 @@ export function createReturnInvoiceColumns({
       accessorKey: "amount",
       header: "المبلغ",
       cell: ({ row }) => (
-        <span className="tabular-nums text-foreground">
-          {formatMoney(row.original.amount, row.original.currency)}
-        </span>
+        <AmountBadge amount={row.original.amount} currency={row.original.currency} />
       ),
     },
     {
@@ -113,7 +113,9 @@ export function createCustomerCreditColumns({
       accessorKey: "customer_name",
       header: "الزبون",
       cell: ({ row }) => (
-        <span className="text-foreground">{row.original.customer_name}</span>
+        <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
+          {row.original.customer_name}
+        </EntityLink>
       ),
     },
     {
@@ -128,11 +130,7 @@ export function createCustomerCreditColumns({
     {
       accessorKey: "amount",
       header: "المبلغ",
-      cell: ({ row }) => (
-        <span className="tabular-nums text-foreground">
-          {formatMoney(row.original.amount)}
-        </span>
-      ),
+      cell: ({ row }) => <AmountBadge amount={row.original.amount} />,
     },
     {
       accessorKey: "status",

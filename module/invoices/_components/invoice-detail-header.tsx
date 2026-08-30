@@ -16,6 +16,7 @@ import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import type { SalesInvoice } from "../types";
 import { formatDate, formatRepName, num } from "../lib/format";
+import { EntityLink } from "./entity-link";
 import { LedgerBar } from "./ledger-bar";
 import { SalesInvoiceStatusBadge } from "./status-badge";
 import { isSalesInvoiceOverdue } from "./sales-invoices-columns";
@@ -78,9 +79,21 @@ export function InvoiceDetailHeader({
           {isLoading || !invoice ? (
             <Skeleton className="h-4 w-56" />
           ) : (
-            <p className="text-sm text-muted-foreground">
-              {invoice.customer_name} · {formatRepName(invoice.rep_name)} ·{" "}
-              {formatDate(invoice.date)}
+            <p className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+              <EntityLink href={`/customers/detail?id=${invoice.customer}`}>
+                {invoice.customer_name}
+              </EntityLink>
+              <span>·</span>
+              {invoice.rep ? (
+                <EntityLink href={`/reps/detail?id=${invoice.rep}`}>
+                  {formatRepName(invoice.rep_name)}
+                </EntityLink>
+              ) : (
+                <span className="text-foreground">
+                  {formatRepName(invoice.rep_name)}
+                </span>
+              )}
+              <span>· {formatDate(invoice.date)}</span>
             </p>
           )}
         </div>

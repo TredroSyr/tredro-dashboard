@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import type { SalesInvoice } from "../types";
-import { formatDate, formatMoney, formatRepName, num } from "../lib/format";
+import { formatDate, formatRepName, num } from "../lib/format";
+import { AmountBadge } from "./amount-badge";
+import { EntityLink } from "./entity-link";
 import { LedgerBar } from "./ledger-bar";
 import { SalesInvoiceStatusBadge } from "./status-badge";
 
@@ -48,7 +50,9 @@ export function createSalesInvoiceColumns({
       header: "الزبون",
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="text-foreground">{row.original.customer_name}</span>
+          <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
+            {row.original.customer_name}
+          </EntityLink>
           <span className="text-xs text-muted-foreground" dir="ltr">
             {row.original.customer_phone}
           </span>
@@ -58,25 +62,25 @@ export function createSalesInvoiceColumns({
     {
       accessorKey: "rep_name",
       header: "المندوب",
-      cell: ({ row }) => (
-        <span
-          className={
-            row.original.rep_name
-              ? "text-foreground"
-              : "text-muted-foreground italic"
-          }
-        >
-          {formatRepName(row.original.rep_name)}
-        </span>
-      ),
+      cell: ({ row }) =>
+        row.original.rep ? (
+          <EntityLink href={`/reps/detail?id=${row.original.rep}`}>
+            {formatRepName(row.original.rep_name)}
+          </EntityLink>
+        ) : (
+          <span className="text-foreground">
+            {formatRepName(row.original.rep_name)}
+          </span>
+        ),
     },
     {
       accessorKey: "total_amount",
       header: "الإجمالي",
       cell: ({ row }) => (
-        <span className="tabular-nums text-foreground">
-          {formatMoney(row.original.total_amount, row.original.currency)}
-        </span>
+        <AmountBadge
+          amount={row.original.total_amount}
+          currency={row.original.currency}
+        />
       ),
     },
     {
@@ -105,20 +109,12 @@ export function createSalesInvoiceColumns({
     {
       id: "balance_due",
       header: "المتبقي",
-      cell: ({ row }) => {
-        const balance = num(row.original.balance_due);
-        return (
-          <span
-            className={
-              balance > 0
-                ? "tabular-nums font-medium text-foreground"
-                : "tabular-nums text-muted-foreground"
-            }
-          >
-            {formatMoney(row.original.balance_due, row.original.currency)}
-          </span>
-        );
-      },
+      cell: ({ row }) => (
+        <AmountBadge
+          amount={row.original.balance_due}
+          currency={row.original.currency}
+        />
+      ),
     },
     {
       id: "actions",

@@ -32,6 +32,20 @@ export function formatRepName(repName: string | null | undefined) {
   return repName ?? "مبيعات مباشرة";
 }
 
+/** Same as formatMoney but with the amount and currency label as separate strings, for mixed styling. */
+export function formatMoneyParts(
+  value: string | number | null | undefined,
+  currency?: string,
+) {
+  const n = Number(value ?? 0);
+  const amount = n.toLocaleString("ar", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+  const label = currency ? (CURRENCY_LABEL[currency] ?? currency) : "ل.س";
+  return { amount, label };
+}
+
 /** Same as formatMoney but without the currency suffix, for compact contexts. */
 export function formatMoneyPlain(value: string | number | null | undefined) {
   const n = Number(value ?? 0);
@@ -53,6 +67,7 @@ export function formatDate(value: string | null | undefined) {
     year: "numeric",
     month: "long",
     day: "numeric",
+    numberingSystem: "latn",
   });
 }
 
@@ -62,6 +77,7 @@ export function formatDateTime(value: string | null | undefined) {
     year: "numeric",
     month: "long",
     day: "numeric",
+    numberingSystem: "latn",
     hour: "2-digit",
     minute: "2-digit",
   });

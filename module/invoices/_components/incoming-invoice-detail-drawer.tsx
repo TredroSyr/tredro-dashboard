@@ -22,6 +22,7 @@ import {
   num,
 } from "../lib/format";
 import { DocumentStatusBadge } from "./status-badge";
+import { EntityLink } from "./entity-link";
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = React.useState(false);
@@ -205,7 +206,9 @@ export function IncomingInvoiceDetailSheet({
                       {invoice.lines?.map((line) => (
                         <tr key={line.id} className="border-b border-border last:border-b-0">
                           <td className="px-3 py-2.5 text-foreground">
-                            {line.product_name}
+                            <EntityLink href={`/products/detail?id=${line.product}`}>
+                              {line.product_name}
+                            </EntityLink>
                             {line.product_sku && (
                               <span className="ms-1.5 text-xs text-muted-foreground">
                                 ({line.product_sku})

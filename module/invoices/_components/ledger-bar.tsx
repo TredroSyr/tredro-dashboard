@@ -1,7 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { formatMoney, num } from "../lib/format";
+import { AmountBadge } from "./amount-badge";
 
 interface LedgerBarProps {
   totalAmount: string;
@@ -85,23 +87,31 @@ export function LedgerBar({
       </div>
 
       {size === "lg" && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <LegendDot colorClass="bg-primary" label="مدفوع" value={formatMoney(paidAmount, currency)} />
+        <div
+          className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden text-xs text-muted-foreground sm:flex-wrap sm:overflow-visible"
+          dir="rtl"
+        >
+          <LegendDot
+            colorClass="bg-primary"
+            label="مدفوع"
+            value={<AmountBadge amount={paidAmount} currency={currency} />}
+          />
           {returned > 0 && (
             <LegendDot
               hatched
               label="مرتجع"
-              value={formatMoney(returnedAmount, currency)}
+              value={<AmountBadge amount={returnedAmount} currency={currency} />}
             />
           )}
           <LegendDot
             colorClass={isOverdue ? "bg-destructive/50" : "bg-muted"}
             label="المتبقي"
-            value={formatMoney(balanceDue, currency)}
+            value={<AmountBadge amount={balanceDue} currency={currency} />}
           />
           {overage > 0 && (
-            <span className="font-medium text-warning">
-              زيادة مستحقة للزبون: {formatMoney(overageAmount, currency)}
+            <span className="flex shrink-0 snap-start items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 font-medium text-warning">
+              زيادة مستحقة للزبون:
+              <AmountBadge amount={overageAmount} currency={currency} />
             </span>
           )}
         </div>
@@ -119,10 +129,10 @@ function LegendDot({
   colorClass?: string;
   hatched?: boolean;
   label: string;
-  value: string;
+  value: ReactNode;
 }) {
   return (
-    <span className="flex items-center gap-1.5">
+    <span className="flex shrink-0 snap-start items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2">
       <span
         className={cn("size-2 shrink-0 rounded-full", colorClass)}
         style={
@@ -134,7 +144,7 @@ function LegendDot({
             : undefined
         }
       />
-      {label}: <span className="font-medium text-foreground">{value}</span>
+      {label}: {value}
     </span>
   );
 }

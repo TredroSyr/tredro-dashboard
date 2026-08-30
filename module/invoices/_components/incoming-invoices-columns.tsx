@@ -11,7 +11,8 @@ import {
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import type { IncomingInvoice } from "../types";
-import { formatDate, formatMoney } from "../lib/format";
+import { formatDate } from "../lib/format";
+import { AmountBadge } from "./amount-badge";
 import { DocumentStatusBadge } from "./status-badge";
 
 export function createIncomingInvoiceColumns({
@@ -62,9 +63,10 @@ export function createIncomingInvoiceColumns({
       accessorKey: "total_amount",
       header: "الإجمالي",
       cell: ({ row }) => (
-        <span className="tabular-nums text-foreground">
-          {formatMoney(row.original.total_amount, row.original.currency)}
-        </span>
+        <AmountBadge
+          amount={row.original.total_amount}
+          currency={row.original.currency}
+        />
       ),
     },
     {

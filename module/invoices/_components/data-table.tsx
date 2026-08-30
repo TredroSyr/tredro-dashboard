@@ -202,8 +202,7 @@ export function InvoicesDataTable<TData, TValue>({
           emptyState
         )}
       </div>
-
-      {!isError && (
+      {!isError && (pagination || isLoading) && onPageChange && (
         <DataTablePagination
           pagination={pagination}
           onPageChange={onPageChange}
