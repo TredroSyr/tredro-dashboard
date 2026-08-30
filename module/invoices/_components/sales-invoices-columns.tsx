@@ -25,11 +25,47 @@ export function createSalesInvoiceColumns({
   thresholdDays,
   onRecordPayment,
   onView,
+  hideCustomerColumn,
+  hideRepColumn,
 }: {
   thresholdDays: number;
   onRecordPayment: (invoice: SalesInvoice) => void;
   onView: (invoice: SalesInvoice) => void;
+  /** Omit the "Customer" column when the table is already scoped to one customer (e.g. inside their detail page). */
+  hideCustomerColumn?: boolean;
+  /** Omit the "Rep" column when the table is already scoped to one rep (e.g. inside their detail page). */
+  hideRepColumn?: boolean;
 }): ColumnDef<SalesInvoice>[] {
+  const customerColumn: ColumnDef<SalesInvoice> = {
+    accessorKey: "customer_name",
+    header: "الزبون",
+    cell: ({ row }) => (
+      <div className="flex flex-col">
+        <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
+          {row.original.customer_name}
+        </EntityLink>
+        <span className="text-xs text-muted-foreground" dir="ltr">
+          {row.original.customer_phone}
+        </span>
+      </div>
+    ),
+  };
+
+  const repColumn: ColumnDef<SalesInvoice> = {
+    accessorKey: "rep_name",
+    header: "المندوب",
+    cell: ({ row }) =>
+      row.original.rep ? (
+        <EntityLink href={`/reps/detail?id=${row.original.rep}`}>
+          {formatRepName(row.original.rep_name)}
+        </EntityLink>
+      ) : (
+        <span className="text-foreground">
+          {formatRepName(row.original.rep_name)}
+        </span>
+      ),
+  };
+
   return [
     {
       accessorKey: "number",
@@ -45,34 +81,8 @@ export function createSalesInvoiceColumns({
         </div>
       ),
     },
-    {
-      accessorKey: "customer_name",
-      header: "الزبون",
-      cell: ({ row }) => (
-        <div className="flex flex-col">
-          <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
-            {row.original.customer_name}
-          </EntityLink>
-          <span className="text-xs text-muted-foreground" dir="ltr">
-            {row.original.customer_phone}
-          </span>
-        </div>
-      ),
-    },
-    {
-      accessorKey: "rep_name",
-      header: "المندوب",
-      cell: ({ row }) =>
-        row.original.rep ? (
-          <EntityLink href={`/reps/detail?id=${row.original.rep}`}>
-            {formatRepName(row.original.rep_name)}
-          </EntityLink>
-        ) : (
-          <span className="text-foreground">
-            {formatRepName(row.original.rep_name)}
-          </span>
-        ),
-    },
+    ...(hideCustomerColumn ? [] : [customerColumn]),
+    ...(hideRepColumn ? [] : [repColumn]),
     {
       accessorKey: "total_amount",
       header: "الإجمالي",

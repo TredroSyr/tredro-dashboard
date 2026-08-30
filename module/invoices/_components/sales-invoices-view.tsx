@@ -135,8 +135,10 @@ export function SalesInvoicesView({ customerId, repId }: SalesInvoicesViewProps 
         thresholdDays,
         onRecordPayment: setPaymentTarget,
         onView: (invoice) => router.push(`/invoices/detail?id=${invoice.id}`),
+        hideCustomerColumn: hideCustomerFilter,
+        hideRepColumn: hideRepFilter,
       }),
-    [thresholdDays, router],
+    [thresholdDays, router, hideCustomerFilter, hideRepFilter],
   );
 
   return (
@@ -240,7 +242,9 @@ export function SalesInvoicesView({ customerId, repId }: SalesInvoicesViewProps 
               <div>
                 <p className="font-medium text-foreground">{invoice.number}</p>
                 <p className="text-xs text-muted-foreground">
-                  {invoice.customer_name} · {formatDate(invoice.date)}
+                  {hideCustomerFilter
+                    ? formatDate(invoice.date)
+                    : `${invoice.customer_name} · ${formatDate(invoice.date)}`}
                 </p>
               </div>
               <SalesInvoiceStatusBadge
@@ -321,7 +325,12 @@ export function SalesInvoicesView({ customerId, repId }: SalesInvoicesViewProps 
         onOpenChange={(open) => !open && setPaymentTarget(null)}
       />
 
-      <CreateSalesInvoiceDrawer open={createOpen} onOpenChange={setCreateOpen} />
+      <CreateSalesInvoiceDrawer
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        defaultCustomerId={customerId}
+        defaultRepId={repId}
+      />
     </div>
   );
 }

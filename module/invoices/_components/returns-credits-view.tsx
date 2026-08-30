@@ -177,8 +177,12 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
   );
 
   const creditColumns = React.useMemo(
-    () => createCustomerCreditColumns({ onCancel: setCancelTarget }),
-    [],
+    () =>
+      createCustomerCreditColumns({
+        onCancel: setCancelTarget,
+        hideCustomerColumn: hideCustomerFilter,
+      }),
+    [hideCustomerFilter],
   );
 
   return (
@@ -383,15 +387,17 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">
-                  {c.customer_name}
+                  {hideCustomerFilter ? c.source_return_invoice_number : c.customer_name}
                 </span>
                 <span className="tabular-nums text-foreground">
                   {formatMoney(c.amount)}
                 </span>
               </div>
-              <span className="text-xs text-muted-foreground">
-                عن مرتجع {c.source_return_invoice_number}
-              </span>
+              {!hideCustomerFilter && (
+                <span className="text-xs text-muted-foreground">
+                  عن مرتجع {c.source_return_invoice_number}
+                </span>
+              )}
               {c.status === "pending" && (
                 <div className="flex items-center justify-end border-t border-border pt-2 mt-1">
                   <PermissionGate module="invoices" requireAction fallback={null}>

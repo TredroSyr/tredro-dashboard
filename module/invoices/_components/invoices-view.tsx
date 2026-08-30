@@ -24,7 +24,7 @@ export default function InvoicesView({ customerId, repId }: InvoicesViewProps = 
   );
 
   return (
-    <div className="flex flex-col">
+    <div className={isScoped ? "flex flex-col sm:flex-row" : "flex flex-col"}>
       <InvoicesTabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -32,7 +32,7 @@ export default function InvoicesView({ customerId, repId }: InvoicesViewProps = 
         repId={repId}
       />
 
-      <div className="px-4 py-5 sm:px-6">
+      <div className={isScoped ? "flex-1 min-w-0 px-4 py-5 sm:px-6" : "px-4 py-5 sm:px-6"}>
         {activeTab === "overview" && <InvoicesOverview />}
         {activeTab === "sales" && (
           <SalesInvoicesView customerId={customerId} repId={repId} />

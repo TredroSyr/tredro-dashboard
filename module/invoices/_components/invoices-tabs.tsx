@@ -29,6 +29,74 @@ function firstDayOfMonthISO() {
   return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
 }
 
+function NavRow({
+  icon,
+  label,
+  value,
+  isLoading,
+  isActive,
+  tone = "default",
+  onClick,
+}: {
+  icon: iconName;
+  label: string;
+  value?: string;
+  isLoading?: boolean;
+  isActive: boolean;
+  tone?: "default" | "destructive";
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={isActive ? "page" : undefined}
+      className={cn(
+        "flex w-[65%] shrink-0 cursor-pointer snap-start items-center justify-between gap-3 rounded-xl border px-4 py-3 text-right transition-colors sm:w-full",
+        isActive
+          ? "border-primary bg-primary/5"
+          : "border-border bg-background hover:bg-muted/50",
+      )}
+    >
+      <div className="flex items-center gap-2">
+        <IconRenderer
+          name={icon}
+          className={cn(
+            "size-4",
+            isActive
+              ? "text-primary"
+              : tone === "destructive"
+              ? "text-destructive"
+              : "text-muted-foreground",
+          )}
+        />
+        <span
+          className={cn(
+            "text-sm font-medium whitespace-nowrap",
+            isActive ? "text-primary" : "text-foreground",
+          )}
+        >
+          {label}
+        </span>
+      </div>
+
+      {/* {value !== undefined &&
+        (isLoading ? (
+          <Skeleton className="h-4 w-10" />
+        ) : (
+          <span
+            className={cn(
+              "text-sm font-semibold tabular-nums",
+              isActive ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            {value}
+          </span>
+        ))} */}
+    </button>
+  );
+}
+
 function TabTile({
   icon,
   label,
@@ -97,9 +165,10 @@ export function InvoicesTabs({
   repId?: string | number;
 }) {
   const isScoped = Boolean(customerId || repId);
-  const { data: salesData, isLoading: isSalesLoading } = useSalesInvoicesQuery(
-    { customer: customerId, rep: repId },
-  );
+  const { data: salesData, isLoading: isSalesLoading } = useSalesInvoicesQuery({
+    customer: customerId,
+    rep: repId,
+  });
   const { data: incomingData, isLoading: isIncomingLoading } =
     useIncomingInvoicesQuery(undefined, { enabled: !isScoped });
   const { data: returnsData, isLoading: isReturnsLoading } =
@@ -114,23 +183,81 @@ export function InvoicesTabs({
   const { data: overdueData, isLoading: isOverdueLoading } =
     useOverdueReportQuery({ customer: customerId, rep: repId });
 
+  // Nested inside a Customer/Rep detail page (which already has its own
+  // horizontal tab bar above this one) - render a compact vertical rail
+  // instead of the standalone page's tile grid, so we don't stack two
+  // horizontal tab bars on top of each other.
+  if (isScoped) {
+    return (
+      <nav
+        className="flex gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory p-4 [scrollbar-width:none] [-ms-overflow-style:none] sm:w-56 sm:shrink-0 sm:flex-col sm:overflow-visible sm:border-e sm:border-border sm:p-4 [&::-webkit-scrollbar]:hidden"
+        dir="rtl"
+      >
+        <NavRow
+          icon="sales_outlined"
+          label="فواتير البيع"
+          value={
+            salesData?.data?.pagination
+              ? String(salesData.data.pagination.count)
+              : undefined
+          }
+          isLoading={isSalesLoading}
+          isActive={value === "sales"}
+          onClick={() => onValueChange("sales")}
+        />
+        <NavRow
+          icon="undo_outlined"
+          label="المرتجعات والأرصدة"
+          value={
+            returnsData?.data?.pagination
+              ? String(returnsData.data.pagination.count)
+              : undefined
+          }
+          isLoading={isReturnsLoading}
+          isActive={value === "returns"}
+          onClick={() => onValueChange("returns")}
+        />
+        <NavRow
+          icon="transaction_outlined"
+          label="محصّل هذا الشهر"
+          value={
+            paymentsData?.data?.total_amount !== undefined
+              ? formatMoney(paymentsData.data.total_amount)
+              : undefined
+          }
+          isLoading={isPaymentsLoading}
+          isActive={value === "payments"}
+          onClick={() => onValueChange("payments")}
+        />
+        <NavRow
+          icon="report_outlined"
+          label="الديون المتأخرة"
+          value={
+            overdueData?.data?.report
+              ? String(overdueData.data.report.totals.invoice_count)
+              : undefined
+          }
+          isLoading={isOverdueLoading}
+          isActive={value === "overdue"}
+          tone="destructive"
+          onClick={() => onValueChange("overdue")}
+        />
+      </nav>
+    );
+  }
+
   return (
     <div className="px-4 py-4 sm:px-6">
       <div
-        className={cn(
-          "flex gap-2.5 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] sm:grid sm:overflow-visible [&::-webkit-scrollbar]:hidden",
-          isScoped ? "sm:grid-cols-4" : "sm:grid-cols-4 lg:grid-cols-7",
-        )}
+        className="flex gap-2.5 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7 [&::-webkit-scrollbar]:hidden"
         dir="rtl"
       >
-        {!isScoped && (
-          <TabTile
-            icon="overview_outlined"
-            label="نظرة عامة"
-            isActive={value === "overview"}
-            onClick={() => onValueChange("overview")}
-          />
-        )}
+        <TabTile
+          icon="overview_outlined"
+          label="نظرة عامة"
+          isActive={value === "overview"}
+          onClick={() => onValueChange("overview")}
+        />
         <TabTile
           icon="sales_outlined"
           label="فواتير البيع"
@@ -143,20 +270,18 @@ export function InvoicesTabs({
           isActive={value === "sales"}
           onClick={() => onValueChange("sales")}
         />
-        {!isScoped && (
-          <TabTile
-            icon="download_outlined"
-            label="فواتير الإدخال"
-            value={
-              incomingData?.data?.pagination
-                ? String(incomingData.data.pagination.count)
-                : undefined
-            }
-            isLoading={isIncomingLoading}
-            isActive={value === "incoming"}
-            onClick={() => onValueChange("incoming")}
-          />
-        )}
+        <TabTile
+          icon="download_outlined"
+          label="فواتير الإدخال"
+          value={
+            incomingData?.data?.pagination
+              ? String(incomingData.data.pagination.count)
+              : undefined
+          }
+          isLoading={isIncomingLoading}
+          isActive={value === "incoming"}
+          onClick={() => onValueChange("incoming")}
+        />
         <TabTile
           icon="undo_outlined"
           label="المرتجعات والأرصدة"
@@ -195,16 +320,14 @@ export function InvoicesTabs({
           onClick={() => onValueChange("overdue")}
         />
 
-        {!isScoped && (
-          <PermissionGate module="invoices" requireAction fallback={null}>
-            <TabTile
-              icon="settings_outlined"
-              label="الإعدادات"
-              isActive={value === "settings"}
-              onClick={() => onValueChange("settings")}
-            />
-          </PermissionGate>
-        )}
+        <PermissionGate module="invoices" requireAction fallback={null}>
+          <TabTile
+            icon="settings_outlined"
+            label="الإعدادات"
+            isActive={value === "settings"}
+            onClick={() => onValueChange("settings")}
+          />
+        </PermissionGate>
       </div>
     </div>
   );

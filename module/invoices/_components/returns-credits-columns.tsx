@@ -105,19 +105,24 @@ export function createReturnInvoiceColumns({
 
 export function createCustomerCreditColumns({
   onCancel,
+  hideCustomerColumn,
 }: {
   onCancel: (credit: PendingCustomerCredit) => void;
+  /** Omit the "Customer" column when the table is already scoped to one customer (e.g. inside their detail page). */
+  hideCustomerColumn?: boolean;
 }): ColumnDef<PendingCustomerCredit>[] {
+  const customerColumn: ColumnDef<PendingCustomerCredit> = {
+    accessorKey: "customer_name",
+    header: "الزبون",
+    cell: ({ row }) => (
+      <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
+        {row.original.customer_name}
+      </EntityLink>
+    ),
+  };
+
   return [
-    {
-      accessorKey: "customer_name",
-      header: "الزبون",
-      cell: ({ row }) => (
-        <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
-          {row.original.customer_name}
-        </EntityLink>
-      ),
-    },
+    ...(hideCustomerColumn ? [] : [customerColumn]),
     {
       accessorKey: "source_return_invoice_number",
       header: "ناتج عن مرتجع",

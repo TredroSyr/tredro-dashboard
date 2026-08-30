@@ -44,9 +44,15 @@ const EMPTY_LINE = { product_id: "", quantity: "", unit_price: "" };
 export function CreateSalesInvoiceDrawer({
   open,
   onOpenChange,
+  defaultCustomerId,
+  defaultRepId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-select and lock the customer (e.g. opened from that customer's detail page). */
+  defaultCustomerId?: string | number;
+  /** Pre-select and lock the rep (e.g. opened from that rep's detail page). */
+  defaultRepId?: string | number;
 }) {
   const router = useRouter();
   const isMobile = useIsMobile();
@@ -54,8 +60,8 @@ export function CreateSalesInvoiceDrawer({
   const form = useForm<CreateSalesInvoiceFormValues>({
     resolver: zodResolver(createSalesInvoiceSchema),
     defaultValues: {
-      customer_id: "",
-      rep: DIRECT_SALE_VALUE,
+      customer_id: defaultCustomerId ? String(defaultCustomerId) : "",
+      rep: defaultRepId ? String(defaultRepId) : DIRECT_SALE_VALUE,
       warehouse: "",
       notes: "",
       payment_amount: "",
@@ -73,8 +79,8 @@ export function CreateSalesInvoiceDrawer({
   React.useEffect(() => {
     if (open) {
       form.reset({
-        customer_id: "",
-        rep: DIRECT_SALE_VALUE,
+        customer_id: defaultCustomerId ? String(defaultCustomerId) : "",
+        rep: defaultRepId ? String(defaultRepId) : DIRECT_SALE_VALUE,
         warehouse: "",
         notes: "",
         payment_amount: "",
@@ -83,7 +89,7 @@ export function CreateSalesInvoiceDrawer({
       setSelectedCreditIds([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, defaultCustomerId, defaultRepId]);
 
   const customerId = form.watch("customer_id");
 
@@ -228,26 +234,37 @@ export function CreateSalesInvoiceDrawer({
                 تلقائياً عند انقطاع الاتصال، تجنّب الضغط على الزر أكثر من مرة.
               </p>
 
-              <FormField
-                control={form.control}
-                name="customer_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الزبون</FormLabel>
-                    <FormControl>
-                      <SearchableSelect
-                        options={customerOptions}
-                        value={field.value}
-                        onChange={field.onChange}
-                        placeholder="اختر زبوناً"
-                        searchPlaceholder="ابحث عن زبون..."
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {defaultCustomerId ? (
+                <FormItem>
+                  <FormLabel>الزبون</FormLabel>
+                  <div className="flex h-11 items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 text-sm text-foreground">
+                    <IconRenderer name="user_outlined" className="size-4 text-muted-foreground" />
+                    {customerOptions.find((c) => c.value === String(defaultCustomerId))
+                      ?.label ?? "..."}
+                  </div>
+                </FormItem>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="customer_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>الزبون</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          options={customerOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          placeholder="اختر زبوناً"
+                          searchPlaceholder="ابحث عن زبون..."
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               {pendingCredits.length > 0 && (
                 <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
@@ -288,30 +305,41 @@ export function CreateSalesInvoiceDrawer({
                 </div>
               )}
 
-              <FormField
-                control={form.control}
-                name="rep"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المندوب</FormLabel>
-                    <FormControl>
-                      <SearchableSelect
-                        options={repOptions}
-                        value={field.value}
-                        onChange={field.onChange}
-                        loading={isLoadingReps}
-                        searchPlaceholder="ابحث عن مندوب..."
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      اترك هذا الحقل على "بيع مباشر" لبيع من مستودع الشركة دون
-                      نسب البيع لأي مندوب
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {defaultRepId ? (
+                <FormItem>
+                  <FormLabel>المندوب</FormLabel>
+                  <div className="flex h-11 items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 text-sm text-foreground">
+                    <IconRenderer name="users_outlined" className="size-4 text-muted-foreground" />
+                    {repOptions.find((r) => r.value === String(defaultRepId))?.label ??
+                      "..."}
+                  </div>
+                </FormItem>
+              ) : (
+                <FormField
+                  control={form.control}
+                  name="rep"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>المندوب</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          options={repOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          loading={isLoadingReps}
+                          searchPlaceholder="ابحث عن مندوب..."
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        اترك هذا الحقل على "بيع مباشر" لبيع من مستودع الشركة دون
+                        نسب البيع لأي مندوب
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <FormField
                 control={form.control}
