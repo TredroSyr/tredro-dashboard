@@ -77,29 +77,48 @@ export function InvoiceDetailClient({ invoiceId }: { invoiceId: string }) {
         onCreateReturn={() => setReturnDrawerOpen(true)}
       />
 
-      <div
-        className="flex gap-2 overflow-x-auto px-4 py-3 [scrollbar-width:none] [-ms-overflow-style:none] sm:px-6 [&::-webkit-scrollbar]:hidden"
-        dir="rtl"
-      >
-        {TABS.map((tab) => {
-          const isActive = activeTab === tab.value;
-          return (
-            <button
-              key={tab.value}
-              type="button"
-              onClick={() => setActiveTab(tab.value)}
-              className={cn(
-                "flex shrink-0 items-center gap-2 rounded-xl border px-3.5 py-2.5 text-sm font-medium transition-colors",
-                isActive
-                  ? "border-primary bg-primary/5 text-primary"
-                  : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground",
-              )}
-            >
-              <IconRenderer name={tab.icon} className="size-4 shrink-0" />
-              {tab.label}
-            </button>
-          );
-        })}
+      <div className="px-6 py-4">
+        {isLoading ? (
+          <div
+            className="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-4 sm:overflow-visible"
+            dir="rtl"
+          >
+            {TABS.map((_, i) => (
+              <Skeleton
+                key={i}
+                className={cn("h-14 rounded-xl border", "w-[65%] xs:w-[45%] sm:w-full")}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-4 sm:overflow-visible"
+            dir="rtl"
+          >
+            {TABS.map((tab) => {
+              const isActive = activeTab === tab.value;
+              return (
+                <button
+                  key={tab.value}
+                  type="button"
+                  onClick={() => setActiveTab(tab.value)}
+                  className={cn(
+                    "flex shrink-0 cursor-pointer snap-start items-center gap-2 rounded-xl border px-4 py-3 text-right transition-colors",
+                    "w-[65%] xs:w-[45%] sm:w-auto",
+                    isActive
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted/50",
+                  )}
+                >
+                  <IconRenderer name={tab.icon} className="size-4 shrink-0" />
+                  <span className="text-sm font-medium whitespace-nowrap">
+                    {tab.label}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <div className="px-4 pb-8 sm:px-6">

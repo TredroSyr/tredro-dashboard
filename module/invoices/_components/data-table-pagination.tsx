@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -116,7 +116,7 @@ export function DataTablePagination({
         onClick={() => goToPage(currentPage - 1)}
         disabled={currentPage <= 1}
       >
-        <ArrowRight className="me-2 h-4 w-4" />
+        <IconRenderer name="arrow_right_outlined" className="me-2 h-4 w-4" />
         السابق
       </Button>
 
@@ -129,7 +129,7 @@ export function DataTablePagination({
         disabled={currentPage >= totalPages}
       >
         التالي
-        <ArrowLeft className="ms-2 h-4 w-4" />
+        <IconRenderer name="arrow_left_outlined" className="ms-2 h-4 w-4" />
       </Button>
     </div>
   );

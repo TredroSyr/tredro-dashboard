@@ -131,7 +131,7 @@ export function InlineSelectPopover({
                   {filtered.map((option) => (
                     <CommandItem
                       key={option.value}
-                      value={option.label}
+                      value={`${option.label} ${option.value}`}
                       onSelect={() => handleSelect(option.value)}
                     >
                       <Check

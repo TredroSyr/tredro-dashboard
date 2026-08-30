@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import {
   Drawer,
   DrawerContent,
@@ -216,7 +216,7 @@ export function IncomingInvoiceDrawer({
                       className="gap-1.5"
                       onClick={() => append(EMPTY_LINE)}
                     >
-                      <Plus className="size-3.5" />
+                      <IconRenderer name="plus_outlined" className="size-3.5" />
                       إضافة صنف
                     </Button>
                   </div>
@@ -254,7 +254,7 @@ export function IncomingInvoiceDrawer({
                             className="mt-0.5 text-destructive"
                             onClick={() => remove(index)}
                           >
-                            <Trash2 className="size-4" />
+                            <IconRenderer name="bin_outlined" className="size-4" />
                           </Button>
                         )}
                       </div>

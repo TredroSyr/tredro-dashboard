@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Search, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/hooks/use-api-form-error";
 import { Input } from "@/components/ui/input";
@@ -37,6 +36,8 @@ const STATUS_OPTIONS: { value: IncomingInvoiceStatus | "all"; label: string }[] 
   { value: "cancelled", label: "ملغاة" },
 ];
 
+const PAGE_SIZE = 10;
+
 export function IncomingInvoicesView() {
   const [search, setSearch] = React.useState("");
   const [status, setStatus] = React.useState<IncomingInvoiceStatus | "all">("all");
@@ -44,21 +45,26 @@ export function IncomingInvoicesView() {
   const [createOpen, setCreateOpen] = React.useState(false);
   const [detailId, setDetailId] = React.useState<number | null>(null);
 
-  const params = React.useMemo(
-    () => ({
-      search: search.trim() || undefined,
-      status: status === "all" ? undefined : status,
-      page,
-    }),
-    [search, status, page],
-  );
-
-  const { data, isLoading, isError, error, refetch } = useIncomingInvoicesQuery(
-    params,
-  );
-  const invoices = data?.data?.invoices ?? [];
-  const pagination = data?.data?.pagination;
+  const { data, isLoading, isError, error, refetch } = useIncomingInvoicesQuery({
+    page_size: 1000,
+  });
+  const allInvoices = React.useMemo(() => data?.data?.invoices ?? [], [data]);
   const hasActiveFilters = Boolean(search.trim()) || status !== "all";
+
+  const filteredInvoices = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allInvoices.filter((invoice) => {
+      if (q && !invoice.number.toLowerCase().includes(q)) return false;
+      if (status !== "all" && invoice.status !== status) return false;
+      return true;
+    });
+  }, [allInvoices, search, status]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
+  const invoices = React.useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredInvoices.slice(start, start + PAGE_SIZE);
+  }, [filteredInvoices, page]);
 
   const { mutate: issueInvoice, isPending: isIssuing } =
     useIssueIncomingInvoiceMutation();
@@ -108,11 +114,11 @@ export function IncomingInvoicesView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
           فواتير الإدخال
-          {pagination && <Badge className="font-normal">{pagination.count}</Badge>}
+          <Badge className="font-normal">{filteredInvoices.length}</Badge>
         </h2>
         <PermissionGate module="invoices" requireAction fallback={null}>
           <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
-            <Plus className="size-4" />
+            <IconRenderer name="plus_outlined" className="size-4" />
             فاتورة إدخال جديدة
           </Button>
         </PermissionGate>
@@ -120,7 +126,7 @@ export function IncomingInvoicesView() {
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full xs:w-[220px] sm:w-[260px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <IconRenderer name="search_outlined" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="ابحث برقم الفاتورة..."
             value={search}
@@ -155,7 +161,7 @@ export function IncomingInvoicesView() {
             }}
             className="gap-1 text-muted-foreground"
           >
-            <X className="size-4" />
+            <IconRenderer name="close_outlined" className="size-4" />
             مسح الفلاتر
           </Button>
         )}
@@ -164,11 +170,7 @@ export function IncomingInvoicesView() {
       <InvoicesDataTable
         columns={columns}
         data={invoices}
-        pagination={
-          pagination
-            ? { page: pagination.page, totalPages: pagination.total_pages }
-            : undefined
-        }
+        pagination={{ page, totalPages }}
         onPageChange={setPage}
         isLoading={isLoading}
         isError={isError}

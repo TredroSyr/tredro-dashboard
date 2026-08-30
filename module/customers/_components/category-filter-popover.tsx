@@ -68,7 +68,7 @@ export function CategoryFilterPopover({
                   {categories.map((c) => (
                     <CommandItem
                       key={c.id}
-                      value={c.name}
+                      value={`${c.name} ${c.id}`}
                       onSelect={() => toggle(String(c.id))}
                       className="gap-2"
                     >

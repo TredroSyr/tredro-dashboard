@@ -50,7 +50,7 @@ export const useSalesInvoiceQuery = (
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["invoices", "sales", "detail", id],
+    queryKey: ["invoices", "sales", "detail", id !== undefined ? String(id) : id],
     queryFn: () => {
       if (!id) throw new Error("getSalesInvoice called without id");
       return getSalesInvoice(id);
@@ -63,7 +63,7 @@ export const useSalesInvoiceHistoryQuery = (
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["invoices", "sales", "history", id],
+    queryKey: ["invoices", "sales", "history", id !== undefined ? String(id) : id],
     queryFn: () => getSalesInvoiceHistory(id as string | number),
     enabled: (options?.enabled ?? true) && Boolean(id),
   });
@@ -73,8 +73,11 @@ export const useCreateSalesInvoiceMutation = () => {
   return useMutation({
     mutationFn: (payload: CreateSalesInvoicePayload) =>
       createSalesInvoice(payload),
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["invoices", "sales", "list"] });
+      if (variables.credit_ids?.length) {
+        queryClient.invalidateQueries({ queryKey: ["invoices", "credits"] });
+      }
     },
   });
 };
@@ -92,7 +95,7 @@ export const useRecordPaymentMutation = () => {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["invoices", "sales", "list"] });
       queryClient.invalidateQueries({
-        queryKey: ["invoices", "sales", "detail", variables.invoiceId],
+        queryKey: ["invoices", "sales", "detail", String(variables.invoiceId)],
       });
       queryClient.invalidateQueries({ queryKey: ["invoices", "payments"] });
     },
@@ -113,7 +116,7 @@ export const useIncomingInvoiceQuery = (
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["invoices", "incoming", "detail", id],
+    queryKey: ["invoices", "incoming", "detail", id !== undefined ? String(id) : id],
     queryFn: () => getIncomingInvoice(id as string | number),
     enabled: (options?.enabled ?? true) && Boolean(id),
   });
@@ -123,7 +126,7 @@ export const useIncomingInvoiceHistoryQuery = (
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["invoices", "incoming", "history", id],
+    queryKey: ["invoices", "incoming", "history", id !== undefined ? String(id) : id],
     queryFn: () => getIncomingInvoiceHistory(id as string | number),
     enabled: (options?.enabled ?? true) && Boolean(id),
   });
@@ -150,7 +153,7 @@ export const useIssueIncomingInvoiceMutation = () => {
         queryKey: ["invoices", "incoming", "list"],
       });
       queryClient.invalidateQueries({
-        queryKey: ["invoices", "incoming", "detail", id],
+        queryKey: ["invoices", "incoming", "detail", String(id)],
       });
     },
   });
@@ -165,7 +168,7 @@ export const useCancelIncomingInvoiceMutation = () => {
         queryKey: ["invoices", "incoming", "list"],
       });
       queryClient.invalidateQueries({
-        queryKey: ["invoices", "incoming", "detail", id],
+        queryKey: ["invoices", "incoming", "detail", String(id)],
       });
     },
   });
@@ -183,7 +186,7 @@ export const useReturnInvoiceQuery = (
   options?: { enabled?: boolean },
 ) =>
   useQuery({
-    queryKey: ["invoices", "returns", "detail", id],
+    queryKey: ["invoices", "returns", "detail", id !== undefined ? String(id) : id],
     queryFn: () => getReturnInvoice(id as string | number),
     enabled: (options?.enabled ?? true) && Boolean(id),
   });
@@ -200,7 +203,7 @@ export const useCreateReturnInvoiceMutation = () => {
       const salesInvoiceId = data?.data?.return_invoice?.sales_invoice;
       if (salesInvoiceId) {
         queryClient.invalidateQueries({
-          queryKey: ["invoices", "sales", "detail", salesInvoiceId],
+          queryKey: ["invoices", "sales", "detail", String(salesInvoiceId)],
         });
       }
     },
@@ -222,13 +225,13 @@ export const useIssueReturnInvoiceMutation = () => {
         queryKey: ["invoices", "returns", "list"],
       });
       queryClient.invalidateQueries({
-        queryKey: ["invoices", "returns", "detail", variables.id],
+        queryKey: ["invoices", "returns", "detail", String(variables.id)],
       });
       queryClient.invalidateQueries({ queryKey: ["invoices", "sales", "list"] });
       const salesInvoiceId = data?.data?.invoice?.id;
       if (salesInvoiceId) {
         queryClient.invalidateQueries({
-          queryKey: ["invoices", "sales", "detail", salesInvoiceId],
+          queryKey: ["invoices", "sales", "detail", String(salesInvoiceId)],
         });
       }
       queryClient.invalidateQueries({ queryKey: ["invoices", "credits"] });
@@ -237,10 +240,14 @@ export const useIssueReturnInvoiceMutation = () => {
 };
 
 // ---- Customer credits ----
-export const useCustomerCreditsQuery = (params?: ListCustomerCreditsParams) =>
+export const useCustomerCreditsQuery = (
+  params?: ListCustomerCreditsParams,
+  options?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: ["invoices", "credits", "list", params],
     queryFn: () => listCustomerCredits(params),
+    enabled: options?.enabled ?? true,
   });
 
 export const useCancelCustomerCreditMutation = () => {

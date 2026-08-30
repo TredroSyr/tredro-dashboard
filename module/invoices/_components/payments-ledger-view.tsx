@@ -9,7 +9,7 @@ import { useRepsQuery } from "@/module/reps/hooks";
 import { InvoicesDataTable } from "./data-table";
 import { usePaymentsQuery } from "../hooks";
 import type { PaymentCollection, PaymentSource } from "../types";
-import { formatDateTime, formatMoney } from "../lib/format";
+import { formatDateTime, formatMoney, num } from "../lib/format";
 import type { DateRange } from "react-day-picker";
 
 const SOURCE_OPTIONS: { value: PaymentSource | "all"; label: string }[] = [
@@ -80,27 +80,38 @@ function createPaymentColumns(): ColumnDef<PaymentCollection>[] {
   ];
 }
 
+const PAGE_SIZE = 10;
+
 export function PaymentsLedgerView() {
   const [source, setSource] = React.useState<PaymentSource | "all">("all");
   const [rep, setRep] = React.useState("");
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
   const [page, setPage] = React.useState(1);
 
-  const params = React.useMemo(
-    () => ({
-      source: source === "all" ? undefined : source,
-      rep: rep || undefined,
-      date_from: dateRange?.from?.toISOString(),
-      date_to: dateRange?.to?.toISOString(),
-      page,
-    }),
-    [source, rep, dateRange, page],
-  );
+  const { data, isLoading, isError, error, refetch } = usePaymentsQuery({
+    page_size: 1000,
+  });
+  const allPayments = React.useMemo(() => data?.data?.payments ?? [], [data]);
 
-  const { data, isLoading, isError, error, refetch } = usePaymentsQuery(params);
-  const payments = data?.data?.payments ?? [];
-  const pagination = data?.data?.pagination;
-  const totalAmount = data?.data?.total_amount;
+  const filteredPayments = React.useMemo(() => {
+    return allPayments.filter((payment) => {
+      if (source !== "all" && payment.source !== source) return false;
+      if (rep && String(payment.collected_by) !== rep) return false;
+      if (dateRange?.from && new Date(payment.collected_at) < dateRange.from) return false;
+      if (dateRange?.to && new Date(payment.collected_at) > dateRange.to) return false;
+      return true;
+    });
+  }, [allPayments, source, rep, dateRange]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
+  const payments = React.useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredPayments.slice(start, start + PAGE_SIZE);
+  }, [filteredPayments, page]);
+  const totalAmount = React.useMemo(
+    () => filteredPayments.reduce((sum, p) => sum + num(p.amount), 0),
+    [filteredPayments],
+  );
 
   const { data: repsRes } = useRepsQuery();
   const repOptions = React.useMemo(
@@ -119,16 +130,14 @@ export function PaymentsLedgerView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
           سجل التحصيلات
-          {pagination && <Badge className="font-normal">{pagination.count}</Badge>}
+          <Badge className="font-normal">{filteredPayments.length}</Badge>
         </h2>
-        {totalAmount !== undefined && (
-          <span className="text-sm text-muted-foreground">
-            إجمالي المحصّل ضمن هذه الفلاتر:{" "}
-            <span className="font-semibold tabular-nums text-foreground">
-              {formatMoney(totalAmount)}
-            </span>
+        <span className="text-sm text-muted-foreground">
+          إجمالي المحصّل ضمن هذه الفلاتر:{" "}
+          <span className="font-semibold tabular-nums text-foreground">
+            {formatMoney(totalAmount)}
           </span>
-        )}
+        </span>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -169,11 +178,7 @@ export function PaymentsLedgerView() {
       <InvoicesDataTable
         columns={columns}
         data={payments}
-        pagination={
-          pagination
-            ? { page: pagination.page, totalPages: pagination.total_pages }
-            : undefined
-        }
+        pagination={{ page, totalPages }}
         onPageChange={setPage}
         isLoading={isLoading}
         isError={isError}

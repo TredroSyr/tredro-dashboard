@@ -104,6 +104,7 @@ export interface ListSalesInvoicesParams {
   date_to?: string;
   search?: string;
   page?: number;
+  page_size?: number;
 }
 
 export type SalesInvoicesListResponse = ApiEnvelope<{
@@ -187,6 +188,7 @@ export interface ListIncomingInvoicesParams {
   warehouse?: number | string;
   search?: string;
   page?: number;
+  page_size?: number;
 }
 
 export type IncomingInvoicesListResponse = ApiEnvelope<{
@@ -257,6 +259,7 @@ export interface ListReturnInvoicesParams {
   rep?: number | string;
   search?: string;
   page?: number;
+  page_size?: number;
 }
 
 export type ReturnInvoicesListResponse = ApiEnvelope<{
@@ -308,6 +311,7 @@ export interface ListCustomerCreditsParams {
   status?: CustomerCreditStatus;
   customer?: number | string;
   page?: number;
+  page_size?: number;
 }
 
 export type CustomerCreditsListResponse = ApiEnvelope<{
@@ -326,6 +330,7 @@ export interface ListPaymentsParams {
   date_from?: string;
   date_to?: string;
   page?: number;
+  page_size?: number;
 }
 
 export type PaymentsListResponse = ApiEnvelope<{

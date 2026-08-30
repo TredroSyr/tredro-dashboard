@@ -389,7 +389,7 @@ export function BulkActionsBar({
                       {filteredReps.map((rep) => (
                         <CommandItem
                           key={rep.id}
-                          value={rep.name}
+                          value={`${rep.name} ${rep.id}`}
                           onSelect={() => handleSelectRep(String(rep.id))}
                           className="flex items-center gap-3"
                         >

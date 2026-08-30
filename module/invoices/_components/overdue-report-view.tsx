@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -184,7 +183,8 @@ export function OverdueReportView() {
                       className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right hover:bg-muted/40"
                     >
                       <div className="flex items-center gap-2">
-                        <ChevronDown
+                        <IconRenderer
+                          name="chevron_down_outlined"
                           className={cn(
                             "size-4 text-muted-foreground transition-transform motion-safe:duration-200",
                             isOpen && "rotate-180",

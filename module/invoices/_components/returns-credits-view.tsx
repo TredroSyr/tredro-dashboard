@@ -33,6 +33,8 @@ import {
 import type { PendingCustomerCredit, ReturnInvoice } from "../types";
 import { formatMoney } from "../lib/format";
 
+const PAGE_SIZE = 10;
+
 export function ReturnsCreditsView() {
   const router = useRouter();
   const [returnsPage, setReturnsPage] = React.useState(1);
@@ -49,18 +51,32 @@ export function ReturnsCreditsView() {
     isLoading: isReturnsLoading,
     isError: isReturnsError,
     refetch: refetchReturns,
-  } = useReturnInvoicesQuery({ page: returnsPage });
-  const returns = returnsData?.data?.return_invoices ?? [];
-  const returnsPagination = returnsData?.data?.pagination;
+  } = useReturnInvoicesQuery({ page_size: 1000 });
+  const allReturns = React.useMemo(
+    () => returnsData?.data?.return_invoices ?? [],
+    [returnsData],
+  );
+  const returnsTotalPages = Math.max(1, Math.ceil(allReturns.length / PAGE_SIZE));
+  const returns = React.useMemo(() => {
+    const start = (returnsPage - 1) * PAGE_SIZE;
+    return allReturns.slice(start, start + PAGE_SIZE);
+  }, [allReturns, returnsPage]);
 
   const {
     data: creditsData,
     isLoading: isCreditsLoading,
     isError: isCreditsError,
     refetch: refetchCredits,
-  } = useCustomerCreditsQuery({ status: "pending", page: creditsPage });
-  const credits = creditsData?.data?.credits ?? [];
-  const creditsPagination = creditsData?.data?.pagination;
+  } = useCustomerCreditsQuery({ status: "pending", page_size: 1000 });
+  const allCredits = React.useMemo(
+    () => creditsData?.data?.credits ?? [],
+    [creditsData],
+  );
+  const creditsTotalPages = Math.max(1, Math.ceil(allCredits.length / PAGE_SIZE));
+  const credits = React.useMemo(() => {
+    const start = (creditsPage - 1) * PAGE_SIZE;
+    return allCredits.slice(start, start + PAGE_SIZE);
+  }, [allCredits, creditsPage]);
 
   const { mutate: cancelCredit, isPending: isCancellingCredit } =
     useCancelCustomerCreditMutation();
@@ -84,9 +100,7 @@ export function ReturnsCreditsView() {
       <div className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
           المرتجعات
-          {returnsPagination && (
-            <Badge className="font-normal">{returnsPagination.count}</Badge>
-          )}
+          <Badge className="font-normal">{allReturns.length}</Badge>
         </h2>
         <p className="text-xs text-muted-foreground -mt-2">
           يُنشأ المرتجع دائماً من داخل فاتورة البيع الأصلية — افتح الفاتورة من
@@ -96,14 +110,7 @@ export function ReturnsCreditsView() {
         <InvoicesDataTable
           columns={returnColumns}
           data={returns}
-          pagination={
-            returnsPagination
-              ? {
-                  page: returnsPagination.page,
-                  totalPages: returnsPagination.total_pages,
-                }
-              : undefined
-          }
+          pagination={{ page: returnsPage, totalPages: returnsTotalPages }}
           onPageChange={setReturnsPage}
           isLoading={isReturnsLoading}
           isError={isReturnsError}
@@ -167,9 +174,7 @@ export function ReturnsCreditsView() {
       <div className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
           الأرصدة الدائنة المتاحة للزبائن
-          {creditsPagination && (
-            <Badge className="font-normal">{creditsPagination.count}</Badge>
-          )}
+          <Badge className="font-normal">{allCredits.length}</Badge>
         </h2>
         <p className="text-xs text-muted-foreground -mt-2">
           رصيد دائن ناتج عن مرتجع تجاوز قيمته المبلغ المتبقي على الفاتورة —
@@ -179,14 +184,7 @@ export function ReturnsCreditsView() {
         <InvoicesDataTable
           columns={creditColumns}
           data={credits}
-          pagination={
-            creditsPagination
-              ? {
-                  page: creditsPagination.page,
-                  totalPages: creditsPagination.total_pages,
-                }
-              : undefined
-          }
+          pagination={{ page: creditsPage, totalPages: creditsTotalPages }}
           onPageChange={setCreditsPage}
           isLoading={isCreditsLoading}
           isError={isCreditsError}

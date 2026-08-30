@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, X } from "lucide-react";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,6 @@ import { DateFilter } from "@/components/tredro/date-filter";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { EmptyState } from "@/components/tredro/empty-state";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
-import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useCustomersQuery } from "@/module/customers/hooks";
 import { useRepsQuery } from "@/module/reps/hooks";
 import { InvoicesDataTable } from "./data-table";
@@ -32,6 +31,8 @@ const STATUS_OPTIONS: { value: SalesInvoiceStatus | "all"; label: string }[] = [
   { value: "fully_paid", label: "مدفوعة بالكامل" },
 ];
 
+const PAGE_SIZE = 10;
+
 export function SalesInvoicesView() {
   const router = useRouter();
   const [search, setSearch] = React.useState("");
@@ -46,23 +47,9 @@ export function SalesInvoicesView() {
   );
   const [createOpen, setCreateOpen] = React.useState(false);
 
-  const params = React.useMemo(
-    () => ({
-      search: search.trim() || undefined,
-      status: status === "all" ? undefined : status,
-      customer: customer || undefined,
-      rep: rep || undefined,
-      outstanding: outstandingOnly || undefined,
-      date_from: dateRange?.from?.toISOString(),
-      date_to: dateRange?.to?.toISOString(),
-      page,
-    }),
-    [search, status, customer, rep, outstandingOnly, dateRange, page],
-  );
-
-  const { data, isLoading, isError, error, refetch } = useSalesInvoicesQuery(
-    params,
-  );
+  const { data, isLoading, isError, error, refetch } = useSalesInvoicesQuery({
+    page_size: 1000,
+  });
   const { data: settingsData } = useInvoiceSettingsQuery();
   const thresholdDays = settingsData?.data?.settings?.overdue_threshold_days ?? 7;
 
@@ -86,8 +73,7 @@ export function SalesInvoicesView() {
     [repsRes],
   );
 
-  const invoices = data?.data?.invoices ?? [];
-  const pagination = data?.data?.pagination;
+  const allInvoices = React.useMemo(() => data?.data?.invoices ?? [], [data]);
   const hasActiveFilters =
     Boolean(search.trim()) ||
     status !== "all" ||
@@ -95,6 +81,26 @@ export function SalesInvoicesView() {
     Boolean(rep) ||
     outstandingOnly ||
     Boolean(dateRange?.from);
+
+  const filteredInvoices = React.useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return allInvoices.filter((invoice) => {
+      if (q && !invoice.number.toLowerCase().includes(q)) return false;
+      if (status !== "all" && invoice.status !== status) return false;
+      if (customer && String(invoice.customer) !== customer) return false;
+      if (rep && String(invoice.rep) !== rep) return false;
+      if (outstandingOnly && !(num(invoice.balance_due) > 0)) return false;
+      if (dateRange?.from && new Date(invoice.date) < dateRange.from) return false;
+      if (dateRange?.to && new Date(invoice.date) > dateRange.to) return false;
+      return true;
+    });
+  }, [allInvoices, search, status, customer, rep, outstandingOnly, dateRange]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
+  const invoices = React.useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredInvoices.slice(start, start + PAGE_SIZE);
+  }, [filteredInvoices, page]);
 
   const clearFilters = () => {
     setSearch("");
@@ -121,7 +127,7 @@ export function SalesInvoicesView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
           فواتير البيع
-          {pagination && <Badge className="font-normal">{pagination.count}</Badge>}
+          <Badge className="font-normal">{filteredInvoices.length}</Badge>
         </h2>
         <PermissionGate module="invoices" requireAction fallback={null}>
           <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
@@ -133,7 +139,7 @@ export function SalesInvoicesView() {
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full xs:w-[220px] sm:w-[240px]">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <IconRenderer name="search_outlined" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="ابحث برقم الفاتورة..."
             value={search}
@@ -208,7 +214,7 @@ export function SalesInvoicesView() {
             onClick={clearFilters}
             className="gap-1 text-muted-foreground"
           >
-            <X className="size-4" />
+            <IconRenderer name="close_outlined" className="size-4" />
             مسح الفلاتر
           </Button>
         )}
@@ -217,11 +223,7 @@ export function SalesInvoicesView() {
       <InvoicesDataTable
         columns={columns}
         data={invoices}
-        pagination={
-          pagination
-            ? { page: pagination.page, totalPages: pagination.total_pages }
-            : undefined
-        }
+        pagination={{ page, totalPages }}
         onPageChange={setPage}
         isLoading={isLoading}
         isError={isError}

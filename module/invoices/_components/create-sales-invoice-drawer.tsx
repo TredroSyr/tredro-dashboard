@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2 } from "lucide-react";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import {
   Drawer,
   DrawerContent,
@@ -35,7 +35,8 @@ import {
   createSalesInvoiceSchema,
   type CreateSalesInvoiceFormValues,
 } from "../schema";
-import { useCreateSalesInvoiceMutation } from "../hooks";
+import { useCreateSalesInvoiceMutation, useCustomerCreditsQuery } from "../hooks";
+import { formatMoney, num } from "../lib/format";
 
 const DIRECT_SALE_VALUE = "";
 const EMPTY_LINE = { product_id: "", quantity: "", unit_price: "" };
@@ -67,6 +68,8 @@ export function CreateSalesInvoiceDrawer({
     name: "lines",
   });
 
+  const [selectedCreditIds, setSelectedCreditIds] = React.useState<number[]>([]);
+
   React.useEffect(() => {
     if (open) {
       form.reset({
@@ -77,9 +80,31 @@ export function CreateSalesInvoiceDrawer({
         payment_amount: "",
         lines: [EMPTY_LINE],
       });
+      setSelectedCreditIds([]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const customerId = form.watch("customer_id");
+
+  React.useEffect(() => {
+    setSelectedCreditIds([]);
+  }, [customerId]);
+
+  const { data: creditsRes } = useCustomerCreditsQuery(
+    { customer: customerId ? Number(customerId) : undefined, status: "pending" },
+    { enabled: Boolean(customerId) },
+  );
+  const pendingCredits = creditsRes?.data?.credits ?? [];
+  const selectedCreditsTotal = pendingCredits
+    .filter((c) => selectedCreditIds.includes(c.id))
+    .reduce((sum, c) => sum + num(c.amount), 0);
+
+  const toggleCredit = (id: number) => {
+    setSelectedCreditIds((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+  };
 
   const rep = form.watch("rep");
   const isDirectSale = !rep;
@@ -151,6 +176,7 @@ export function CreateSalesInvoiceDrawer({
           quantity: l.quantity,
           unit_price: l.unit_price || undefined,
         })),
+        credit_ids: selectedCreditIds.length > 0 ? selectedCreditIds : undefined,
       },
       {
         onSuccess: (res) => {
@@ -223,6 +249,45 @@ export function CreateSalesInvoiceDrawer({
                 )}
               />
 
+              {pendingCredits.length > 0 && (
+                <div className="flex flex-col gap-2 rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-sm font-medium text-foreground">
+                    لهذا الزبون رصيد دائن معلّق بقيمة{" "}
+                    {formatMoney(
+                      pendingCredits.reduce((sum, c) => sum + num(c.amount), 0),
+                    )}{" "}
+                    — هل تريد تطبيقه على هذه الفاتورة؟
+                  </p>
+                  <div className="flex flex-col gap-1.5">
+                    {pendingCredits.map((credit) => (
+                      <label
+                        key={credit.id}
+                        className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                      >
+                        <span className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            className="accent-primary"
+                            checked={selectedCreditIds.includes(credit.id)}
+                            onChange={() => toggleCredit(credit.id)}
+                          />
+                          مرتجع {credit.source_return_invoice_number}
+                        </span>
+                        <span className="tabular-nums font-medium text-foreground">
+                          {formatMoney(credit.amount)}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                  {selectedCreditIds.length > 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      سيُطبَّق {formatMoney(selectedCreditsTotal)} من الرصيد الدائن
+                      كدفعة على هذه الفاتورة.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <FormField
                 control={form.control}
                 name="rep"
@@ -287,7 +352,7 @@ export function CreateSalesInvoiceDrawer({
                     className="gap-1.5"
                     onClick={() => append(EMPTY_LINE)}
                   >
-                    <Plus className="size-3.5" />
+                    <IconRenderer name="plus_outlined" className="size-3.5" />
                     إضافة صنف
                   </Button>
                 </div>
@@ -325,7 +390,7 @@ export function CreateSalesInvoiceDrawer({
                           className="mt-0.5 text-destructive"
                           onClick={() => remove(index)}
                         >
-                          <Trash2 className="size-4" />
+                          <IconRenderer name="bin_outlined" className="size-4" />
                         </Button>
                       )}
                     </div>

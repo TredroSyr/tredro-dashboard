@@ -68,7 +68,7 @@ export function RepFilterPopover({
                   {reps.map((rep) => (
                     <CommandItem
                       key={rep.id}
-                      value={rep.name}
+                      value={`${rep.name} ${rep.id}`}
                       onSelect={() => toggle(String(rep.id))}
                       className="gap-2"
                     >

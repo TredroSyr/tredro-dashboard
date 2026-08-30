@@ -18,14 +18,14 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { DataTablePagination } from "./data-table-pagination";
 
 interface InvoicesDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
-  pagination?: { page: number; totalPages: number };
-  onPageChange?: (page: number) => void;
+  pagination: { page: number; totalPages: number };
+  onPageChange: (page: number) => void;
   isLoading?: boolean;
   isError?: boolean;
   errorMessage?: string;
@@ -84,7 +84,10 @@ export function InvoicesDataTable<TData, TValue>({
               <TableRow>
                 <TableCell colSpan={columns.length} className="h-40">
                   <div className="flex flex-col items-center justify-center gap-3 py-6 text-center">
-                    <AlertCircle className="h-8 w-8 text-destructive" />
+                    <IconRenderer
+                      name="warning_outlined"
+                      className="h-8 w-8 text-destructive"
+                    />
                     <p className="text-sm text-muted-foreground">
                       {errorMessage ?? "حدث خطأ أثناء تحميل البيانات"}
                     </p>
@@ -95,7 +98,10 @@ export function InvoicesDataTable<TData, TValue>({
                         onClick={onRetry}
                         className="gap-2"
                       >
-                        <RefreshCw className="h-4 w-4" />
+                        <IconRenderer
+                          name="refresh_outlined"
+                          className="h-4 w-4"
+                        />
                         إعادة المحاولة
                       </Button>
                     )}
@@ -127,7 +133,10 @@ export function InvoicesDataTable<TData, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext(),
+                      )}
                     </TableCell>
                   ))}
                 </TableRow>
@@ -147,7 +156,10 @@ export function InvoicesDataTable<TData, TValue>({
         {isError ? (
           <Card>
             <CardContent className="p-6 flex flex-col items-center justify-center gap-3 text-center">
-              <AlertCircle className="h-8 w-8 text-destructive" />
+              <IconRenderer
+                name="warning_outlined"
+                className="h-8 w-8 text-destructive"
+              />
               <p className="text-sm text-muted-foreground">
                 {errorMessage ?? "حدث خطأ أثناء تحميل البيانات"}
               </p>
@@ -158,7 +170,7 @@ export function InvoicesDataTable<TData, TValue>({
                   onClick={onRetry}
                   className="gap-2"
                 >
-                  <RefreshCw className="h-4 w-4" />
+                  <IconRenderer name="refresh_outlined" className="h-4 w-4" />
                   إعادة المحاولة
                 </Button>
               )}
@@ -191,9 +203,9 @@ export function InvoicesDataTable<TData, TValue>({
         )}
       </div>
 
-      {!isError && onPageChange && (isLoading || pagination) && (
+      {!isError && (
         <DataTablePagination
-          pagination={pagination ?? { page: 1, totalPages: 1 }}
+          pagination={pagination}
           onPageChange={onPageChange}
           isLoading={isLoading}
         />

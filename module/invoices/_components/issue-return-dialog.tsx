@@ -3,6 +3,7 @@
 import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { isAxiosError } from "axios";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,15 @@ const REFUND_OPTIONS: {
   },
 ];
 
+/** Pulls the overage amount the server reports in errors.overage_amount (e.g. ["30.00"]). */
+function getOverageAmountFromError(error: unknown): number | null {
+  if (!isAxiosError<{ errors?: Record<string, string[]> }>(error)) return null;
+  const raw = error.response?.data?.errors?.overage_amount?.[0];
+  if (!raw) return null;
+  const parsed = num(raw);
+  return parsed > 0 ? parsed : null;
+}
+
 /** Handles both a plain issue (no overage) and one that requires picking a refund method. */
 export function IssueReturnDialog({
   returnInvoice,
@@ -56,10 +66,15 @@ export function IssueReturnDialog({
 }) {
   const { mutate, isPending } = useIssueReturnInvoiceMutation();
   const [banner, setBanner] = React.useState<string | null>(null);
+  // Set when the server rejects a plain issue because it detects an overage
+  // we couldn't compute locally (the list/detail GET doesn't always carry
+  // projected_overage_amount) — falls back to the amount in errors.overage_amount.
+  const [serverOverage, setServerOverage] = React.useState<number | null>(null);
 
-  const overage = returnInvoice
+  const localOverage = returnInvoice
     ? num(returnInvoice.projected_overage_amount ?? returnInvoice.overage_amount)
     : 0;
+  const overage = serverOverage ?? localOverage;
   const needsRefundMethod = overage > 0;
 
   const form = useForm<RefundMethodFormValues>({
@@ -71,6 +86,7 @@ export function IssueReturnDialog({
   React.useEffect(() => {
     if (open) {
       setBanner(null);
+      setServerOverage(null);
       form.reset({ refund_method: "cash_refunded_by_rep" });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -86,7 +102,14 @@ export function IssueReturnDialog({
           onOpenChange(false);
           onIssued?.();
         },
-        onError: (error) => setBanner(handleApiError(error).message),
+        onError: (error) => {
+          const { message, fields } = handleApiError(error);
+          setBanner(message);
+          if (fields.includes("refund_method")) {
+            const amount = getOverageAmountFromError(error);
+            setServerOverage(amount ?? (localOverage || 0.01));
+          }
+        },
       },
     );
   };
