@@ -105,10 +105,12 @@ export const useRecordPaymentMutation = () => {
 // ---- Incoming invoices ----
 export const useIncomingInvoicesQuery = (
   params?: ListIncomingInvoicesParams,
+  options?: { enabled?: boolean },
 ) =>
   useQuery({
     queryKey: ["invoices", "incoming", "list", params],
     queryFn: () => listIncomingInvoices(params),
+    enabled: options?.enabled ?? true,
   });
 
 export const useIncomingInvoiceQuery = (

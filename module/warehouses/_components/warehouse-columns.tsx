@@ -34,14 +34,18 @@ export function createWarehouseColumns({
       accessorKey: "kind",
       header: "التصنيف",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.kind || "—"}</span>
+        <span className="text-muted-foreground">
+          {row.original.kind || "—"}
+        </span>
       ),
     },
     {
       accessorKey: "address",
       header: "العنوان",
       cell: ({ row }) => (
-        <span className="text-muted-foreground">{row.original.address || "—"}</span>
+        <span className="text-muted-foreground">
+          {row.original.address || "—"}
+        </span>
       ),
     },
     {
@@ -69,7 +73,7 @@ export function createWarehouseColumns({
                 onViewStock(warehouse);
               }}
             >
-              <IconRenderer name="bundle_outlined" className="size-4" />
+              <IconRenderer name="eye_visible_outlined" className="size-4" />
             </Button>
             <PermissionGate module="invoices" requireAction fallback={null}>
               <DropdownMenu>
@@ -80,7 +84,7 @@ export function createWarehouseColumns({
                     title="إجراءات المستودع"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    <IconRenderer name="more_outlined" className="size-4" />
+                    <IconRenderer name="menu_outlined" className="size-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">

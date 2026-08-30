@@ -32,7 +32,7 @@ import type { Warehouse, WarehouseOwnerType } from "../types";
 
 const OWNER_TYPE_OPTIONS: { value: WarehouseOwnerType; label: string }[] = [
   { value: "company", label: "مستودع الشركة" },
-  { value: "rep", label: "فان مندوب" },
+  // { value: "rep", label: "فان مندوب" },
 ];
 
 export function WarehouseFormDialog({
@@ -74,7 +74,11 @@ export function WarehouseFormDialog({
         address: warehouse.address,
         kind: warehouse.kind,
         owner_type: lockOwnerType ?? warehouse.owner_type,
-        rep: lockRep ? String(lockRep) : warehouse.rep ? String(warehouse.rep) : "",
+        rep: lockRep
+          ? String(lockRep)
+          : warehouse.rep
+          ? String(warehouse.rep)
+          : "",
       });
     } else {
       form.reset({
@@ -149,7 +153,10 @@ export function WarehouseFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex flex-col gap-4"
+          >
             {banner && (
               <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {banner}
@@ -209,7 +216,11 @@ export function WarehouseFormDialog({
                 <FormItem>
                   <FormLabel>اسم المستودع</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="مثال: المستودع الرئيسي" className="h-11" />
+                    <Input
+                      {...field}
+                      placeholder="مثال: المستودع الرئيسي"
+                      className="h-11"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -237,7 +248,11 @@ export function WarehouseFormDialog({
                 <FormItem>
                   <FormLabel>تصنيف (اختياري)</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="مثال: مستودع تبريد" className="h-11" />
+                    <Input
+                      {...field}
+                      placeholder="مثال: مستودع تبريد"
+                      className="h-11"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -246,9 +261,17 @@ export function WarehouseFormDialog({
 
             <DialogFooter>
               <Button type="submit" disabled={isPending}>
-                {isPending ? "جارٍ الحفظ..." : mode === "create" ? "إضافة المستودع" : "حفظ التعديلات"}
+                {isPending
+                  ? "جارٍ الحفظ..."
+                  : mode === "create"
+                  ? "إضافة المستودع"
+                  : "حفظ التعديلات"}
               </Button>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
                 إلغاء
               </Button>
             </DialogFooter>

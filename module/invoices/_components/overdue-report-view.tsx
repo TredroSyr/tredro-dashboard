@@ -19,17 +19,29 @@ const SUB_TABS: { value: OverdueSubTab; label: string; icon: iconName }[] = [
   { value: "customers", label: "حسب الزبون", icon: "user_outlined" },
 ];
 
-export function OverdueReportView() {
-  const [subTab, setSubTab] = React.useState<OverdueSubTab>("customers");
+interface OverdueReportViewProps {
+  customerId?: string | number;
+  repId?: string | number;
+}
+
+export function OverdueReportView({ customerId, repId }: OverdueReportViewProps = {}) {
+  const [subTab, setSubTab] = React.useState<OverdueSubTab>(
+    customerId ? "customers" : repId ? "reps" : "customers",
+  );
   const [thresholdInput, setThresholdInput] = React.useState("");
   const [rep, setRep] = React.useState("");
   const [expanded, setExpanded] = React.useState<Set<number>>(new Set());
+
+  // Scoped to a single rep (e.g. opened from their detail page) - the
+  // matching select is redundant and locked to that id instead.
+  const hideRepFilter = Boolean(repId);
 
   const thresholdDays = thresholdInput ? Number(thresholdInput) : undefined;
 
   const { data, isLoading, isError, refetch } = useOverdueReportQuery({
     threshold_days: thresholdDays,
-    rep: rep || undefined,
+    rep: repId ?? (rep || undefined),
+    customer: customerId,
   });
   const report = data?.data?.report;
 
@@ -67,14 +79,16 @@ export function OverdueReportView() {
           {report && <Badge className="font-normal">{report.totals.invoice_count} فاتورة</Badge>}
         </h2>
         <div className="flex flex-wrap items-center gap-2">
-          <SearchableSelect
-            options={repOptions}
-            value={rep}
-            onChange={setRep}
-            placeholder="كل المناديب"
-            searchPlaceholder="ابحث عن مندوب..."
-            className="h-8 w-[160px] rounded-lg"
-          />
+          {!hideRepFilter && (
+            <SearchableSelect
+              options={repOptions}
+              value={rep}
+              onChange={setRep}
+              placeholder="كل المناديب"
+              searchPlaceholder="ابحث عن مندوب..."
+              className="h-8 w-[160px] rounded-lg"
+            />
+          )}
           <div className="flex items-center gap-2">
             <span className="whitespace-nowrap text-sm text-muted-foreground">
               العتبة (أيام)

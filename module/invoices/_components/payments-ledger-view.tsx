@@ -3,13 +3,16 @@
 import * as React from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { DateFilter } from "@/components/tredro/date-filter";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { useRepsQuery } from "@/module/reps/hooks";
+import { useCustomersQuery } from "@/module/customers/hooks";
 import { InvoicesDataTable } from "./data-table";
 import { usePaymentsQuery } from "../hooks";
 import type { PaymentCollection, PaymentSource } from "../types";
-import { formatDateTime, formatMoney, num } from "../lib/format";
+import { formatDateTime, formatMoney } from "../lib/format";
 import type { DateRange } from "react-day-picker";
 
 const SOURCE_OPTIONS: { value: PaymentSource | "all"; label: string }[] = [
@@ -82,36 +85,48 @@ function createPaymentColumns(): ColumnDef<PaymentCollection>[] {
 
 const PAGE_SIZE = 10;
 
-export function PaymentsLedgerView() {
+interface PaymentsLedgerViewProps {
+  customerId?: string | number;
+  repId?: string | number;
+}
+
+export function PaymentsLedgerView({ customerId, repId }: PaymentsLedgerViewProps = {}) {
   const [source, setSource] = React.useState<PaymentSource | "all">("all");
   const [rep, setRep] = React.useState("");
+  const [customer, setCustomer] = React.useState("");
   const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
   const [page, setPage] = React.useState(1);
 
+  // Scoped to a single customer/rep (e.g. opened from their detail page) -
+  // the matching select is redundant and locked to that id instead.
+  const hideCustomerFilter = Boolean(customerId);
+  const hideRepFilter = Boolean(repId);
+
   const { data, isLoading, isError, error, refetch } = usePaymentsQuery({
-    page_size: 1000,
+    page,
+    page_size: PAGE_SIZE,
+    source: source !== "all" ? source : undefined,
+    rep: repId ?? (rep || undefined),
+    customer: customerId ?? (customer || undefined),
+    date_from: dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : undefined,
+    date_to: dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : undefined,
   });
-  const allPayments = React.useMemo(() => data?.data?.payments ?? [], [data]);
+  const payments = React.useMemo(() => data?.data?.payments ?? [], [data]);
+  const pagination = data?.data?.pagination;
+  const totalPages = pagination?.total_pages ?? 1;
+  const totalCount = pagination?.count ?? payments.length;
+  const totalAmount = data?.data?.total_amount;
 
-  const filteredPayments = React.useMemo(() => {
-    return allPayments.filter((payment) => {
-      if (source !== "all" && payment.source !== source) return false;
-      if (rep && String(payment.collected_by) !== rep) return false;
-      if (dateRange?.from && new Date(payment.collected_at) < dateRange.from) return false;
-      if (dateRange?.to && new Date(payment.collected_at) > dateRange.to) return false;
-      return true;
-    });
-  }, [allPayments, source, rep, dateRange]);
+  const hasActiveFilters =
+    source !== "all" ||
+    (!hideRepFilter && Boolean(rep)) ||
+    (!hideCustomerFilter && Boolean(customer)) ||
+    Boolean(dateRange?.from);
 
-  const totalPages = Math.max(1, Math.ceil(filteredPayments.length / PAGE_SIZE));
-  const payments = React.useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredPayments.slice(start, start + PAGE_SIZE);
-  }, [filteredPayments, page]);
-  const totalAmount = React.useMemo(
-    () => filteredPayments.reduce((sum, p) => sum + num(p.amount), 0),
-    [filteredPayments],
-  );
+  // Any filter change should jump back to page 1.
+  React.useEffect(() => {
+    setPage(1);
+  }, [source, rep, customer, dateRange]);
 
   const { data: repsRes } = useRepsQuery();
   const repOptions = React.useMemo(
@@ -123,6 +138,16 @@ export function PaymentsLedgerView() {
     [repsRes],
   );
 
+  const { data: customersRes } = useCustomersQuery();
+  const customerOptions = React.useMemo(
+    () =>
+      (customersRes?.data?.customers ?? []).map((c) => ({
+        value: String(c.id),
+        label: c.name,
+      })),
+    [customersRes],
+  );
+
   const columns = React.useMemo(() => createPaymentColumns(), []);
 
   return (
@@ -130,12 +155,12 @@ export function PaymentsLedgerView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
           سجل التحصيلات
-          <Badge className="font-normal">{filteredPayments.length}</Badge>
+          <Badge className="font-normal">{totalCount}</Badge>
         </h2>
         <span className="text-sm text-muted-foreground">
           إجمالي المحصّل ضمن هذه الفلاتر:{" "}
           <span className="font-semibold tabular-nums text-foreground">
-            {formatMoney(totalAmount)}
+            {formatMoney(totalAmount ?? "0")}
           </span>
         </span>
       </div>
@@ -145,34 +170,51 @@ export function PaymentsLedgerView() {
           hideSearch
           options={SOURCE_OPTIONS}
           value={source}
-          onChange={(v) => {
-            setSource(v as PaymentSource | "all");
-            setPage(1);
-          }}
+          onChange={(v) => setSource(v as PaymentSource | "all")}
           placeholder="كل المصادر"
           className="h-8 w-[150px] rounded-lg"
         />
 
-        <SearchableSelect
-          options={repOptions}
-          value={rep}
-          onChange={(v) => {
-            setRep(v);
-            setPage(1);
-          }}
-          placeholder="كل المناديب"
-          searchPlaceholder="ابحث عن مندوب..."
-          className="h-8 w-[160px] rounded-lg"
-        />
+        {!hideCustomerFilter && (
+          <SearchableSelect
+            options={customerOptions}
+            value={customer}
+            onChange={setCustomer}
+            placeholder="كل الزبائن"
+            searchPlaceholder="ابحث عن زبون..."
+            className="h-8 w-[170px] rounded-lg"
+          />
+        )}
 
-        <DateFilter
-          mode="range"
-          value={dateRange}
-          onChange={(v) => {
-            setDateRange(v);
-            setPage(1);
-          }}
-        />
+        {!hideRepFilter && (
+          <SearchableSelect
+            options={repOptions}
+            value={rep}
+            onChange={setRep}
+            placeholder="من حصّلها (كل المناديب)"
+            searchPlaceholder="ابحث عن مندوب..."
+            className="h-8 w-[190px] rounded-lg"
+          />
+        )}
+
+        <DateFilter mode="range" value={dateRange} onChange={setDateRange} />
+
+        {hasActiveFilters && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSource("all");
+              setRep("");
+              setCustomer("");
+              setDateRange(undefined);
+            }}
+            className="gap-1 text-muted-foreground"
+          >
+            <IconRenderer name="close_outlined" className="size-4" />
+            مسح الفلاتر
+          </Button>
+        )}
       </div>
 
       <InvoicesDataTable

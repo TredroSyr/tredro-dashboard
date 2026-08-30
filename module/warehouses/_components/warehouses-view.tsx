@@ -2,10 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/hooks/use-api-form-error";
-import { Input } from "@/components/ui/input";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,6 +20,7 @@ import {
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { WarehousesDataTable } from "./data-table";
+import { WarehousesDataTableToolbar } from "./data-table-toolbar";
 import { createWarehouseColumns } from "./warehouse-columns";
 import { WarehouseFormDialog } from "./warehouse-form-dialog";
 import { useDeactivateWarehouseMutation, useWarehousesQuery } from "../hooks";
@@ -32,10 +32,13 @@ const STATUS_OPTIONS: { value: "all" | "true" | "false"; label: string }[] = [
   { value: "false", label: "موقوف" },
 ];
 
+const PAGE_SIZE = 8;
+
 export default function WarehousesView() {
   const router = useRouter();
   const [search, setSearch] = React.useState("");
   const [isActive, setIsActive] = React.useState<"all" | "true" | "false">("all");
+  const [page, setPage] = React.useState(1);
   const [formTarget, setFormTarget] = React.useState<Warehouse | null | undefined>(
     undefined,
   );
@@ -50,13 +53,36 @@ export default function WarehousesView() {
   });
 
   const allWarehouses = data?.data?.warehouses ?? [];
-  const warehouses = React.useMemo(() => {
+  const filteredWarehouses = React.useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return allWarehouses;
     return allWarehouses.filter((w) => w.name.toLowerCase().includes(q));
   }, [allWarehouses, search]);
 
+  // The warehouses endpoint isn't paginated server-side (frontend2.md §6) — page the filtered list ourselves.
+  const totalPages = Math.max(1, Math.ceil(filteredWarehouses.length / PAGE_SIZE));
+  const warehouses = React.useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredWarehouses.slice(start, start + PAGE_SIZE);
+  }, [filteredWarehouses, page]);
+
   const hasActiveFilters = Boolean(search.trim()) || isActive !== "all";
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleStatusChange = (value: "all" | "true" | "false") => {
+    setIsActive(value);
+    setPage(1);
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    setIsActive("all");
+    setPage(1);
+  };
 
   const { mutate: deactivateWarehouse, isPending: isDeactivating } =
     useDeactivateWarehouseMutation();
@@ -75,134 +101,114 @@ export default function WarehousesView() {
   );
 
   return (
-    <div className="flex flex-col">
-      <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-6">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight sm:text-xl">
-              المستودعات
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              مستودعات الشركة ومخزون كل منها — فان كل مندوب يُدار من صفحته الخاصة
-            </p>
-          </div>
-          <PermissionGate module="invoices" requireAction fallback={null}>
-            <Button size="sm" className="gap-1.5" onClick={() => setFormTarget(null)}>
-              <Plus className="size-4" />
-              مستودع جديد
-            </Button>
-          </PermissionGate>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative w-full xs:w-[220px] sm:w-[260px]">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-            <Input
-              placeholder="ابحث باسم المستودع..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pr-9"
-            />
-          </div>
-
-          <SearchableSelect
-            hideSearch
-            options={STATUS_OPTIONS}
-            value={isActive}
-            onChange={(v) => setIsActive(v as "all" | "true" | "false")}
-            className="h-8 w-[140px] rounded-lg"
+    <div className="flex flex-col px-4 py-5 sm:px-6">
+      <WarehousesDataTable
+        columns={columns}
+        data={warehouses}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage={
+          error instanceof Error ? error.message : "حدث خطأ أثناء تحميل المستودعات"
+        }
+        onRetry={() => refetch()}
+        onRowClick={goToDetail}
+        pagination={{ page, totalPages }}
+        onPageChange={setPage}
+        toolbar={
+          <WarehousesDataTableToolbar
+            title="المستودعات"
+            totalLabel="مستودع"
+            total={filteredWarehouses.length}
+            search={search}
+            onSearchChange={handleSearchChange}
+            searchPlaceholder="ابحث باسم المستودع..."
+            actions={
+              <>
+                <SearchableSelect
+                  hideSearch
+                  options={STATUS_OPTIONS}
+                  value={isActive}
+                  onChange={(v) => handleStatusChange(v as "all" | "true" | "false")}
+                  className="h-9 w-[140px] rounded-lg"
+                />
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="gap-1 text-muted-foreground"
+                  >
+                    <IconRenderer name="close_outlined" className="size-4" />
+                    مسح الفلاتر
+                  </Button>
+                )}
+                <PermissionGate module="invoices" requireAction fallback={null}>
+                  <Button size="sm" className="gap-1.5" onClick={() => setFormTarget(null)}>
+                    <IconRenderer name="plus_outlined" className="size-4" />
+                    مستودع جديد
+                  </Button>
+                </PermissionGate>
+              </>
+            }
           />
-
-          {hasActiveFilters && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSearch("");
-                setIsActive("all");
-              }}
-              className="gap-1 text-muted-foreground"
-            >
-              <X className="size-4" />
-              مسح الفلاتر
-            </Button>
-          )}
-
-          {!isLoading && (
-            <Badge className="font-normal">{warehouses.length} مستودع</Badge>
-          )}
-        </div>
-
-        <WarehousesDataTable
-          columns={columns}
-          data={warehouses}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage={
-            error instanceof Error ? error.message : "حدث خطأ أثناء تحميل المستودعات"
-          }
-          onRetry={() => refetch()}
-          onRowClick={goToDetail}
-          renderMobileCard={(w: Warehouse) => (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-foreground">{w.name}</p>
-                  <p className="text-xs text-muted-foreground">{w.kind || "—"}</p>
-                </div>
-                <Badge variant={w.is_active ? "success" : "destructive"}>
-                  {w.is_active ? "نشط" : "موقوف"}
-                </Badge>
+        }
+        renderMobileCard={(w: Warehouse) => (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-medium text-foreground">{w.name}</p>
+                <p className="text-xs text-muted-foreground">{w.kind || "—"}</p>
               </div>
-              <div className="flex items-center justify-end gap-2 border-t border-border pt-2">
+              <Badge variant={w.is_active ? "success" : "destructive"}>
+                {w.is_active ? "نشط" : "موقوف"}
+              </Badge>
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToDetail(w);
+                }}
+              >
+                عرض المخزون
+              </Button>
+              <PermissionGate module="invoices" requireAction fallback={null}>
                 <Button
-                  variant="ghost"
+                  variant="outline"
                   size="sm"
-                  className="gap-1.5"
                   onClick={(e) => {
                     e.stopPropagation();
-                    goToDetail(w);
+                    setFormTarget(w);
                   }}
                 >
-                  عرض المخزون
+                  تعديل
                 </Button>
-                <PermissionGate module="invoices" requireAction fallback={null}>
+                {w.is_active && (
                   <Button
                     variant="outline"
                     size="sm"
+                    className="text-destructive hover:text-destructive"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setFormTarget(w);
+                      setDeactivateTarget(w);
                     }}
                   >
-                    تعديل
+                    إيقاف
                   </Button>
-                  {w.is_active && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-destructive hover:text-destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeactivateTarget(w);
-                      }}
-                    >
-                      إيقاف
-                    </Button>
-                  )}
-                </PermissionGate>
-              </div>
+                )}
+              </PermissionGate>
             </div>
-          )}
-          emptyState={
-            <div className="flex w-full flex-col items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
-              {hasActiveFilters ? "لا توجد مستودعات مطابقة" : "لا توجد مستودعات بعد"}
-            </div>
-          }
-        />
-      </div>
+          </div>
+        )}
+        emptyState={
+          <div className="flex w-full flex-col items-center justify-center px-6 py-10 text-center text-sm text-muted-foreground">
+            {hasActiveFilters ? "لا توجد مستودعات مطابقة" : "لا توجد مستودعات بعد"}
+          </div>
+        }
+      />
 
       <WarehouseFormDialog
         warehouse={formTarget ?? null}

@@ -1,22 +1,21 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { useWarehousesQuery } from "../hooks";
 import { WarehouseFormDialog } from "./warehouse-form-dialog";
+import { WarehouseDetailClient } from "./warehouse-detail-client";
 
 export function RepWarehouseTab({ repId }: { repId: string | number }) {
-  const router = useRouter();
   const [addOpen, setAddOpen] = React.useState(false);
 
   const { data, isLoading } = useWarehousesQuery({ owner_type: "rep" });
-  const vans = React.useMemo(
-    () => (data?.data?.warehouses ?? []).filter((w) => w.rep === Number(repId)),
+  // Every rep has exactly one warehouse (their van/car).
+  const van = React.useMemo(
+    () => (data?.data?.warehouses ?? []).find((w) => w.rep === Number(repId)),
     [data, repId],
   );
 
@@ -28,7 +27,7 @@ export function RepWarehouseTab({ repId }: { repId: string | number }) {
     );
   }
 
-  if (vans.length === 0) {
+  if (!van) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-border py-10 text-center">
         <p className="text-sm text-muted-foreground">
@@ -36,7 +35,7 @@ export function RepWarehouseTab({ repId }: { repId: string | number }) {
         </p>
         <PermissionGate module="invoices" requireAction fallback={null}>
           <Button size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
-            <Plus className="size-4" />
+            <IconRenderer name="plus_outlined" className="size-4" />
             إضافة فان
           </Button>
         </PermissionGate>
@@ -52,35 +51,5 @@ export function RepWarehouseTab({ repId }: { repId: string | number }) {
     );
   }
 
-  return (
-    <div className="flex flex-col gap-3">
-      {vans.map((van) => (
-        <div
-          key={van.id}
-          className="flex items-center justify-between gap-3 rounded-xl border border-border bg-card p-4"
-        >
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className="font-medium text-foreground">{van.name}</span>
-              <Badge variant={van.is_active ? "success" : "destructive"}>
-                {van.is_active ? "نشط" : "موقوف"}
-              </Badge>
-            </div>
-            {(van.address || van.kind) && (
-              <span className="text-xs text-muted-foreground">
-                {[van.kind, van.address].filter(Boolean).join(" · ")}
-              </span>
-            )}
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => router.push(`/warehouses/detail?id=${van.id}`)}
-          >
-            عرض المخزون
-          </Button>
-        </div>
-      ))}
-    </div>
-  );
+  return <WarehouseDetailClient warehouseId={String(van.id)} context="rep" />;
 }

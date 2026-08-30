@@ -4,7 +4,12 @@ export type ModuleName =
   | "orders"
   | "products"
   | "reps"
-  | "notifications";
+  | "stock_transfers"
+  | "customer_requests"
+  | "notifications"
+  | "reports"
+  | "billing"
+  | "settings";
 
 export interface ModuleOption {
   value: ModuleName;

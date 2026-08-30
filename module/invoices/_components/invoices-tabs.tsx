@@ -88,36 +88,49 @@ function TabTile({
 export function InvoicesTabs({
   value,
   onValueChange,
+  customerId,
+  repId,
 }: {
   value: InvoicesTabValue;
   onValueChange: (value: InvoicesTabValue) => void;
+  customerId?: string | number;
+  repId?: string | number;
 }) {
-  const { data: salesData, isLoading: isSalesLoading } =
-    useSalesInvoicesQuery();
+  const isScoped = Boolean(customerId || repId);
+  const { data: salesData, isLoading: isSalesLoading } = useSalesInvoicesQuery(
+    { customer: customerId, rep: repId },
+  );
   const { data: incomingData, isLoading: isIncomingLoading } =
-    useIncomingInvoicesQuery();
+    useIncomingInvoicesQuery(undefined, { enabled: !isScoped });
   const { data: returnsData, isLoading: isReturnsLoading } =
-    useReturnInvoicesQuery();
+    useReturnInvoicesQuery({ customer: customerId, rep: repId });
   const { data: paymentsData, isLoading: isPaymentsLoading } = usePaymentsQuery(
     {
       date_from: firstDayOfMonthISO(),
+      customer: customerId,
+      rep: repId,
     },
   );
   const { data: overdueData, isLoading: isOverdueLoading } =
-    useOverdueReportQuery();
+    useOverdueReportQuery({ customer: customerId, rep: repId });
 
   return (
     <div className="px-4 py-4 sm:px-6">
       <div
-        className="flex gap-2.5 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-7 [&::-webkit-scrollbar]:hidden"
+        className={cn(
+          "flex gap-2.5 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] sm:grid sm:overflow-visible [&::-webkit-scrollbar]:hidden",
+          isScoped ? "sm:grid-cols-4" : "sm:grid-cols-4 lg:grid-cols-7",
+        )}
         dir="rtl"
       >
-        <TabTile
-          icon="overview_outlined"
-          label="نظرة عامة"
-          isActive={value === "overview"}
-          onClick={() => onValueChange("overview")}
-        />
+        {!isScoped && (
+          <TabTile
+            icon="overview_outlined"
+            label="نظرة عامة"
+            isActive={value === "overview"}
+            onClick={() => onValueChange("overview")}
+          />
+        )}
         <TabTile
           icon="sales_outlined"
           label="فواتير البيع"
@@ -130,18 +143,20 @@ export function InvoicesTabs({
           isActive={value === "sales"}
           onClick={() => onValueChange("sales")}
         />
-        <TabTile
-          icon="download_outlined"
-          label="فواتير الإدخال"
-          value={
-            incomingData?.data?.pagination
-              ? String(incomingData.data.pagination.count)
-              : undefined
-          }
-          isLoading={isIncomingLoading}
-          isActive={value === "incoming"}
-          onClick={() => onValueChange("incoming")}
-        />
+        {!isScoped && (
+          <TabTile
+            icon="download_outlined"
+            label="فواتير الإدخال"
+            value={
+              incomingData?.data?.pagination
+                ? String(incomingData.data.pagination.count)
+                : undefined
+            }
+            isLoading={isIncomingLoading}
+            isActive={value === "incoming"}
+            onClick={() => onValueChange("incoming")}
+          />
+        )}
         <TabTile
           icon="undo_outlined"
           label="المرتجعات والأرصدة"
@@ -180,14 +195,16 @@ export function InvoicesTabs({
           onClick={() => onValueChange("overdue")}
         />
 
-        <PermissionGate module="invoices" requireAction fallback={null}>
-          <TabTile
-            icon="settings_outlined"
-            label="الإعدادات"
-            isActive={value === "settings"}
-            onClick={() => onValueChange("settings")}
-          />
-        </PermissionGate>
+        {!isScoped && (
+          <PermissionGate module="invoices" requireAction fallback={null}>
+            <TabTile
+              icon="settings_outlined"
+              label="الإعدادات"
+              isActive={value === "settings"}
+              onClick={() => onValueChange("settings")}
+            />
+          </PermissionGate>
+        )}
       </div>
     </div>
   );

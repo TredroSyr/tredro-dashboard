@@ -35,7 +35,7 @@ const TABS = [
   },
   {
     value: "warehouse",
-    label: "المستودع",
+    label: "السيارة",
     iconFilled: "folder_filled" as iconName,
     iconOutlined: "folder_outlined" as iconName,
   },

@@ -33,9 +33,25 @@ const STATUS_OPTIONS: { value: SalesInvoiceStatus | "all"; label: string }[] = [
 
 const PAGE_SIZE = 10;
 
-export function SalesInvoicesView() {
+/** Debounces free-text search so it doesn't hit the API on every keystroke. */
+function useDebouncedValue<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = React.useState(value);
+  React.useEffect(() => {
+    const timeout = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(timeout);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+interface SalesInvoicesViewProps {
+  customerId?: string | number;
+  repId?: string | number;
+}
+
+export function SalesInvoicesView({ customerId, repId }: SalesInvoicesViewProps = {}) {
   const router = useRouter();
   const [search, setSearch] = React.useState("");
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [status, setStatus] = React.useState<SalesInvoiceStatus | "all">("all");
   const [customer, setCustomer] = React.useState<string>("");
   const [rep, setRep] = React.useState<string>("");
@@ -47,8 +63,21 @@ export function SalesInvoicesView() {
   );
   const [createOpen, setCreateOpen] = React.useState(false);
 
+  // Scoped to a single customer/rep (e.g. opened from their detail page) -
+  // the matching select is redundant and locked to that id instead.
+  const hideCustomerFilter = Boolean(customerId);
+  const hideRepFilter = Boolean(repId);
+
   const { data, isLoading, isError, error, refetch } = useSalesInvoicesQuery({
-    page_size: 1000,
+    page,
+    page_size: PAGE_SIZE,
+    search: debouncedSearch.trim() || undefined,
+    status: status !== "all" ? status : undefined,
+    customer: customerId ?? (customer || undefined),
+    rep: repId ?? (rep || undefined),
+    outstanding: outstandingOnly || undefined,
+    date_from: dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : undefined,
+    date_to: dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : undefined,
   });
   const { data: settingsData } = useInvoiceSettingsQuery();
   const thresholdDays = settingsData?.data?.settings?.overdue_threshold_days ?? 7;
@@ -73,34 +102,17 @@ export function SalesInvoicesView() {
     [repsRes],
   );
 
-  const allInvoices = React.useMemo(() => data?.data?.invoices ?? [], [data]);
+  const invoices = React.useMemo(() => data?.data?.invoices ?? [], [data]);
+  const pagination = data?.data?.pagination;
+  const totalPages = pagination?.total_pages ?? 1;
+  const totalCount = pagination?.count ?? invoices.length;
   const hasActiveFilters =
     Boolean(search.trim()) ||
     status !== "all" ||
-    Boolean(customer) ||
-    Boolean(rep) ||
+    (!hideCustomerFilter && Boolean(customer)) ||
+    (!hideRepFilter && Boolean(rep)) ||
     outstandingOnly ||
     Boolean(dateRange?.from);
-
-  const filteredInvoices = React.useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return allInvoices.filter((invoice) => {
-      if (q && !invoice.number.toLowerCase().includes(q)) return false;
-      if (status !== "all" && invoice.status !== status) return false;
-      if (customer && String(invoice.customer) !== customer) return false;
-      if (rep && String(invoice.rep) !== rep) return false;
-      if (outstandingOnly && !(num(invoice.balance_due) > 0)) return false;
-      if (dateRange?.from && new Date(invoice.date) < dateRange.from) return false;
-      if (dateRange?.to && new Date(invoice.date) > dateRange.to) return false;
-      return true;
-    });
-  }, [allInvoices, search, status, customer, rep, outstandingOnly, dateRange]);
-
-  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / PAGE_SIZE));
-  const invoices = React.useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE;
-    return filteredInvoices.slice(start, start + PAGE_SIZE);
-  }, [filteredInvoices, page]);
 
   const clearFilters = () => {
     setSearch("");
@@ -111,6 +123,11 @@ export function SalesInvoicesView() {
     setDateRange(undefined);
     setPage(1);
   };
+
+  // Any filter change should jump back to page 1.
+  React.useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch, status, customer, rep, outstandingOnly, dateRange]);
 
   const columns = React.useMemo(
     () =>
@@ -127,7 +144,7 @@ export function SalesInvoicesView() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
           فواتير البيع
-          <Badge className="font-normal">{filteredInvoices.length}</Badge>
+          <Badge className="font-normal">{totalCount}</Badge>
         </h2>
         <PermissionGate module="invoices" requireAction fallback={null}>
           <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
@@ -143,10 +160,7 @@ export function SalesInvoicesView() {
           <Input
             placeholder="ابحث برقم الفاتورة..."
             value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
+            onChange={(e) => setSearch(e.target.value)}
             className="pr-9"
           />
         </div>
@@ -155,46 +169,34 @@ export function SalesInvoicesView() {
           hideSearch
           options={STATUS_OPTIONS}
           value={status}
-          onChange={(v) => {
-            setStatus(v as SalesInvoiceStatus | "all");
-            setPage(1);
-          }}
+          onChange={(v) => setStatus(v as SalesInvoiceStatus | "all")}
           placeholder="كل الحالات"
           className="h-8 w-[150px] rounded-lg"
         />
 
-        <SearchableSelect
-          options={customerOptions}
-          value={customer}
-          onChange={(v) => {
-            setCustomer(v);
-            setPage(1);
-          }}
-          placeholder="كل الزبائن"
-          searchPlaceholder="ابحث عن زبون..."
-          className="h-8 w-[170px] rounded-lg"
-        />
+        {!hideCustomerFilter && (
+          <SearchableSelect
+            options={customerOptions}
+            value={customer}
+            onChange={setCustomer}
+            placeholder="كل الزبائن"
+            searchPlaceholder="ابحث عن زبون..."
+            className="h-8 w-[170px] rounded-lg"
+          />
+        )}
 
-        <SearchableSelect
-          options={repOptions}
-          value={rep}
-          onChange={(v) => {
-            setRep(v);
-            setPage(1);
-          }}
-          placeholder="كل المناديب"
-          searchPlaceholder="ابحث عن مندوب..."
-          className="h-8 w-[160px] rounded-lg"
-        />
+        {!hideRepFilter && (
+          <SearchableSelect
+            options={repOptions}
+            value={rep}
+            onChange={setRep}
+            placeholder="كل المناديب"
+            searchPlaceholder="ابحث عن مندوب..."
+            className="h-8 w-[160px] rounded-lg"
+          />
+        )}
 
-        <DateFilter
-          mode="range"
-          value={dateRange}
-          onChange={(v) => {
-            setDateRange(v);
-            setPage(1);
-          }}
-        />
+        <DateFilter mode="range" value={dateRange} onChange={setDateRange} />
 
         <label className="flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-sm text-muted-foreground">
           <Switch

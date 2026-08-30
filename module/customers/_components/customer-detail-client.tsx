@@ -6,6 +6,7 @@ import { CustomerDetailTabs } from "./customer-detail-tabs";
 import { CustomerDetailHeader } from "./customer-detail-header";
 import CustomerOverview from "./customer-overview";
 import RepsView from "@/module/reps/_components/reps-view";
+import InvoicesView from "@/module/invoices/_components/invoices-view";
 
 type TabValue = "overview" | "invoices" | "orders" | "reps";
 
@@ -64,11 +65,7 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
 
       <div className="px-6 pb-6">
         {activeTab === "overview" && <CustomerOverview isLoading={isLoading} />}
-        {activeTab === "invoices" && (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            {isLoading ? "جاري تحميل الفواتير..." : "محتوى الفواتير"}
-          </div>
-        )}
+        {activeTab === "invoices" && <InvoicesView customerId={customerId} />}
         {activeTab === "orders" && (
           <div className="text-sm text-muted-foreground py-8 text-center">
             {isLoading ? "جاري تحميل الطلبات..." : "محتوى الطلبات"}

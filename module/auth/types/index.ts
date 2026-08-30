@@ -31,9 +31,12 @@ export interface Company {
 
 export interface Permissions {
   products: { can_view: boolean; can_action: boolean };
-  orders: { can_view: boolean; can_action: boolean };
+  /** legacy key — kept alive for older dashboards, expands to stock_transfers + customer_requests */
+  orders?: { can_view: boolean; can_action: boolean };
   customers: { can_view: boolean; can_action: boolean };
   invoices: { can_view: boolean; can_action: boolean };
+  stock_transfers?: { can_view: boolean; can_action: boolean };
+  customer_requests?: { can_view: boolean; can_action: boolean };
   billing: { can_view: boolean; can_action: boolean };
   reps: { can_view: boolean; can_action: boolean };
   notifications: { can_view: boolean; can_action: boolean };

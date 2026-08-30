@@ -7,13 +7,13 @@ import RepOverview from "./rep-overview";
 import CustomersView from "@/module/customers/_components/customers-view";
 import { RepWarehouseTab } from "@/module/warehouses/_components/rep-warehouse-tab";
 import { ErrorDisplay } from "@/components/ui/error-display";
+import InvoicesView from "@/module/invoices/_components/invoices-view";
 import { useRepQuery } from "../hooks";
 
 type TabValue = "overview" | "invoices" | "orders" | "customers" | "warehouse";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
-  console.log({repId});
   const { data: repData, isLoading, isError, refetch } = useRepQuery(repId);
   const rep = repData?.data?.rep;
 
@@ -67,11 +67,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
       {/* Only show content areas when not loading OR show skeletons */}
       <div className="px-6 pb-6">
         {activeTab === "overview" && <RepOverview isLoading={isLoading} />}
-        {activeTab === "invoices" && (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            {isLoading ? "جاري تحميل الفواتير..." : "محتوى الفواتير"}
-          </div>
-        )}
+        {activeTab === "invoices" && <InvoicesView repId={repId} />}
         {activeTab === "orders" && (
           <div className="text-sm text-muted-foreground py-8 text-center">
             {isLoading ? "جاري تحميل الطلبات..." : "محتوى الطلبات"}

@@ -13,7 +13,12 @@ export const ALL_MODULES: ModuleName[] = [
   "orders",
   "products",
   "reps",
+  "stock_transfers",
+  "customer_requests",
   "notifications",
+  "reports",
+  "billing",
+  "settings",
 ];
 
 export function buildEmptyPermissionsMap(): PermissionsMap {

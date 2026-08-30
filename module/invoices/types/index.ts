@@ -257,6 +257,7 @@ export interface ListReturnInvoicesParams {
   status?: ReturnInvoiceStatus;
   sales_invoice?: number | string;
   rep?: number | string;
+  customer?: number | string;
   search?: string;
   page?: number;
   page_size?: number;
@@ -310,6 +311,7 @@ export interface PendingCustomerCredit {
 export interface ListCustomerCreditsParams {
   status?: CustomerCreditStatus;
   customer?: number | string;
+  rep?: number | string;
   page?: number;
   page_size?: number;
 }
@@ -327,6 +329,7 @@ export interface ListPaymentsParams {
   sales_invoice?: number | string;
   source?: PaymentSource;
   rep?: number | string;
+  customer?: number | string;
   date_from?: string;
   date_to?: string;
   page?: number;

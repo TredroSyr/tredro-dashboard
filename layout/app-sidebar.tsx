@@ -122,7 +122,7 @@ const navConfig: NavItemConfig[] = [
     href: "/stock-transfers",
     icon: "assign_outlined",
     activeIcon: "assign_filled",
-    requiredModule: "invoices",
+    requiredModule: "stock_transfers",
   },
   {
     key: "roles",
