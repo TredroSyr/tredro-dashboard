@@ -35,6 +35,8 @@ interface SearchableSelectProps {
   className?: string;
   onCreateNew?: () => void;
   createNewLabel?: string;
+  /** Hide the search input — for short fixed lists (e.g. a status filter) where searching adds no value. */
+  hideSearch?: boolean;
 }
 
 export function SearchableSelect({
@@ -49,6 +51,7 @@ export function SearchableSelect({
   className,
   onCreateNew,
   createNewLabel = "إضافة جديد",
+  hideSearch = false,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(false);
   const [triggerWidth, setTriggerWidth] = useState<number>();
@@ -99,22 +102,24 @@ export function SearchableSelect({
         align="start"
       >
         <Command>
-          <div className="relative">
-            <CommandInput
-              placeholder={searchPlaceholder}
-              className={onCreateNew ? "pe-10" : undefined}
-            />
-            {onCreateNew && (
-              <button
-                type="button"
-                onClick={handleCreateNew}
-                title={createNewLabel}
-                className="absolute end-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent z-10"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            )}
-          </div>
+          {!hideSearch && (
+            <div className="relative">
+              <CommandInput
+                placeholder={searchPlaceholder}
+                className={onCreateNew ? "pe-10" : undefined}
+              />
+              {onCreateNew && (
+                <button
+                  type="button"
+                  onClick={handleCreateNew}
+                  title={createNewLabel}
+                  className="absolute end-1.5 top-1/2 -translate-y-1/2 flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent z-10"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          )}
           <CommandList>
             <CommandEmpty>
               {onCreateNew ? (

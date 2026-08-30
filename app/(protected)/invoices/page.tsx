@@ -1,7 +1,12 @@
-import React from "react";
+"use client";
 
-const Invoices = () => {
-  return <div>Invoices</div>;
-};
+import { PermissionGate } from "@/components/tredro/PermissionGate";
+import InvoicesView from "@/module/invoices/_components/invoices-view";
 
-export default Invoices;
+export default function InvoicesPage() {
+  return (
+    <PermissionGate module="invoices">
+      <InvoicesView />
+    </PermissionGate>
+  );
+}

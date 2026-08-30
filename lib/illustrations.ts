@@ -1,6 +1,8 @@
+import type { StaticImageData } from "next/image";
 import permissionImg from "@/public/illustration/permission-denied.png";
 import repsImg from "@/public/illustration/empty-reps.png";
 import productsImg from "@/public/illustration/empty-products.png";
+import invoicesImg from "@/public/illustration/empty-invoices.png";
 import notFoundImg from "@/public/illustration/404-robot.png";
 
 export const stateImages = {
@@ -17,7 +19,7 @@ export type EmptyStateVariant =
   | "roles";
 
 export interface EmptyStatePreset {
-  image: string;
+  image: string | StaticImageData;
   alt: string;
   title: string;
   description: string;
@@ -53,13 +55,13 @@ export const emptyStatePresets: Record<EmptyStateVariant, EmptyStatePreset> = {
   //   description: "عندما يسجّل مناديبك أو زبائنك طلبًا جديدًا سيظهر هنا مباشرة.",
   //   actionLabel: "إنشاء طلب",
   // },
-  // invoices: {
-  //   image: invoicesImg,
-  //   alt: "فاتورة فارغة",
-  //   title: "لا توجد فواتير",
-  //   description: "الفواتير الصادرة عن طلباتك ستُعرض هنا مع حالة التحصيل.",
-  //   actionLabel: "إنشاء فاتورة",
-  // },
+  invoices: {
+    image: invoicesImg,
+    alt: "فاتورة فارغة",
+    title: "لا توجد فواتير بعد",
+    description: "فواتير البيع التي يصدرها المناديب عند التسليم ستظهر هنا مع حالة التحصيل.",
+    actionLabel: "إنشاء فاتورة",
+  },
   // roles: {
   //   image: rolesImg,
   //   alt: "مستخدمون وصلاحيات",
