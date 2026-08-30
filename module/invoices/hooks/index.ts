@@ -4,6 +4,7 @@ import {
   listSalesInvoices,
   getSalesInvoice,
   getSalesInvoiceHistory,
+  createSalesInvoice,
   recordPayment,
   listIncomingInvoices,
   getIncomingInvoice,
@@ -21,11 +22,10 @@ import {
   getOverdueReport,
   getInvoiceSettings,
   updateInvoiceSettings,
-  listWarehouses,
-  createWarehouse,
 } from "../api";
 import {
   ListSalesInvoicesParams,
+  CreateSalesInvoicePayload,
   RecordPaymentPayload,
   ListIncomingInvoicesParams,
   CreateIncomingInvoicePayload,
@@ -36,8 +36,6 @@ import {
   ListPaymentsParams,
   OverdueReportParams,
   UpdateInvoiceSettingsPayload,
-  ListWarehousesParams,
-  CreateWarehousePayload,
 } from "../types";
 
 // ---- Sales invoices ----
@@ -69,6 +67,17 @@ export const useSalesInvoiceHistoryQuery = (
     queryFn: () => getSalesInvoiceHistory(id as string | number),
     enabled: (options?.enabled ?? true) && Boolean(id),
   });
+
+export const useCreateSalesInvoiceMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateSalesInvoicePayload) =>
+      createSalesInvoice(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["invoices", "sales", "list"] });
+    },
+  });
+};
 
 export const useRecordPaymentMutation = () => {
   const queryClient = useQueryClient();
@@ -257,25 +266,6 @@ export const useOverdueReportQuery = (params?: OverdueReportParams) =>
     queryKey: ["invoices", "reports", "overdue", params],
     queryFn: () => getOverdueReport(params),
   });
-
-// ---- Warehouses ----
-export const useWarehousesQuery = (params?: ListWarehousesParams) =>
-  useQuery({
-    queryKey: ["invoices", "warehouses", "list", params],
-    queryFn: () => listWarehouses(params),
-  });
-
-export const useCreateWarehouseMutation = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: CreateWarehousePayload) => createWarehouse(payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["invoices", "warehouses", "list"],
-      });
-    },
-  });
-};
 
 // ---- Settings ----
 export const useInvoiceSettingsQuery = () =>

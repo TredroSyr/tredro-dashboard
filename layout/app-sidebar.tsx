@@ -109,6 +109,22 @@ const navConfig: NavItemConfig[] = [
     requiredModule: "invoices",
   },
   {
+    key: "warehouses",
+    label: "المستودعات",
+    href: "/warehouses",
+    icon: "folder_outlined",
+    activeIcon: "folder_filled",
+    requiredModule: "invoices",
+  },
+  {
+    key: "stock-transfers",
+    label: "تسليم بضاعة للمندوب",
+    href: "/stock-transfers",
+    icon: "assign_outlined",
+    activeIcon: "assign_filled",
+    requiredModule: "invoices",
+  },
+  {
     key: "roles",
     label: "المستخدمون والصلاحيات",
     href: "/roles",

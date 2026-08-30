@@ -46,7 +46,7 @@ export function createReturnInvoiceColumns({
       header: "المبلغ",
       cell: ({ row }) => (
         <span className="tabular-nums text-foreground">
-          {formatMoney(row.original.amount)}
+          {formatMoney(row.original.amount, row.original.currency)}
         </span>
       ),
     },

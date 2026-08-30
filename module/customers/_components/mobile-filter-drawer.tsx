@@ -45,12 +45,15 @@ interface MobileFilterDrawerProps<TData extends Customer> {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   table: Table<TData>;
+  /** Hides the rep filter section - used when the list is already scoped to one rep. */
+  hideRepFilter?: boolean;
 }
 
 export function MobileFilterDrawer<TData extends Customer>({
   open,
   onOpenChange,
   table,
+  hideRepFilter = false,
 }: MobileFilterDrawerProps<TData>) {
   const { data: categoriesRes, isLoading: isLoadingCategories } =
     useCategoriesQuery();
@@ -163,7 +166,7 @@ export function MobileFilterDrawer<TData extends Customer>({
     if (nameFilter.trim()) count++;
     if (phoneFilter.trim()) count++;
     if (emailFilter.trim()) count++;
-    count += selectedRepIds.length;
+    if (!hideRepFilter) count += selectedRepIds.length;
     count += selectedCategoryIds.length;
     count += selectedWorkDays.length;
     count += selectedStatus.length;
@@ -173,6 +176,7 @@ export function MobileFilterDrawer<TData extends Customer>({
     nameFilter,
     phoneFilter,
     emailFilter,
+    hideRepFilter,
     selectedRepIds,
     selectedCategoryIds,
     selectedWorkDays,
@@ -183,9 +187,11 @@ export function MobileFilterDrawer<TData extends Customer>({
     table.getColumn("name")?.setFilterValue(nameFilter.trim() || undefined);
     table.getColumn("phone")?.setFilterValue(phoneFilter.trim() || undefined);
     table.getColumn("email")?.setFilterValue(emailFilter.trim() || undefined);
-    table
-      .getColumn("assigned_reps")
-      ?.setFilterValue(selectedRepIds.length ? selectedRepIds : undefined);
+    if (!hideRepFilter) {
+      table
+        .getColumn("assigned_reps")
+        ?.setFilterValue(selectedRepIds.length ? selectedRepIds : undefined);
+    }
     table
       .getColumn("category")
       ?.setFilterValue(
@@ -316,45 +322,51 @@ export function MobileFilterDrawer<TData extends Customer>({
           <Separator />
 
           {/* Reps Filter - same SearchableSelect as CustomerFormDrawer */}
-          <div className="space-y-3">
-            <h3 className="text-sm font-medium text-foreground">المندوبون</h3>
-            <SearchableSelect
-              options={availableRepOptions}
-              value={repPicker}
-              onChange={addRep}
-              loading={isLoadingReps}
-              placeholder="اختر مندوباً لإضافته"
-              searchPlaceholder="ابحث عن مندوب..."
-              emptyText={
-                availableRepOptions.length
-                  ? "لا توجد نتائج"
-                  : "تمت إضافة جميع المندوبين"
-              }
-            />
+          {!hideRepFilter && (
+            <>
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-foreground">
+                  المندوبون
+                </h3>
+                <SearchableSelect
+                  options={availableRepOptions}
+                  value={repPicker}
+                  onChange={addRep}
+                  loading={isLoadingReps}
+                  placeholder="اختر مندوباً لإضافته"
+                  searchPlaceholder="ابحث عن مندوب..."
+                  emptyText={
+                    availableRepOptions.length
+                      ? "لا توجد نتائج"
+                      : "تمت إضافة جميع المندوبين"
+                  }
+                />
 
-            {selectedReps.length > 0 && (
-              <div className="flex flex-wrap gap-2 pt-1">
-                {selectedReps.map((rep) => (
-                  <Badge
-                    key={rep.value}
-                    variant="secondary"
-                    className="gap-1 pr-1 font-normal"
-                  >
-                    {rep.label}
-                    <button
-                      type="button"
-                      onClick={() => removeRep(rep.value)}
-                      className="rounded-full hover:bg-muted-foreground/20"
-                    >
-                      <X className="size-3" />
-                    </button>
-                  </Badge>
-                ))}
+                {selectedReps.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {selectedReps.map((rep) => (
+                      <Badge
+                        key={rep.value}
+                        variant="secondary"
+                        className="gap-1 pr-1 font-normal"
+                      >
+                        {rep.label}
+                        <button
+                          type="button"
+                          onClick={() => removeRep(rep.value)}
+                          className="rounded-full hover:bg-muted-foreground/20"
+                        >
+                          <X className="size-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
 
-          <Separator />
+              <Separator />
+            </>
+          )}
 
           {/* Work Days */}
           <div className="space-y-3">

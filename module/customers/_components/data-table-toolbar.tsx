@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { Plus, Search, X, Filter } from "lucide-react";
+import { Plus, Search, X, Filter, List, CalendarDays } from "lucide-react";
 import { Table } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { ImportExcelDialog } from "./import-excel-dialog";
 import { CategoryFilterPopover } from "./category-filter-popover";
 import { RepFilterPopover } from "./rep-filter-popover";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
+import type { CustomersViewMode } from "./customers-view-mode";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
@@ -19,6 +20,12 @@ interface DataTableToolbarProps<TData> {
   onSearchChange?: (value: string) => void;
   onFilterClick?: () => void;
   activeFilterCount?: number;
+  viewMode?: CustomersViewMode;
+  onViewModeChange?: (mode: CustomersViewMode) => void;
+  /** Hides the "filter by rep" control - used when the list is already scoped to one rep. */
+  hideRepFilter?: boolean;
+  /** Pre-selects this rep when creating a customer from this view (e.g. a rep's detail page). */
+  defaultRepId?: number | string;
 }
 
 export function DataTableToolbar<TData>({
@@ -28,6 +35,10 @@ export function DataTableToolbar<TData>({
   onSearchChange,
   onFilterClick,
   activeFilterCount = 0,
+  viewMode,
+  onViewModeChange,
+  hideRepFilter = false,
+  defaultRepId,
 }: DataTableToolbarProps<TData>) {
   const [addDrawerOpen, setAddDrawerOpen] = React.useState(false);
 
@@ -49,6 +60,31 @@ export function DataTableToolbar<TData>({
             <Badge className="font-normal">{total} عميل</Badge>
           )}
         </h1>
+
+        {onViewModeChange && (
+          <div className="flex items-center gap-0.5 rounded-md border border-border p-0.5">
+            <Button
+              type="button"
+              variant={viewMode === "table" ? "secondary" : "ghost"}
+              size="icon"
+              className="size-7"
+              onClick={() => onViewModeChange("table")}
+              title="عرض جدول"
+            >
+              <List className="size-4" />
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "agenda" ? "secondary" : "ghost"}
+              size="icon"
+              className="size-7"
+              onClick={() => onViewModeChange("agenda")}
+              title="عرض الجدول الزمني"
+            >
+              <CalendarDays className="size-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center justify-between py-4 px-4 sm:px-6 gap-3 border-b border-border">
@@ -72,12 +108,14 @@ export function DataTableToolbar<TData>({
               }
             />
 
-            <RepFilterPopover
-              value={repsFilterValue}
-              onChange={(v) =>
-                repsColumn?.setFilterValue(v.length ? v : undefined)
-              }
-            />
+            {!hideRepFilter && (
+              <RepFilterPopover
+                value={repsFilterValue}
+                onChange={(v) =>
+                  repsColumn?.setFilterValue(v.length ? v : undefined)
+                }
+              />
+            )}
           </div>
 
           {/* Mobile filter button - visible only on screens below lg */}
@@ -131,6 +169,7 @@ export function DataTableToolbar<TData>({
         mode="create"
         open={addDrawerOpen}
         onOpenChange={setAddDrawerOpen}
+        defaultRepId={defaultRepId}
       />
     </>
   );

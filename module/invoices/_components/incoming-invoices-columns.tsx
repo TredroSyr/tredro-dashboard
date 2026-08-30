@@ -63,7 +63,7 @@ export function createIncomingInvoiceColumns({
       header: "الإجمالي",
       cell: ({ row }) => (
         <span className="tabular-nums text-foreground">
-          {formatMoney(row.original.total_amount)}
+          {formatMoney(row.original.total_amount, row.original.currency)}
         </span>
       ),
     },

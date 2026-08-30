@@ -99,7 +99,7 @@ export function IssueReturnDialog({
         <DialogHeader>
           <DialogTitle>ترحيل مرتجع — {returnInvoice.number}</DialogTitle>
           <DialogDescription>
-            سيُعاد المبلغ {formatMoney(returnInvoice.amount)} لمستودع
+            سيُعاد المبلغ {formatMoney(returnInvoice.amount, returnInvoice.currency)} لمستودع
             {" "}
             {returnInvoice.warehouse_name}، ويُخصم تلقائياً من فاتورة البيع
             {" "}
@@ -121,7 +121,7 @@ export function IssueReturnDialog({
             >
               <div className="rounded-lg bg-warning/10 px-3 py-2 text-sm text-warning">
                 هذا المرتجع يتجاوز المبلغ المتبقي على الفاتورة بمقدار{" "}
-                {formatMoney(overage)} — اختر كيف يُرَدّ هذا الفرق للزبون.
+                {formatMoney(overage, returnInvoice.currency)} — اختر كيف يُرَدّ هذا الفرق للزبون.
               </div>
 
               <FormField

@@ -28,6 +28,7 @@ import { AlertCircle, RefreshCw } from "lucide-react";
 import { DataTableToolbar } from "./data-table-toolbar";
 import { DataTablePagination } from "./data-table-pagination";
 import { IndeterminateCheckbox } from "./indeterminate-checkbox";
+import type { CustomersViewMode } from "./customers-view-mode";
 
 interface PaginationInfo {
   page: number;
@@ -69,6 +70,13 @@ interface DataTableProps<TData, TValue> {
   onFilterClick?: () => void;
   /** Number of active filters to show in badge */
   activeFilterCount?: number;
+  /** Current view mode (table/agenda) - shows a toggle in the toolbar when provided */
+  viewMode?: CustomersViewMode;
+  onViewModeChange?: (mode: CustomersViewMode) => void;
+  /** Hides the "filter by rep" control - used when the list is already scoped to one rep. */
+  hideRepFilter?: boolean;
+  /** Pre-selects this rep when creating a customer from this view (e.g. a rep's detail page). */
+  defaultRepId?: number | string;
 }
 
 export function DataTable<TData, TValue>({
@@ -94,6 +102,10 @@ export function DataTable<TData, TValue>({
   onTableReady,
   onFilterClick,
   activeFilterCount = 0,
+  viewMode,
+  onViewModeChange,
+  hideRepFilter = false,
+  defaultRepId,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -215,6 +227,10 @@ export function DataTable<TData, TValue>({
         onSearchChange={onSearchChange}
         onFilterClick={onFilterClick}
         activeFilterCount={activeFilterCount}
+        viewMode={viewMode}
+        onViewModeChange={onViewModeChange}
+        hideRepFilter={hideRepFilter}
+        defaultRepId={defaultRepId}
       />
 
       <div className="hidden lg:block px-6 overflow-x-auto">

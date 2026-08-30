@@ -193,7 +193,7 @@ export function IncomingInvoicesView() {
                 {invoice.supplier_ref || "—"}
               </span>
               <span className="font-medium tabular-nums text-foreground">
-                {formatMoney(invoice.total_amount)}
+                {formatMoney(invoice.total_amount, invoice.currency)}
               </span>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-border pt-2">

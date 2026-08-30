@@ -10,7 +10,7 @@ import type { iconName } from "@/assets/icons/iconRenderer/types";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { useRepsQuery } from "@/module/reps/hooks";
 import { useOverdueReportQuery } from "../hooks";
-import { formatDate, formatMoney } from "../lib/format";
+import { formatDate, formatMoney, formatRepName } from "../lib/format";
 import { cn } from "@/lib/utils";
 
 type OverdueSubTab = "reps" | "customers";
@@ -137,11 +137,19 @@ export function OverdueReportView() {
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {byRep.map((r) => (
                 <div
-                  key={r.rep_id}
+                  key={r.rep_id ?? "direct"}
                   className="rounded-xl border border-border bg-card p-3.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-foreground">{r.rep_name}</span>
+                    <span
+                      className={
+                        r.rep_name
+                          ? "font-medium text-foreground"
+                          : "font-medium text-muted-foreground italic"
+                      }
+                    >
+                      {formatRepName(r.rep_name)}
+                    </span>
                     <span className="tabular-nums font-semibold text-destructive">
                       {formatMoney(r.total_balance_due)}
                     </span>

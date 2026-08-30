@@ -25,10 +25,7 @@ import {
   InvoiceSettingsResponse,
   UpdateInvoiceSettingsPayload,
   HistoryResponse,
-  ListWarehousesParams,
-  WarehousesListResponse,
-  CreateWarehousePayload,
-  WarehouseResponse,
+  CreateSalesInvoicePayload,
 } from "../types";
 
 // ---- Sales invoices ----
@@ -46,6 +43,12 @@ export const getSalesInvoiceHistory = async (
   id: number | string,
 ): Promise<HistoryResponse> =>
   (await api.get(`companies/sales-invoices/${id}/history/`)).data;
+
+/** Admin-created sale — direct (no `rep`) or on a rep's behalf. No idempotency (frontend2.md §16). */
+export const createSalesInvoice = async (
+  payload: CreateSalesInvoicePayload,
+): Promise<SalesInvoiceResponse> =>
+  (await api.post("companies/sales-invoices/", payload)).data;
 
 export const recordPayment = async (
   invoiceId: number | string,
@@ -130,17 +133,6 @@ export const getOverdueReport = async (
   params?: OverdueReportParams,
 ): Promise<OverdueReportResponse> =>
   (await api.get("companies/reports/overdue-debts/", { params })).data;
-
-// ---- Warehouses ----
-export const listWarehouses = async (
-  params?: ListWarehousesParams,
-): Promise<WarehousesListResponse> =>
-  (await api.get("companies/warehouses/", { params })).data;
-
-export const createWarehouse = async (
-  payload: CreateWarehousePayload,
-): Promise<WarehouseResponse> =>
-  (await api.post("companies/warehouses/", payload)).data;
 
 // ---- Settings ----
 export const getInvoiceSettings = async (): Promise<InvoiceSettingsResponse> =>

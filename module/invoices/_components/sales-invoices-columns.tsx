@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import type { SalesInvoice } from "../types";
-import { formatDate, formatMoney, num } from "../lib/format";
+import { formatDate, formatMoney, formatRepName, num } from "../lib/format";
 import { LedgerBar } from "./ledger-bar";
 import { SalesInvoiceStatusBadge } from "./status-badge";
 
@@ -59,7 +59,15 @@ export function createSalesInvoiceColumns({
       accessorKey: "rep_name",
       header: "المندوب",
       cell: ({ row }) => (
-        <span className="text-foreground">{row.original.rep_name}</span>
+        <span
+          className={
+            row.original.rep_name
+              ? "text-foreground"
+              : "text-muted-foreground italic"
+          }
+        >
+          {formatRepName(row.original.rep_name)}
+        </span>
       ),
     },
     {
@@ -67,7 +75,7 @@ export function createSalesInvoiceColumns({
       header: "الإجمالي",
       cell: ({ row }) => (
         <span className="tabular-nums text-foreground">
-          {formatMoney(row.original.total_amount)}
+          {formatMoney(row.original.total_amount, row.original.currency)}
         </span>
       ),
     },
@@ -87,6 +95,7 @@ export function createSalesInvoiceColumns({
               returnedAmount={invoice.returned_amount}
               balanceDue={invoice.balance_due}
               overageAmount={invoice.overage_amount}
+              currency={invoice.currency}
               isOverdue={isOverdue}
             />
           </div>
@@ -106,7 +115,7 @@ export function createSalesInvoiceColumns({
                 : "tabular-nums text-muted-foreground"
             }
           >
-            {formatMoney(row.original.balance_due)}
+            {formatMoney(row.original.balance_due, row.original.currency)}
           </span>
         );
       },

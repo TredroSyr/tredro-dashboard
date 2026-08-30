@@ -9,6 +9,8 @@ interface LedgerBarProps {
   returnedAmount: string;
   balanceDue: string;
   overageAmount?: string;
+  /** the document's own pinned currency (frontend2.md Part A) */
+  currency?: string;
   size?: "sm" | "lg";
   isOverdue?: boolean;
   className?: string;
@@ -25,6 +27,7 @@ export function LedgerBar({
   returnedAmount,
   balanceDue,
   overageAmount,
+  currency,
   size = "sm",
   isOverdue = false,
   className,
@@ -40,10 +43,12 @@ export function LedgerBar({
   const returnedPct = total > 0 ? Math.min(returned, remainingAfterPaid) / total : 0;
   const balancePct = Math.max(0, 1 - paidPct - returnedPct);
 
-  const label = `مدفوع ${formatMoney(paidAmount)} من ${formatMoney(
+  const label = `مدفوع ${formatMoney(paidAmount, currency)} من ${formatMoney(
     totalAmount,
-  )}${returned > 0 ? `، مرتجع ${formatMoney(returnedAmount)}` : ""}، المتبقي ${formatMoney(
+    currency,
+  )}${returned > 0 ? `، مرتجع ${formatMoney(returnedAmount, currency)}` : ""}، المتبقي ${formatMoney(
     balanceDue,
+    currency,
   )}`;
 
   return (
@@ -81,22 +86,22 @@ export function LedgerBar({
 
       {size === "lg" && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          <LegendDot colorClass="bg-primary" label="مدفوع" value={formatMoney(paidAmount)} />
+          <LegendDot colorClass="bg-primary" label="مدفوع" value={formatMoney(paidAmount, currency)} />
           {returned > 0 && (
             <LegendDot
               hatched
               label="مرتجع"
-              value={formatMoney(returnedAmount)}
+              value={formatMoney(returnedAmount, currency)}
             />
           )}
           <LegendDot
             colorClass={isOverdue ? "bg-destructive/50" : "bg-muted"}
             label="المتبقي"
-            value={formatMoney(balanceDue)}
+            value={formatMoney(balanceDue, currency)}
           />
           {overage > 0 && (
             <span className="font-medium text-warning">
-              زيادة مستحقة للزبون: {formatMoney(overageAmount)}
+              زيادة مستحقة للزبون: {formatMoney(overageAmount, currency)}
             </span>
           )}
         </div>

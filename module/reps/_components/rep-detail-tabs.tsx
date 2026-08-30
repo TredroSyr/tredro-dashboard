@@ -33,6 +33,12 @@ const TABS = [
     iconOutlined: "users_outlined" as iconName,
     countKey: "customers",
   },
+  {
+    value: "warehouse",
+    label: "المستودع",
+    iconFilled: "folder_filled" as iconName,
+    iconOutlined: "folder_outlined" as iconName,
+  },
 ] as const;
 
 type TabValue = (typeof TABS)[number]["value"];
@@ -63,7 +69,7 @@ export function RepDetailTabs({
     return (
       <div className="px-6 py-4">
         <div
-          className="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-4 sm:overflow-visible"
+          className="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-5 sm:overflow-visible"
           dir="rtl"
         >
           {TABS.map((_, i) => (
@@ -83,7 +89,7 @@ export function RepDetailTabs({
   return (
     <div className="px-6 py-4">
       <div
-        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-4 sm:overflow-visible"
+        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-5 sm:overflow-visible"
         dir="rtl"
       >
         {TABS.map((tab) => {

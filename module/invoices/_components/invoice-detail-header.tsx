@@ -14,7 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import type { SalesInvoice } from "../types";
-import { formatDate, num } from "../lib/format";
+import { formatDate, formatRepName, num } from "../lib/format";
 import { LedgerBar } from "./ledger-bar";
 import { SalesInvoiceStatusBadge } from "./status-badge";
 import { isSalesInvoiceOverdue } from "./sales-invoices-columns";
@@ -76,7 +76,7 @@ export function InvoiceDetailHeader({
             <Skeleton className="h-4 w-56" />
           ) : (
             <p className="text-sm text-muted-foreground">
-              {invoice.customer_name} · المندوب {invoice.rep_name} ·{" "}
+              {invoice.customer_name} · {formatRepName(invoice.rep_name)} ·{" "}
               {formatDate(invoice.date)}
             </p>
           )}
@@ -115,6 +115,7 @@ export function InvoiceDetailHeader({
           returnedAmount={invoice.returned_amount}
           balanceDue={invoice.balance_due}
           overageAmount={invoice.overage_amount}
+          currency={invoice.currency}
           isOverdue={isOverdue}
           className="max-w-xl"
         />

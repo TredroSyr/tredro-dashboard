@@ -29,9 +29,10 @@ import {
   createIncomingInvoiceSchema,
   type CreateIncomingInvoiceFormValues,
 } from "../schema";
-import { useCreateIncomingInvoiceMutation, useWarehousesQuery } from "../hooks";
-import { CreateWarehouseDialog } from "./create-warehouse-dialog";
-import type { Warehouse } from "../types";
+import { useCreateIncomingInvoiceMutation } from "../hooks";
+import { useWarehousesQuery } from "@/module/warehouses/hooks";
+import { WarehouseFormDialog } from "@/module/warehouses/_components/warehouse-form-dialog";
+import type { Warehouse } from "@/module/warehouses/types";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 const EMPTY_LINE = { product_id: "", quantity: "", unit_price: "" };
@@ -318,9 +319,11 @@ export function IncomingInvoiceDrawer({
         </DrawerContent>
       </Drawer>
 
-      <CreateWarehouseDialog
+      <WarehouseFormDialog
+        warehouse={null}
         open={createWarehouseOpen}
         onOpenChange={setCreateWarehouseOpen}
+        lockOwnerType="company"
         onCreated={(warehouse: Warehouse) =>
           form.setValue("warehouse", String(warehouse.id), {
             shouldValidate: true,

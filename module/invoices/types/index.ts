@@ -44,8 +44,9 @@ export interface SalesInvoicePayment {
   sales_invoice: number;
   sales_invoice_number: string;
   amount: string;
+  /** null on a company-direct sale's payment — it's company cash, not a rep's */
   collected_by: number | null;
-  collected_by_name: string;
+  collected_by_name: string | null;
   collected_at: string;
   source: PaymentSource;
   applied_credit: number | null;
@@ -67,14 +68,17 @@ export interface SalesInvoice {
   id: number;
   number: string;
   date: string;
-  rep: number;
-  rep_name: string;
+  /** null means a company-direct sale — no rep involved (frontend2.md Part D) */
+  rep: number | null;
+  rep_name: string | null;
   customer: number;
   customer_name: string;
   customer_phone: string;
   warehouse: number;
   company_name: string;
   tax_registration_no: string;
+  /** ISO 4217 code, pinned at creation (frontend2.md Part A) */
+  currency: string;
   total_amount: string;
   paid_amount: string;
   returned_amount: string;
@@ -107,6 +111,27 @@ export type SalesInvoicesListResponse = ApiEnvelope<{
   pagination: Pagination;
 }>;
 export type SalesInvoiceResponse = ApiEnvelope<{ invoice: SalesInvoice }>;
+
+export interface CreateSalesInvoiceLinePayload {
+  product_id: number;
+  quantity: string;
+  unit_price?: string;
+  tax_rate?: string;
+}
+
+export interface CreateSalesInvoicePayload {
+  customer_id: number;
+  lines: CreateSalesInvoiceLinePayload[];
+  /** Omit for a company-direct sale; supply a rep id to sell on their behalf. */
+  rep?: number;
+  warehouse?: number;
+  date?: string;
+  notes?: string;
+  credit_ids?: number[];
+  payment_amount?: string;
+  payment_collected_at?: string;
+  fulfils_request_ids?: number[];
+}
 
 export interface RecordPaymentPayload {
   amount: string;
@@ -144,6 +169,7 @@ export interface IncomingInvoice {
   /** Note: the API returns this key with a capital "I" (company_Image). */
   company_Image?: string | null;
   tax_registration_no: string;
+  currency: string;
   warehouse: number;
   warehouse_name: string;
   status: IncomingInvoiceStatus;
@@ -206,9 +232,11 @@ export interface ReturnInvoice {
   sales_invoice: number;
   sales_invoice_number: string;
   rep: number | null;
-  rep_name: string;
+  rep_name: string | null;
   warehouse: number;
   warehouse_name: string;
+  /** inherited from the sales invoice it credits */
+  currency: string;
   status: ReturnInvoiceStatus;
   amount: string;
   overage_amount: string;
@@ -317,8 +345,9 @@ export interface OverdueReportInvoiceRow {
 }
 
 export interface OverdueReportByRep {
-  rep_id: number;
-  rep_name: string;
+  /** null is the "company direct" bucket — label it, don't drop it */
+  rep_id: number | null;
+  rep_name: string | null;
   invoice_count: number;
   total_balance_due: string;
 }
@@ -368,39 +397,6 @@ export interface UpdateInvoiceSettingsPayload {
   address?: string;
   phone?: string;
   overdue_threshold_days?: number;
-}
-
-// ---- Warehouses ----
-export type WarehouseOwnerType = "company" | "rep";
-
-export interface Warehouse {
-  id: number;
-  name: string;
-  address: string;
-  kind: string;
-  owner_type: WarehouseOwnerType;
-  rep: number | null;
-  rep_name: string | null;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ListWarehousesParams {
-  is_active?: boolean;
-  owner_type?: WarehouseOwnerType;
-}
-
-export type WarehousesListResponse = ApiEnvelope<{ warehouses: Warehouse[] }>;
-export type WarehouseResponse = ApiEnvelope<{ warehouse: Warehouse }>;
-
-export interface CreateWarehousePayload {
-  name: string;
-  address?: string;
-  kind: string;
-  owner_type: WarehouseOwnerType;
-  rep?: number | null;
-  is_active?: boolean;
 }
 
 // ---- Audit history (shared shape, §8) ----

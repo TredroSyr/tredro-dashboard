@@ -168,7 +168,7 @@ export function IncomingInvoiceDetailSheet({
               <div className="flex items-center justify-between">
                 <DocumentStatusBadge status={invoice.status} />
                 <span className="tabular-nums text-xl font-semibold text-foreground">
-                  {formatMoney(invoice.total_amount)}
+                  {formatMoney(invoice.total_amount, invoice.currency)}
                 </span>
               </div>
 
@@ -216,13 +216,13 @@ export function IncomingInvoiceDetailSheet({
                             {formatQuantity(line.quantity)} {line.unit_name}
                           </td>
                           <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
-                            {formatMoney(line.unit_price)}
+                            {formatMoney(line.unit_price, invoice.currency)}
                           </td>
                           <td className="px-3 py-2.5 tabular-nums text-muted-foreground">
                             {num(line.tax_rate) > 0 ? `${formatQuantity(line.tax_rate)}%` : "—"}
                           </td>
                           <td className="px-3 py-2.5 tabular-nums font-medium text-foreground">
-                            {formatMoney(line.subtotal)}
+                            {formatMoney(line.subtotal, invoice.currency)}
                           </td>
                         </tr>
                       ))}
@@ -237,13 +237,13 @@ export function IncomingInvoiceDetailSheet({
                   <div className="flex w-56 justify-between text-muted-foreground">
                     <span>إجمالي الضريبة</span>
                     <span className="tabular-nums text-foreground">
-                      {formatMoney(taxTotal)}
+                      {formatMoney(taxTotal, invoice.currency)}
                     </span>
                   </div>
                 )}
                 <div className="flex w-56 justify-between border-t border-border pt-1.5 font-semibold text-foreground">
                   <span>الإجمالي</span>
-                  <span className="tabular-nums">{formatMoney(invoice.total_amount)}</span>
+                  <span className="tabular-nums">{formatMoney(invoice.total_amount, invoice.currency)}</span>
                 </div>
               </div>
 

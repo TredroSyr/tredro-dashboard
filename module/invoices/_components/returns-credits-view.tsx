@@ -116,7 +116,7 @@ export function ReturnsCreditsView() {
               <div className="flex items-center justify-between">
                 <span className="font-medium text-foreground">{r.number}</span>
                 <span className="tabular-nums text-foreground">
-                  {formatMoney(r.amount)}
+                  {formatMoney(r.amount, r.currency)}
                 </span>
               </div>
               <span className="text-xs text-muted-foreground">

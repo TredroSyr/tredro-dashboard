@@ -28,13 +28,33 @@ export type RecordPaymentFormValues = z.infer<
   ReturnType<typeof recordPaymentSchema>
 >;
 
-// ---- Create a company warehouse (quick-add from the incoming invoice form) ----
-export const createWarehouseSchema = z.object({
-  name: z.string().min(1, "اسم المستودع مطلوب"),
-  address: z.string().optional(),
+// ---- Create a sales invoice (admin dashboard — direct sale or on a rep's behalf) ----
+export const createSalesInvoiceLineSchema = z.object({
+  product_id: z.string().min(1, "اختر منتجاً"),
+  quantity: quantityString,
+  unit_price: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d+(\.\d{1,2})?$/.test(v), "أدخل سعراً صحيحاً"),
 });
 
-export type CreateWarehouseFormValues = z.infer<typeof createWarehouseSchema>;
+export const createSalesInvoiceSchema = z.object({
+  customer_id: z.string().min(1, "اختر زبوناً"),
+  rep: z.string().optional(),
+  warehouse: z.string().optional(),
+  notes: z.string().optional(),
+  payment_amount: z
+    .string()
+    .optional()
+    .refine((v) => !v || /^\d+(\.\d{1,2})?$/.test(v), "أدخل مبلغاً صحيحاً"),
+  lines: z
+    .array(createSalesInvoiceLineSchema)
+    .min(1, "أضف صنفاً واحداً على الأقل"),
+});
+
+export type CreateSalesInvoiceFormValues = z.infer<
+  typeof createSalesInvoiceSchema
+>;
 
 // ---- Create an incoming invoice ----
 export const incomingInvoiceLineSchema = z.object({

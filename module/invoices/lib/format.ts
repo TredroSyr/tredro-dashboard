@@ -1,11 +1,35 @@
-/** Formats an API decimal string ("1690.00") as an Arabic-locale number with a currency suffix. */
-export function formatMoney(value: string | number | null | undefined) {
+/** ISO 4217 code → the label shown after the amount (frontend2.md Part A). */
+const CURRENCY_LABEL: Record<string, string> = {
+  SYP: "ل.س",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  TRY: "₺",
+  SAR: "ر.س",
+};
+
+/**
+ * Formats an API decimal string ("1690.00") as an Arabic-locale number with a
+ * currency label. Pass the owning document's own `currency` — it's pinned per
+ * document now, not read from company settings. Falls back to the old "ل.س"
+ * suffix when no currency is given (aggregate reports carry no currency field).
+ */
+export function formatMoney(
+  value: string | number | null | undefined,
+  currency?: string,
+) {
   const n = Number(value ?? 0);
   const formatted = n.toLocaleString("ar", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
-  return `${formatted} ل.س`;
+  const label = currency ? (CURRENCY_LABEL[currency] ?? currency) : "ل.س";
+  return `${formatted} ${label}`;
+}
+
+/** "مبيعات مباشرة" for a null rep — a company-direct sale, not missing data. */
+export function formatRepName(repName: string | null | undefined) {
+  return repName ?? "مبيعات مباشرة";
 }
 
 /** Same as formatMoney but without the currency suffix, for compact contexts. */

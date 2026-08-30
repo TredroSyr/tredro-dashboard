@@ -174,7 +174,7 @@ function OverviewTab({ invoice }: { invoice: SalesInvoice }) {
                   {formatQuantity(line.quantity)} {line.unit_name}
                 </td>
                 <td className="px-4 py-3 tabular-nums text-muted-foreground">
-                  {formatMoney(line.unit_price)}
+                  {formatMoney(line.unit_price, invoice.currency)}
                 </td>
                 <td className="px-4 py-3 tabular-nums text-muted-foreground">
                   {num(line.returned_quantity) > 0
@@ -182,7 +182,7 @@ function OverviewTab({ invoice }: { invoice: SalesInvoice }) {
                     : "—"}
                 </td>
                 <td className="px-4 py-3 tabular-nums font-medium text-foreground">
-                  {formatMoney(line.subtotal)}
+                  {formatMoney(line.subtotal, invoice.currency)}
                 </td>
               </tr>
             ))}
@@ -194,24 +194,24 @@ function OverviewTab({ invoice }: { invoice: SalesInvoice }) {
         <div className="flex w-56 justify-between text-muted-foreground">
           <span>الإجمالي</span>
           <span className="tabular-nums text-foreground">
-            {formatMoney(invoice.total_amount)}
+            {formatMoney(invoice.total_amount, invoice.currency)}
           </span>
         </div>
         <div className="flex w-56 justify-between text-muted-foreground">
           <span>المدفوع</span>
           <span className="tabular-nums text-foreground">
-            {formatMoney(invoice.paid_amount)}
+            {formatMoney(invoice.paid_amount, invoice.currency)}
           </span>
         </div>
         <div className="flex w-56 justify-between text-muted-foreground">
           <span>المرتجع</span>
           <span className="tabular-nums text-foreground">
-            {formatMoney(invoice.returned_amount)}
+            {formatMoney(invoice.returned_amount, invoice.currency)}
           </span>
         </div>
         <div className="flex w-56 justify-between border-t border-border pt-1.5 font-semibold text-foreground">
           <span>المتبقي</span>
-          <span className="tabular-nums">{formatMoney(invoice.balance_due)}</span>
+          <span className="tabular-nums">{formatMoney(invoice.balance_due, invoice.currency)}</span>
         </div>
       </div>
 
@@ -262,10 +262,11 @@ function PaymentsTab({ invoice }: { invoice: SalesInvoice }) {
         >
           <div>
             <p className="font-medium text-foreground">
-              {formatMoney(payment.amount)}
+              {formatMoney(payment.amount, invoice.currency)}
             </p>
             <p className="text-xs text-muted-foreground">
-              {payment.collected_by_name || "—"} · {formatDateTime(payment.collected_at)}
+              {payment.collected_by_name ?? "تحصيل مباشر من الشركة"} ·{" "}
+              {formatDateTime(payment.collected_at)}
               {payment.source === "customer_credit" && " · من رصيد دائن"}
             </p>
             {payment.note && (
@@ -308,7 +309,7 @@ function ReturnsTab({
           <div>
             <p className="font-medium text-foreground">{ret.number}</p>
             <p className="text-xs text-muted-foreground">
-              {formatMoney(ret.amount)}
+              {formatMoney(ret.amount, invoice.currency)}
               {ret.issued_at && ` · ${formatDateTime(ret.issued_at)}`}
             </p>
           </div>

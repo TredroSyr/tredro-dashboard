@@ -17,6 +17,7 @@ import { useRepsQuery } from "@/module/reps/hooks";
 import { InvoicesDataTable } from "./data-table";
 import { createSalesInvoiceColumns, isSalesInvoiceOverdue } from "./sales-invoices-columns";
 import { RecordPaymentDialog } from "./record-payment-dialog";
+import { CreateSalesInvoiceDrawer } from "./create-sales-invoice-drawer";
 import { SalesInvoiceStatusBadge } from "./status-badge";
 import { LedgerBar } from "./ledger-bar";
 import { useInvoiceSettingsQuery, useSalesInvoicesQuery } from "../hooks";
@@ -43,6 +44,7 @@ export function SalesInvoicesView() {
   const [paymentTarget, setPaymentTarget] = React.useState<SalesInvoice | null>(
     null,
   );
+  const [createOpen, setCreateOpen] = React.useState(false);
 
   const params = React.useMemo(
     () => ({
@@ -121,6 +123,12 @@ export function SalesInvoicesView() {
           فواتير البيع
           {pagination && <Badge className="font-normal">{pagination.count}</Badge>}
         </h2>
+        <PermissionGate module="invoices" requireAction fallback={null}>
+          <Button size="sm" className="gap-1.5" onClick={() => setCreateOpen(true)}>
+            <IconRenderer name="plus_outlined" className="size-4" />
+            فاتورة بيع جديدة
+          </Button>
+        </PermissionGate>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -242,10 +250,11 @@ export function SalesInvoicesView() {
               paidAmount={invoice.paid_amount}
               returnedAmount={invoice.returned_amount}
               balanceDue={invoice.balance_due}
+              currency={invoice.currency}
             />
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">الإجمالي {formatMoney(invoice.total_amount)}</span>
-              <span className="font-medium text-foreground">المتبقي {formatMoney(invoice.balance_due)}</span>
+              <span className="text-muted-foreground">الإجمالي {formatMoney(invoice.total_amount, invoice.currency)}</span>
+              <span className="font-medium text-foreground">المتبقي {formatMoney(invoice.balance_due, invoice.currency)}</span>
             </div>
             <div className="flex items-center justify-end gap-2 border-t border-border pt-2">
               <PermissionGate module="invoices" requireAction fallback={null}>
@@ -307,6 +316,8 @@ export function SalesInvoicesView() {
         open={Boolean(paymentTarget)}
         onOpenChange={(open) => !open && setPaymentTarget(null)}
       />
+
+      <CreateSalesInvoiceDrawer open={createOpen} onOpenChange={setCreateOpen} />
     </div>
   );
 }

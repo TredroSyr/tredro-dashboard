@@ -99,7 +99,7 @@ export function RecordPaymentDialog({
         <DialogHeader>
           <DialogTitle>تسجيل دفعة — {invoice.number}</DialogTitle>
           <DialogDescription>
-            {invoice.customer_name} · الرصيد المتبقي {formatMoney(invoice.balance_due)}
+            {invoice.customer_name} · الرصيد المتبقي {formatMoney(invoice.balance_due, invoice.currency)}
           </DialogDescription>
         </DialogHeader>
 
@@ -109,6 +109,7 @@ export function RecordPaymentDialog({
           paidAmount={invoice.paid_amount}
           returnedAmount={invoice.returned_amount}
           balanceDue={invoice.balance_due}
+          currency={invoice.currency}
         />
 
         <Form {...form}>
@@ -130,7 +131,7 @@ export function RecordPaymentDialog({
                       {...field}
                       inputMode="decimal"
                       dir="ltr"
-                      placeholder={`الحد الأقصى ${formatMoney(invoice.balance_due)}`}
+                      placeholder={`الحد الأقصى ${formatMoney(invoice.balance_due, invoice.currency)}`}
                       className="h-11"
                     />
                   </FormControl>

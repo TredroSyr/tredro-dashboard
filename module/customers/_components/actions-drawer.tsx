@@ -3,12 +3,11 @@ import * as React from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ChevronsUpDown, Loader2, X } from "lucide-react";
+import { ChevronsUpDown, Loader2, X, Edit2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
 import {
   Drawer,
   DrawerContent,
@@ -16,6 +15,11 @@ import {
   DrawerTitle,
   DrawerClose,
 } from "@/components/ui/drawer";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Form,
   FormField,
@@ -26,10 +30,11 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 
-import { Customer } from "../types";
+import { Customer, WorkDay } from "../types";
 import {
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
+  useAssignRepsMutation,
   useCustomerQuery,
 } from "../hooks";
 
@@ -37,6 +42,7 @@ import { useRepsQuery } from "@/module/reps/hooks";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { CategoryPickerPopover } from "./category-picker-popover";
+import { WorkDayPicker } from "./work-day-picker";
 import { cn } from "@/lib/utils";
 import { useCategoriesQuery } from "../hooks/categories";
 
@@ -73,6 +79,8 @@ interface CustomerFormDrawerProps {
   customerId?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Pre-selects this rep on create (e.g. opened from a rep's detail page). */
+  defaultRepId?: number | string;
 }
 
 export function CustomerFormDrawer({
@@ -80,6 +88,7 @@ export function CustomerFormDrawer({
   customerId,
   open,
   onOpenChange,
+  defaultRepId,
 }: CustomerFormDrawerProps) {
   const isMobile = useIsMobile();
 
@@ -108,8 +117,10 @@ export function CustomerFormDrawer({
     useCreateCustomerMutation();
   const { mutate: updateCustomer, isPending: isUpdating } =
     useUpdateCustomerMutation();
+  const { mutate: assignReps, isPending: isAssigningWorkDays } =
+    useAssignRepsMutation();
 
-  const isSaving = isCreating || isUpdating;
+  const isSaving = isCreating || isUpdating || isAssigningWorkDays;
 
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(schema),
@@ -125,21 +136,26 @@ export function CustomerFormDrawer({
 
   const [phoneReady, setPhoneReady] = React.useState(mode === "create");
   const [repPicker, setRepPicker] = React.useState("");
+  const [repWorkDays, setRepWorkDays] = React.useState<
+    Record<string, WorkDay[]>
+  >({});
 
   React.useEffect(() => {
     if (!open) return;
 
     if (mode === "create") {
+      const preselectedReps = defaultRepId ? [String(defaultRepId)] : [];
       form.reset({
         name: "",
         phone: "",
         email: "",
         category: "",
-        assigned_reps: [],
+        assigned_reps: preselectedReps,
         is_active: true,
       });
       setPhoneReady(true);
       setRepPicker("");
+      setRepWorkDays({});
       return;
     }
 
@@ -159,9 +175,17 @@ export function CustomerFormDrawer({
       });
       setPhoneReady(true);
       setRepPicker("");
+      setRepWorkDays(
+        Object.fromEntries(
+          (customer.assigned_reps_details ?? []).map((r) => [
+            String(r.id),
+            r.work_days ?? [],
+          ]),
+        ),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, mode, customer]);
+  }, [open, mode, customer, defaultRepId]);
 
   const isFieldsLoading = mode === "edit" && (isLoadingCustomer || !phoneReady);
 
@@ -171,6 +195,23 @@ export function CustomerFormDrawer({
     const trimmedEmail = values.email?.trim();
     const categoryId = values.category ? Number(values.category) : null;
     const repIds = values.assigned_reps.map((v) => Number(v));
+
+    // Only reps with explicitly-picked visit days need a follow-up call -
+    // the rest keep using their own default work days.
+    const explicitAssignments = values.assigned_reps
+      .filter((id) => (repWorkDays[id]?.length ?? 0) > 0)
+      .map((id) => ({ rep_id: Number(id), work_days: repWorkDays[id] }));
+
+    const applyWorkDays = (id: number) => {
+      if (explicitAssignments.length === 0) {
+        onOpenChange(false);
+        return;
+      }
+      assignReps(
+        { id, assignments: explicitAssignments },
+        { onSuccess: () => onOpenChange(false) },
+      );
+    };
 
     if (mode === "create") {
       createCustomer(
@@ -182,7 +223,7 @@ export function CustomerFormDrawer({
           assigned_reps: repIds.length ? repIds : undefined,
           is_active: values.is_active,
         },
-        { onSuccess: () => onOpenChange(false) },
+        { onSuccess: (res) => applyWorkDays(res.data.customer.id) },
       );
       return;
     }
@@ -197,7 +238,7 @@ export function CustomerFormDrawer({
         assigned_reps: repIds,
         is_active: values.is_active,
       },
-      { onSuccess: () => onOpenChange(false) },
+      { onSuccess: () => applyWorkDays(customerId as number) },
     );
   };
 
@@ -422,31 +463,89 @@ export function CustomerFormDrawer({
                       </FormControl>
 
                       {selectedReps.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          {selectedReps.map((rep) => (
-                            <Badge
-                              key={rep.value}
-                              variant="secondary"
-                              className="gap-1 pr-1 font-normal"
-                            >
-                              {rep.label}
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  field.onChange(
-                                    field.value.filter((v) => v !== rep.value),
-                                  )
-                                }
-                                className="rounded-full hover:bg-muted-foreground/20"
+                        <div className="flex flex-col gap-2 pt-1">
+                          {selectedReps.map((rep) => {
+                            const days = repWorkDays[rep.value] ?? [];
+                            return (
+                              <div
+                                key={rep.value}
+                                className="flex items-center justify-between gap-2 rounded-md border border-border px-2.5 py-2"
                               >
-                                <X className="size-3" />
-                              </button>
-                            </Badge>
-                          ))}
+                                <div className="flex items-center gap-1.5 min-w-0">
+                                  <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/15 text-[10px] font-medium text-primary">
+                                    {rep.label.trim().charAt(0)}
+                                  </span>
+                                  <span className="text-sm font-medium truncate">
+                                    {rep.label}
+                                  </span>
+                                </div>
+
+                                <div className="flex items-center gap-1 shrink-0">
+                                  <Popover>
+                                    <PopoverTrigger>
+                                      <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 px-2 text-xs gap-1 font-normal"
+                                      >
+                                        <Edit2 className="size-3" />
+                                        {days.length
+                                          ? `${days.length} أيام زيارة`
+                                          : "أيام الزيارة"}
+                                      </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent
+                                      className="w-auto p-3"
+                                      align="end"
+                                    >
+                                      <div className="space-y-2 text-right">
+                                        <p className="text-xs font-medium">
+                                          أيام زيارة {rep.label}
+                                        </p>
+                                        <WorkDayPicker
+                                          value={days}
+                                          onChange={(next) =>
+                                            setRepWorkDays((prev) => ({
+                                              ...prev,
+                                              [rep.value]: next,
+                                            }))
+                                          }
+                                          variant="compact"
+                                        />
+                                        <p className="text-[11px] text-muted-foreground">
+                                          اترك بدون تحديد لاستخدام أيام العمل
+                                          الافتراضية للمندوب
+                                        </p>
+                                      </div>
+                                    </PopoverContent>
+                                  </Popover>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      field.onChange(
+                                        field.value.filter(
+                                          (v) => v !== rep.value,
+                                        ),
+                                      );
+                                      setRepWorkDays((prev) => {
+                                        const next = { ...prev };
+                                        delete next[rep.value];
+                                        return next;
+                                      });
+                                    }}
+                                    className="rounded-full p-1 hover:bg-muted-foreground/20 text-muted-foreground hover:text-foreground"
+                                  >
+                                    <X className="size-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
 
-                   
                       <FormMessage />
                     </FormItem>
                   );

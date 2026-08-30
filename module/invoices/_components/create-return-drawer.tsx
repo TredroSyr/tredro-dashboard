@@ -160,7 +160,7 @@ export function CreateReturnDrawer({
                         <p className="text-xs text-muted-foreground">
                           الكمية المباعة القابلة للإرجاع:{" "}
                           {formatQuantity(field.max_quantity)} ·{" "}
-                          {formatMoney(field.unit_price)} للوحدة
+                          {formatMoney(field.unit_price, invoice.currency)} للوحدة
                         </p>
                       </div>
                       <FormField

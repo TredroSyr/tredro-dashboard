@@ -5,10 +5,11 @@ import { RepDetailHeader } from "./rep-detail-header";
 import { RepDetailTabs } from "./rep-detail-tabs";
 import RepOverview from "./rep-overview";
 import CustomersView from "@/module/customers/_components/customers-view";
+import { RepWarehouseTab } from "@/module/warehouses/_components/rep-warehouse-tab";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { useRepQuery } from "../hooks";
 
-type TabValue = "overview" | "invoices" | "orders" | "customers";
+type TabValue = "overview" | "invoices" | "orders" | "customers" | "warehouse";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
@@ -77,6 +78,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
           </div>
         )}
         {activeTab === "customers" && <CustomersView repId={repId} />}
+        {activeTab === "warehouse" && <RepWarehouseTab repId={repId} />}
       </div>
     </div>
   );

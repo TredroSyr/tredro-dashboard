@@ -13,6 +13,8 @@ import { useCustomersQuery } from "../hooks";
 import {
   MobileFilterDrawer,
 } from "./mobile-filter-drawer";
+import { CustomersAgendaView } from "./customers-agenda-view";
+import { useCustomersViewStore } from "@/store/use-customers-view-store";
 import { Badge } from "@/components/ui/badge";
 import { Table } from "@tanstack/react-table";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
@@ -24,6 +26,8 @@ interface CustomersViewProps {
 }
 
 export default function CustomersView({ repId }: CustomersViewProps) {
+  const viewMode = useCustomersViewStore((s) => s.viewMode);
+  const setViewMode = useCustomersViewStore((s) => s.setViewMode);
   const [search, setSearch] = useState("");
   const [mobileSelectionMode, setMobileSelectionMode] = useState(false);
   const [mobileSelectedIds, setMobileSelectedIds] = useState<Set<number>>(
@@ -44,6 +48,10 @@ export default function CustomersView({ repId }: CustomersViewProps) {
   } = useCustomersQuery(repId);
 
   const customers = customersRes?.data?.customers ?? [];
+
+  // Scoped to a single rep (e.g. opened from that rep's detail page) -
+  // filtering by rep within an already rep-scoped list is redundant.
+  const hideRepFilter = Boolean(repId);
 
   // Filter by search string (this is in addition to column filters)
   const searchFilteredCustomers = useMemo(() => {
@@ -104,6 +112,18 @@ export default function CustomersView({ repId }: CustomersViewProps) {
     setMobileSelectionMode(false);
   };
 
+  if (viewMode === "agenda") {
+    return (
+      <CustomersAgendaView
+        customers={searchFilteredCustomers}
+        isLoading={isLoading}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        hideRepFilter={hideRepFilter}
+      />
+    );
+  }
+
   return (
     <>
       <DataTable
@@ -124,6 +144,10 @@ export default function CustomersView({ repId }: CustomersViewProps) {
         }}
         enableRowSelection
         getRowId={(c: Customer) => String(c.id)}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        hideRepFilter={hideRepFilter}
+        defaultRepId={repId}
         renderBulkActions={({ selectedRows, clearSelection }) => (
           <PermissionGate module="customers" requireAction fallback={null}>
             <BulkActionsBar
@@ -234,6 +258,7 @@ export default function CustomersView({ repId }: CustomersViewProps) {
           open={filterDrawerOpen}
           onOpenChange={setFilterDrawerOpen}
           table={tableInstance}
+          hideRepFilter={hideRepFilter}
         />
       )}
     </>
