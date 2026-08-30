@@ -74,6 +74,20 @@ export interface ModifyStockTransferPayload {
   lines: ModifyStockTransferLinePayload[];
 }
 
+export interface CreateStockTransferLinePayload {
+  product_id: number;
+  quantity: string;
+}
+
+/** Office-initiated dispatch (frontend4.md §6d) — enters straight at `confirmed`, no idempotency key. */
+export interface CreateStockTransferPayload {
+  rep: number;
+  lines: CreateStockTransferLinePayload[];
+  source_warehouse?: number;
+  destination_warehouse?: number;
+  notes?: string;
+}
+
 export interface HistoryEntry {
   id: number;
   actor_type: "subuser" | "rep" | "customer" | string;

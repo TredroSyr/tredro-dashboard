@@ -71,6 +71,8 @@ export const incomingInvoiceLineSchema = z.object({
 
 export const createIncomingInvoiceSchema = z.object({
   warehouse: z.string().min(1, "مستودع الشركة مطلوب"),
+  /** Settlement currency with the supplier — chosen once for the whole invoice, before its lines. */
+  currency: z.string().min(1, "العملة مطلوبة"),
   supplier_ref: z.string().optional(),
   notes: z.string().optional(),
   lines: z.array(incomingInvoiceLineSchema).min(1, "أضف صنفاً واحداً على الأقل"),

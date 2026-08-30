@@ -2,7 +2,12 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { useFieldArray, useForm } from "react-hook-form";
+import { useQueries } from "@tanstack/react-query";
+import {
+  useFieldArray,
+  useForm,
+  useFormContext,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import {
@@ -29,6 +34,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useCustomersQuery } from "@/module/customers/hooks";
 import { useRepsQuery } from "@/module/reps/hooks";
 import { useProductsQuery } from "@/module/products/hook";
+import { getProduct } from "@/module/products/api";
 import { useWarehousesQuery } from "@/module/warehouses/hooks";
 import { useApiFormErrorHandler } from "@/hooks/use-api-form-error";
 import {
@@ -37,9 +43,22 @@ import {
 } from "../schema";
 import { useCreateSalesInvoiceMutation, useCustomerCreditsQuery } from "../hooks";
 import { formatMoney, num } from "../lib/format";
+import {
+  canAddProductToInvoice,
+  currencyMismatchMessage,
+  getInvoiceCurrency,
+  pickPriceForCurrency,
+  type ResolvedPrice,
+} from "../lib/currency";
 
 const DIRECT_SALE_VALUE = "";
 const EMPTY_LINE = { product_id: "", quantity: "", unit_price: "" };
+
+type LineResolution =
+  | { status: "empty" }
+  | { status: "loading" }
+  | { status: "mismatch"; lockedCurrency: string }
+  | { status: "ok"; price: ResolvedPrice };
 
 export function CreateSalesInvoiceDrawer({
   open,
@@ -76,6 +95,13 @@ export function CreateSalesInvoiceDrawer({
 
   const [selectedCreditIds, setSelectedCreditIds] = React.useState<number[]>([]);
 
+  // Per-line bookkeeping for the currency guard below — plain refs, not state,
+  // since they're only ever read/written from inside the sync effect.
+  const lastValidLineRef = React.useRef<
+    Record<string, { productId: string; price: string }>
+  >({});
+  const lastAutoPriceRef = React.useRef<Record<string, string>>({});
+
   React.useEffect(() => {
     if (open) {
       form.reset({
@@ -87,6 +113,8 @@ export function CreateSalesInvoiceDrawer({
         lines: [EMPTY_LINE],
       });
       setSelectedCreditIds([]);
+      lastValidLineRef.current = {};
+      lastAutoPriceRef.current = {};
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, defaultCustomerId, defaultRepId]);
@@ -131,6 +159,12 @@ export function CreateSalesInvoiceDrawer({
       })),
     [customersRes],
   );
+  const customerCategoryId = React.useMemo(() => {
+    const selected = (customersRes?.data?.customers ?? []).find(
+      (c) => String(c.id) === customerId,
+    );
+    return selected?.category_details?.id ?? null;
+  }, [customersRes, customerId]);
 
   const { data: repsRes, isLoading: isLoadingReps } = useRepsQuery();
   const repOptions = React.useMemo(
@@ -146,13 +180,16 @@ export function CreateSalesInvoiceDrawer({
 
   const { data: warehousesRes, isLoading: isLoadingWarehouses } = useWarehousesQuery({
     is_active: true,
-    owner_type: isDirectSale ? "company" : "rep",
+    owner_type: "company",
   });
-  const warehouseOptions = React.useMemo(() => {
-    const all = warehousesRes?.data?.warehouses ?? [];
-    const scoped = isDirectSale ? all : all.filter((w) => w.rep === Number(rep));
-    return scoped.map((w) => ({ value: String(w.id), label: w.name }));
-  }, [warehousesRes, isDirectSale, rep]);
+  const warehouseOptions = React.useMemo(
+    () =>
+      (warehousesRes?.data?.warehouses ?? []).map((w) => ({
+        value: String(w.id),
+        label: w.name,
+      })),
+    [warehousesRes],
+  );
 
   const { data: productsRes, isLoading: isLoadingProducts } = useProductsQuery();
   const productOptions = React.useMemo(
@@ -163,6 +200,90 @@ export function CreateSalesInvoiceDrawer({
       })),
     [productsRes],
   );
+
+  // Fetch each line's selected product in full (its per-currency/per-category
+  // price list lives on the detail response, not the list one) so we can
+  // enforce a single currency per invoice — see module/invoices/lib/currency.ts.
+  const watchedLines = form.watch("lines") ?? [];
+  const productQueries = useQueries({
+    queries: watchedLines.map((line) => ({
+      queryKey: ["products", "detail", line.product_id],
+      queryFn: () => getProduct(line.product_id),
+      enabled: Boolean(line.product_id),
+    })),
+  });
+
+  let lockCurrency: string | null = null;
+  const lineResolutions: LineResolution[] = watchedLines.map((line, i) => {
+    if (!line.product_id) return { status: "empty" };
+    const product = productQueries[i]?.data?.data?.product;
+    if (!product) return { status: "loading" };
+    const gate = canAddProductToInvoice(product, lockCurrency);
+    if (!gate.ok) {
+      return { status: "mismatch", lockedCurrency: lockCurrency as string };
+    }
+    if (!lockCurrency) lockCurrency = gate.price.currency_code;
+    const price =
+      pickPriceForCurrency(product, gate.price.currency_code, customerCategoryId) ??
+      gate.price;
+    return { status: "ok", price };
+  });
+
+  const invoiceCurrency = getInvoiceCurrency(
+    lineResolutions.map((r) => (r.status === "ok" ? r.price.currency_code : null)),
+  );
+  const currencyMismatch = lineResolutions.find(
+    (r): r is Extract<LineResolution, { status: "mismatch" }> =>
+      r.status === "mismatch",
+  );
+  const currencyWarning = currencyMismatch
+    ? currencyMismatchMessage(currencyMismatch.lockedCurrency)
+    : null;
+
+  // Sync resolved prices/currency conflicts back onto the form: autofill an
+  // untouched unit_price, or revert a line whose product doesn't match the
+  // invoice's locked currency (the "why" is shown via the banner above, driven
+  // by `currencyWarning` computed directly from `lineResolutions` above).
+  React.useEffect(() => {
+    fields.forEach((field, i) => {
+      const resolution = lineResolutions[i];
+      const line = watchedLines[i];
+      if (!resolution || !line) return;
+      const fieldId = field.id;
+
+      if (resolution.status === "empty") {
+        delete lastValidLineRef.current[fieldId];
+        delete lastAutoPriceRef.current[fieldId];
+        return;
+      }
+      if (resolution.status === "loading") return;
+
+      if (resolution.status === "mismatch") {
+        const prev = lastValidLineRef.current[fieldId];
+        if (line.product_id !== (prev?.productId ?? "")) {
+          form.setValue(`lines.${i}.product_id`, prev?.productId ?? "", {
+            shouldValidate: false,
+          });
+          form.setValue(`lines.${i}.unit_price`, prev?.price ?? "");
+        }
+        return;
+      }
+
+      // status === "ok"
+      lastValidLineRef.current[fieldId] = {
+        productId: line.product_id,
+        price: resolution.price.price,
+      };
+      const currentValue = form.getValues(`lines.${i}.unit_price`);
+      if (!currentValue || currentValue === lastAutoPriceRef.current[fieldId]) {
+        form.setValue(`lines.${i}.unit_price`, resolution.price.price, {
+          shouldValidate: true,
+        });
+      }
+      lastAutoPriceRef.current[fieldId] = resolution.price.price;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lineResolutions, fields, watchedLines]);
 
   const { mutate, isPending } = useCreateSalesInvoiceMutation();
   const handleApiError = useApiFormErrorHandler(form);
@@ -211,7 +332,11 @@ export function CreateSalesInvoiceDrawer({
                 فاتورة بيع جديدة
               </DrawerTitle>
               <div className="flex items-center gap-2 shrink-0">
-                <Button type="submit" size="sm" disabled={isPending}>
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isPending || Boolean(currencyMismatch)}
+                >
                   {isPending ? "جارٍ الحفظ..." : "إصدار الفاتورة"}
                 </Button>
                 <DrawerClose>
@@ -226,6 +351,12 @@ export function CreateSalesInvoiceDrawer({
               {banner && (
                 <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {banner}
+                </p>
+              )}
+
+              {currencyWarning && (
+                <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                  {currencyWarning}
                 </p>
               )}
 
@@ -341,38 +472,41 @@ export function CreateSalesInvoiceDrawer({
                 />
               )}
 
-              <FormField
-                control={form.control}
-                name="warehouse"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {isDirectSale ? "مستودع الشركة (اختياري)" : "فان المندوب (اختياري)"}
-                    </FormLabel>
-                    <FormControl>
-                      <SearchableSelect
-                        options={warehouseOptions}
-                        value={field.value}
-                        onChange={field.onChange}
-                        loading={isLoadingWarehouses}
-                        placeholder="افتراضي — أقدم مستودع نشط"
-                        searchPlaceholder="ابحث عن مستودع..."
-                        emptyText={
-                          isDirectSale
-                            ? "لا توجد مستودعات شركة نشطة"
-                            : "لا يوجد فان نشط لهذا المندوب"
-                        }
-                        className="h-11"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {isDirectSale && (
+                <FormField
+                  control={form.control}
+                  name="warehouse"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>مستودع الشركة (اختياري)</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          options={warehouseOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          loading={isLoadingWarehouses}
+                          placeholder="افتراضي — أقدم مستودع نشط"
+                          searchPlaceholder="ابحث عن مستودع..."
+                          emptyText="لا توجد مستودعات شركة نشطة"
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
 
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
-                  <FormLabel>الأصناف</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>الأصناف</FormLabel>
+                    {invoiceCurrency && (
+                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
+                        عملة الفاتورة: {invoiceCurrency}
+                      </span>
+                    )}
+                  </div>
                   <Button
                     type="button"
                     variant="outline"
@@ -386,81 +520,15 @@ export function CreateSalesInvoiceDrawer({
                 </div>
 
                 {fields.map((field, index) => (
-                  <div
+                  <InvoiceLineItem
                     key={field.id}
-                    className="flex flex-col gap-2 rounded-xl border border-border p-3"
-                  >
-                    <div className="flex items-start gap-2">
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.product_id`}
-                        render={({ field }) => (
-                          <FormItem className="flex-1">
-                            <FormControl>
-                              <SearchableSelect
-                                options={productOptions}
-                                value={field.value}
-                                onChange={field.onChange}
-                                loading={isLoadingProducts}
-                                placeholder="اختر منتجاً"
-                                className="h-10"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      {fields.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="mt-0.5 text-destructive"
-                          onClick={() => remove(index)}
-                        >
-                          <IconRenderer name="bin_outlined" className="size-4" />
-                        </Button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.quantity`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                inputMode="decimal"
-                                dir="ltr"
-                                placeholder="الكمية"
-                                className="h-10"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`lines.${index}.unit_price`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                {...field}
-                                inputMode="decimal"
-                                dir="ltr"
-                                placeholder="سعر الوحدة (اختياري)"
-                                className="h-10"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                  </div>
+                    index={index}
+                    productOptions={productOptions}
+                    isLoadingProducts={isLoadingProducts}
+                    resolution={lineResolutions[index] ?? { status: "empty" }}
+                    canRemove={fields.length > 1}
+                    onRemove={() => remove(index)}
+                  />
                 ))}
               </div>
 
@@ -502,5 +570,112 @@ export function CreateSalesInvoiceDrawer({
         </Form>
       </DrawerContent>
     </Drawer>
+  );
+}
+
+/**
+ * Renders one invoice line. Purely presentational — the parent drawer fetches
+ * every line's product detail, enforces the single-currency-per-invoice rule,
+ * and autofills the price; this component just reflects whatever `resolution`
+ * it's handed (see module/invoices/lib/currency.ts and the sync effect above).
+ */
+function InvoiceLineItem({
+  index,
+  productOptions,
+  isLoadingProducts,
+  resolution,
+  canRemove,
+  onRemove,
+}: {
+  index: number;
+  productOptions: { value: string; label: string }[];
+  isLoadingProducts: boolean;
+  resolution: LineResolution;
+  canRemove: boolean;
+  onRemove: () => void;
+}) {
+  const { control } = useFormContext<CreateSalesInvoiceFormValues>();
+  const resolvedCurrency = resolution.status === "ok" ? resolution.price.currency_code : null;
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-border p-3">
+      <div className="flex items-start gap-2">
+        <FormField
+          control={control}
+          name={`lines.${index}.product_id`}
+          render={({ field }) => (
+            <FormItem className="flex-1">
+              <FormControl>
+                <SearchableSelect
+                  options={productOptions}
+                  value={field.value}
+                  onChange={field.onChange}
+                  loading={isLoadingProducts}
+                  placeholder="اختر منتجاً"
+                  className="h-10"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        {canRemove && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="mt-0.5 text-destructive"
+            onClick={onRemove}
+          >
+            <IconRenderer name="bin_outlined" className="size-4" />
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <FormField
+          control={control}
+          name={`lines.${index}.quantity`}
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Input
+                  {...field}
+                  inputMode="decimal"
+                  dir="ltr"
+                  placeholder="الكمية"
+                  className="h-10"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name={`lines.${index}.unit_price`}
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <div className="relative">
+                  <Input
+                    {...field}
+                    inputMode="decimal"
+                    dir="ltr"
+                    placeholder="سعر الوحدة (اختياري)"
+                    className={resolvedCurrency ? "h-10 pr-12" : "h-10"}
+                  />
+                  {resolvedCurrency && (
+                    <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs font-medium text-muted-foreground">
+                      {resolvedCurrency}
+                    </span>
+                  )}
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </div>
   );
 }

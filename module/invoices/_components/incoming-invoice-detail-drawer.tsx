@@ -176,6 +176,7 @@ export function IncomingInvoiceDetailSheet({
               {/* Meta */}
               <div className="flex flex-col gap-2 rounded-xl border border-border p-3.5">
                 <MetaRow label="تاريخ الفاتورة" value={formatDate(invoice.date)} />
+                <MetaRow label="العملة" value={invoice.currency} />
                 <MetaRow label="المستودع" value={invoice.warehouse_name} />
                 <MetaRow label="المورّد" value={invoice.supplier_ref || "—"} />
                 <MetaRow label="تاريخ الإنشاء" value={formatDateTime(invoice.created_at)} />

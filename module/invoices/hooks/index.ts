@@ -36,6 +36,7 @@ import {
   ListPaymentsParams,
   OverdueReportParams,
   UpdateInvoiceSettingsPayload,
+  LastPurchasePricesByCurrency,
 } from "../types";
 
 // ---- Sales invoices ----
@@ -96,6 +97,9 @@ export const useRecordPaymentMutation = () => {
       queryClient.invalidateQueries({ queryKey: ["invoices", "sales", "list"] });
       queryClient.invalidateQueries({
         queryKey: ["invoices", "sales", "detail", String(variables.invoiceId)],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["invoices", "sales", "history", String(variables.invoiceId)],
       });
       queryClient.invalidateQueries({ queryKey: ["invoices", "payments"] });
     },
@@ -160,6 +164,60 @@ export const useIssueIncomingInvoiceMutation = () => {
     },
   });
 };
+
+/**
+ * How many of the product's most recent incoming invoices to open (in parallel) looking
+ * for a line on it. There's no backend endpoint or filter for "last purchase price of a
+ * product" yet (the list endpoint returns no lines, only invoice detail does), so this
+ * scans recent invoice details client-side — a bounded, best-effort substitute.
+ */
+const LAST_PURCHASE_SCAN_LIMIT = 20;
+
+/** Per currency, the most recent price paid for this product across recent incoming invoices. */
+export const useLastPurchasePricesQuery = (
+  productId?: number | string,
+  options?: { enabled?: boolean },
+) =>
+  useQuery({
+    queryKey: [
+      "invoices",
+      "incoming",
+      "last-purchase-prices",
+      productId !== undefined ? String(productId) : productId,
+    ],
+    queryFn: async (): Promise<LastPurchasePricesByCurrency> => {
+      const listRes = await listIncomingInvoices({ page_size: 100 });
+      const recentInvoices = (listRes.data?.invoices ?? [])
+        .filter((invoice) => invoice.status !== "cancelled")
+        .sort(
+          (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+        )
+        .slice(0, LAST_PURCHASE_SCAN_LIMIT);
+
+      const details = await Promise.all(
+        recentInvoices.map((invoice) => getIncomingInvoice(invoice.id)),
+      );
+
+      const byCurrency: LastPurchasePricesByCurrency = {};
+      for (const res of details) {
+        const invoice = res.data?.invoice;
+        const line = invoice?.lines?.find(
+          (l) => l.product === Number(productId),
+        );
+        if (!invoice || !line || byCurrency[invoice.currency]) continue;
+        byCurrency[invoice.currency] = {
+          price: line.unit_price,
+          currency: invoice.currency,
+          invoiceId: invoice.id,
+          invoiceNumber: invoice.number,
+          date: invoice.date,
+        };
+      }
+      return byCurrency;
+    },
+    enabled: (options?.enabled ?? true) && Boolean(productId),
+    staleTime: 5 * 60 * 1000,
+  });
 
 export const useCancelIncomingInvoiceMutation = () => {
   const queryClient = useQueryClient();

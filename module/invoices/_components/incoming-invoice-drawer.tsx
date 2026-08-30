@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
-import { useProductsQuery } from "@/module/products/hook";
+import { useProductsQuery, useCurrenciesQuery } from "@/module/products/hook";
 import { useApiFormErrorHandler } from "@/hooks/use-api-form-error";
 import {
   createIncomingInvoiceSchema,
@@ -49,6 +49,7 @@ export function IncomingInvoiceDrawer({
     resolver: zodResolver(createIncomingInvoiceSchema),
     defaultValues: {
       warehouse: "",
+      currency: "",
       supplier_ref: "",
       notes: "",
       lines: [EMPTY_LINE],
@@ -64,6 +65,7 @@ export function IncomingInvoiceDrawer({
     if (open) {
       form.reset({
         warehouse: "",
+        currency: "",
         supplier_ref: "",
         notes: "",
         lines: [EMPTY_LINE],
@@ -71,6 +73,19 @@ export function IncomingInvoiceDrawer({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  const currency = form.watch("currency");
+
+  const { data: currenciesRes, isLoading: isLoadingCurrencies } =
+    useCurrenciesQuery();
+  const currencyOptions = React.useMemo(
+    () =>
+      (currenciesRes?.data?.currencies ?? []).map((c) => ({
+        value: c.code,
+        label: `${c.code} — ${c.name} (${c.symbol})`,
+      })),
+    [currenciesRes],
+  );
 
   const { data: productsRes, isLoading: isLoadingProducts } =
     useProductsQuery();
@@ -107,6 +122,7 @@ export function IncomingInvoiceDrawer({
     mutate(
       {
         warehouse: Number(values.warehouse),
+        currency: values.currency,
         supplier_ref: values.supplier_ref || undefined,
         notes: values.notes || undefined,
         lines: values.lines.map((l) => ({
@@ -190,6 +206,32 @@ export function IncomingInvoiceDrawer({
 
                 <FormField
                   control={form.control}
+                  name="currency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>عملة الفاتورة</FormLabel>
+                      <FormControl>
+                        <SearchableSelect
+                          options={currencyOptions}
+                          value={field.value}
+                          onChange={field.onChange}
+                          loading={isLoadingCurrencies}
+                          placeholder="اختر العملة"
+                          searchPlaceholder="ابحث عن عملة..."
+                          className="h-11"
+                        />
+                      </FormControl>
+                      <p className="text-xs text-muted-foreground">
+                        اختر عملة الفاتورة أولاً — ستُعتمد على سعر كل صنف
+                        والإجمالي في هذه الفاتورة.
+                      </p>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="supplier_ref"
                   render={({ field }) => (
                     <FormItem>
@@ -214,12 +256,19 @@ export function IncomingInvoiceDrawer({
                       variant="outline"
                       size="sm"
                       className="gap-1.5"
+                      disabled={!currency}
                       onClick={() => append(EMPTY_LINE)}
                     >
                       <IconRenderer name="plus_outlined" className="size-3.5" />
                       إضافة صنف
                     </Button>
                   </div>
+
+                  {!currency && (
+                    <p className="rounded-lg bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                      اختر عملة الفاتورة قبل إدخال أسعار الأصناف.
+                    </p>
+                  )}
 
                   {fields.map((field, index) => (
                     <div
@@ -238,6 +287,7 @@ export function IncomingInvoiceDrawer({
                                   value={field.value}
                                   onChange={field.onChange}
                                   loading={isLoadingProducts}
+                                  disabled={!currency}
                                   placeholder="اختر منتجاً"
                                   className="h-10"
                                 />
@@ -269,6 +319,7 @@ export function IncomingInvoiceDrawer({
                                   {...field}
                                   inputMode="decimal"
                                   dir="ltr"
+                                  disabled={!currency}
                                   placeholder="الكمية"
                                   className="h-10"
                                 />
@@ -287,7 +338,12 @@ export function IncomingInvoiceDrawer({
                                   {...field}
                                   inputMode="decimal"
                                   dir="ltr"
-                                  placeholder="سعر الوحدة (اختياري)"
+                                  disabled={!currency}
+                                  placeholder={
+                                    currency
+                                      ? `سعر الوحدة (${currency})`
+                                      : "سعر الوحدة"
+                                  }
                                   className="h-10"
                                 />
                               </FormControl>

@@ -246,7 +246,9 @@ export const ProductFormClient = ({
               <ProductDetailsTab isLoading={isLoading} />
             )}
             {activeTab === "custom-fields" && <ProductCustomFieldsTab />}
-            {activeTab === "pricing" && <ProductPricingTab />}
+            {activeTab === "pricing" && (
+              <ProductPricingTab productId={product?.id} />
+            )}
             {activeTab === "images" && <ProductImagesTab />}
             {activeTab === "review" && <ProductReviewTab />}
           </div>

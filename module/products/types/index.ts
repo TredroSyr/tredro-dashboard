@@ -95,8 +95,7 @@ export interface Product {
   created_at: string;
 }
 
-export interface ProductDetail
-  extends Omit<Product, "primary_image" | "default_price"> {
+export interface ProductDetail extends Omit<Product, "primary_image"> {
   description: string | null;
   unit_code: string;
   weight: string | null;

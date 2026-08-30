@@ -8,11 +8,14 @@ import { getApiErrorMessage } from "@/hooks/use-api-form-error";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { useRepsQuery } from "@/module/reps/hooks";
 import { StockTransfersDataTable } from "./data-table";
 import { createTransferColumns } from "./transfer-columns";
 import { ModifyTransferDialog } from "./modify-transfer-dialog";
+import { CreateDispatchDrawer } from "./create-dispatch-drawer";
 import { StockTransferStatusBadge } from "./status-badge";
 import {
   useApproveStockTransferMutation,
@@ -39,6 +42,7 @@ export default function StockTransfersView() {
   const [rep, setRep] = React.useState("");
   const [page, setPage] = React.useState(1);
   const [modifyTarget, setModifyTarget] = React.useState<StockTransfer | null>(null);
+  const [dispatchOpen, setDispatchOpen] = React.useState(false);
 
   const params = React.useMemo(
     () => ({
@@ -95,13 +99,21 @@ export default function StockTransfersView() {
   return (
     <div className="flex flex-col">
       <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-6">
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight sm:text-xl">
-            تسليم بضاعة للمندوب
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            طلبات المناديب لتحميل الفان، من الموافقة حتى الاستلام
-          </p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-semibold tracking-tight sm:text-xl">
+              تسليم بضاعة للمندوب
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              طلبات المناديب لتحميل الفان، من الموافقة حتى الاستلام
+            </p>
+          </div>
+          <PermissionGate module="invoices" requireAction fallback={null}>
+            <Button size="sm" className="gap-1.5" onClick={() => setDispatchOpen(true)}>
+              <IconRenderer name="plus_outlined" className="size-3.5" />
+              إرسال بضاعة لمندوب
+            </Button>
+          </PermissionGate>
         </div>
       </div>
 
@@ -221,6 +233,8 @@ export default function StockTransfersView() {
         open={Boolean(modifyTarget)}
         onOpenChange={(open) => !open && setModifyTarget(null)}
       />
+
+      <CreateDispatchDrawer open={dispatchOpen} onOpenChange={setDispatchOpen} />
     </div>
   );
 }

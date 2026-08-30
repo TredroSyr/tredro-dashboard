@@ -77,7 +77,10 @@ export const columns: ColumnDef<Product>[] = [
       return p ? (
         <span className="text-sm font-medium" dir="ltr">
           {p.currency_symbol}
-          {p.price}
+          {p.price}{" "}
+          <span className="text-xs font-normal text-muted-foreground">
+            {p.currency_code}
+          </span>
         </span>
       ) : (
         <span className="text-sm text-muted-foreground">-</span>

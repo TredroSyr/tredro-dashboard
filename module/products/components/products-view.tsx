@@ -160,7 +160,8 @@ export default function ProductsView() {
                 {product.default_price != null && (
                   <Badge variant="outline">
                     {product.default_price.price}{" "}
-                    {product.default_price.currency_symbol}
+                    {product.default_price.currency_symbol}{" "}
+                    {product.default_price.currency_code}
                   </Badge>
                 )}
               </div>

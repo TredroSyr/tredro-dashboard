@@ -1,19 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { useFieldArray, useFormContext } from "react-hook-form";
 import { ProductFormValues } from "../schema";
 import { useCurrenciesQuery } from "../hook";
 import { useCategoriesQuery } from "@/module/customers/hooks/categories";
+import { useLastPurchasePricesQuery } from "@/module/invoices/hooks";
 
-export const ProductPricingTab = () => {
+export const ProductPricingTab = ({
+  productId,
+}: {
+  /** Only known in edit mode — a brand-new product has no purchase history yet. */
+  productId?: number;
+}) => {
   const { control } = useFormContext<ProductFormValues>();
   const { fields, append, remove, update } = useFieldArray({
     control,
@@ -33,6 +41,23 @@ export const ProductPricingTab = () => {
     value: String(c.id),
     label: c.name,
   }));
+
+  const { data: lastPurchasePrices, isLoading: isLoadingLastPurchase } =
+    useLastPurchasePricesQuery(productId, {
+      enabled: Boolean(productId),
+    });
+  const lastPurchaseByCurrency = lastPurchasePrices ?? {};
+  const lastPurchase = Object.values(lastPurchaseByCurrency).reduce(
+    (latest, entry) =>
+      !latest ||
+      new Date(entry.date).getTime() > new Date(latest.date).getTime()
+        ? entry
+        : latest,
+    undefined as (typeof lastPurchaseByCurrency)[string] | undefined,
+  );
+  const lastPurchaseCurrencySymbol =
+    currencies.find((c) => c.code === lastPurchase?.currency)?.symbol ??
+    lastPurchase?.currency;
 
   const [draftCurrency, setDraftCurrency] = useState<string>("");
   const [draftPrice, setDraftPrice] = useState<string>("");
@@ -68,8 +93,8 @@ export const ProductPricingTab = () => {
       customer_category: draftIsDefault
         ? null
         : draftCustomerCategory
-          ? Number(draftCustomerCategory)
-          : null,
+        ? Number(draftCustomerCategory)
+        : null,
       customer_category_name: draftIsDefault
         ? undefined
         : customerCategory?.name,
@@ -85,6 +110,34 @@ export const ProductPricingTab = () => {
 
   return (
     <div className="flex flex-col gap-5">
+      {productId && (
+        <div className="rounded-md  p-3 text-sm text-right border border-warning/30 bg-warning/10">
+          {isLoadingLastPurchase ? (
+            <Skeleton className="ms-auto h-4 w-48" />
+          ) : lastPurchase ? (
+            <p className="text-warning">
+              آخر سعر شراء:{" "}
+              <span className="font-semibold tabular-nums">
+                {lastPurchase.price} {lastPurchaseCurrencySymbol}
+              </span>{" "}
+              —{" "}
+              <Link
+                href={`/invoices/incoming-detail?id=${lastPurchase.invoiceId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline underline-offset-2 hover:text-warning/20 "
+              >
+                فاتورة {lastPurchase.invoiceNumber}
+              </Link>
+            </p>
+          ) : (
+            <p className="text-warning">
+              لا توجد فاتورة إدخال سابقة لهذا المنتج
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="rounded-md border border-border p-4 flex flex-col gap-4">
         <p className="text-sm font-medium text-right">إضافة سعر</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

@@ -206,8 +206,21 @@ export interface CreateIncomingInvoiceLinePayload {
   tax_rate?: string;
 }
 
+/** Most recent incoming-invoice price paid for a product, in one currency (derived client-side — no backend endpoint for this yet). */
+export interface LastPurchasePrice {
+  price: string;
+  currency: string;
+  invoiceId: number;
+  invoiceNumber: string;
+  date: string;
+}
+
+export type LastPurchasePricesByCurrency = Record<string, LastPurchasePrice>;
+
 export interface CreateIncomingInvoicePayload {
   warehouse: number;
+  /** Settlement currency with the supplier for the whole invoice — every line's `unit_price` is in this currency. */
+  currency: string;
   supplier_ref?: string;
   notes?: string;
   date?: string;

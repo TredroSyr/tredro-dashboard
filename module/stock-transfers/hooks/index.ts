@@ -3,12 +3,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   listStockTransfers,
   getStockTransfer,
+  createStockTransfer,
   approveStockTransfer,
   modifyStockTransfer,
   cancelStockTransfer,
   getStockTransferHistory,
 } from "../api";
-import { ListStockTransfersParams, ModifyStockTransferPayload } from "../types";
+import {
+  CreateStockTransferPayload,
+  ListStockTransfersParams,
+  ModifyStockTransferPayload,
+} from "../types";
 
 export const useStockTransfersQuery = (params?: ListStockTransfersParams) =>
   useQuery({
@@ -48,6 +53,17 @@ function useInvalidateTransfer() {
     });
   };
 }
+
+export const useCreateStockTransferMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateStockTransferPayload) =>
+      createStockTransfer(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["stock-transfers", "list"] });
+    },
+  });
+};
 
 export const useApproveStockTransferMutation = () => {
   const invalidate = useInvalidateTransfer();

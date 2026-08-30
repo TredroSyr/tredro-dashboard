@@ -44,25 +44,27 @@ export function RepDetailClient({ repId }: { repId: string }) {
 
   return (
     <div>
-      {/* Pass isLoading to all components to show skeletons */}
-      <RepDetailHeader
-        name={rep?.name}
-        phone={rep?.phone}
-        isOnline={rep?.is_active}
-        customersCount={0} // TODO: Update when we have customer count API for rep
-        isLoading={isLoading}
-      />
+      <div className="sticky top-0 z-20 bg-card">
+        {/* Pass isLoading to all components to show skeletons */}
+        <RepDetailHeader
+          name={rep?.name}
+          phone={rep?.phone}
+          isOnline={rep?.is_active}
+          customersCount={0} // TODO: Update when we have customer count API for rep
+          isLoading={isLoading}
+        />
 
-      <RepDetailTabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        counts={{ invoices: 0, orders: 0, customers: 0 }} // TODO: Update with real counts when APIs are available
-        trends={{
-          invoices: { direction: "up", percentage: 0 },
-          orders: { direction: "up", percentage: 0 },
-        }}
-        isLoading={isLoading}
-      />
+        <RepDetailTabs
+          value={activeTab}
+          onValueChange={setActiveTab}
+          counts={{ invoices: 0, orders: 0, customers: 0 }} // TODO: Update with real counts when APIs are available
+          trends={{
+            invoices: { direction: "up", percentage: 0 },
+            orders: { direction: "up", percentage: 0 },
+          }}
+          isLoading={isLoading}
+        />
+      </div>
 
       {/* Only show content areas when not loading OR show skeletons */}
       <div className="px-6 pb-6">
