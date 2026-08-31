@@ -98,7 +98,7 @@ function SingleDateFilter({
   open,
   setOpen,
 }: SingleDateFilterInnerProps) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(768);
   const [selected, setSelected] = React.useState<Date | undefined>(value);
 
   React.useEffect(() => {
@@ -126,7 +126,7 @@ function SingleDateFilter({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[calc(100vw-1.5rem)] max-w-[20rem] overflow-hidden rounded-xl p-0 shadow-lg sm:w-auto sm:max-w-none"
+        className="w-[calc(100vw-1.5rem)] max-w-[20rem] overflow-hidden rounded-xl p-0 shadow-lg md:w-auto md:max-w-none"
         align={isMobile ? "center" : align}
       >
         <Calendar
@@ -172,7 +172,7 @@ function RangeDateFilter({
   open,
   setOpen,
 }: RangeDateFilterInnerProps) {
-  const isMobile = useIsMobile();
+  const isMobile = useIsMobile(768);
   const [range, setRange] = React.useState<DateRange | undefined>(value);
 
   React.useEffect(() => {
@@ -205,7 +205,7 @@ function RangeDateFilter({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[calc(100vw-1.5rem)] max-w-[24rem] overflow-hidden rounded-xl p-0 shadow-lg sm:w-auto sm:max-w-none"
+        className="w-[calc(100vw-1.5rem)] max-w-[24rem] overflow-hidden rounded-xl p-0 shadow-lg md:w-auto md:max-w-none"
         align={isMobile ? "center" : align}
       >
         <Calendar
