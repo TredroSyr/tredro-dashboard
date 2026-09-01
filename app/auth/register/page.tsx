@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import TypingText from "@/components/tredro/typing-text";
 import { PhoneInput } from "@/components/tredro/phone-input";
+import AuthDashboardPreview from "@/components/tredro/auth-dashboard-preview";
 import { useRegisterMutation } from "@/module/auth/hook";
 import { ApiErrorResponse } from "@/module/auth/types";
 
@@ -31,37 +32,10 @@ const HERO_TITLES = [
   "منصّة واحدة لفريقك",
 ];
 
-const MOCK_TABS = ["لماذا تختارنا", "نظرة عامة"];
-
-const REGISTER_BENEFITS = [
-  {
-    icon: "users_outlined" as const,
-    title: "إدارة المناديب",
-    desc: "تابع أداء فريق المبيعات لحظياً وبسهولة",
-  },
-  {
-    icon: "book_outlined" as const,
-    title: "تتبّع الطلبيات",
-    desc: "كل الطلبيات والفواتير في مكان واحد",
-  },
-  {
-    icon: "star_outlined" as const,
-    title: "تقارير دقيقة",
-    desc: "إحصائيات ورؤى تساعدك على اتخاذ القرار",
-  },
+const TRUST_POINTS = [
+  "مستودعات مركزية أو خاصة بكل مندوب",
+  "تحويل المخزون بين المستودعات والمناديب بضغطة زر",
 ];
-
-const OVERVIEW_CONTENT = {
-  stats: [
-    { label: "شركة مسجّلة", value: "240+", icon: "users_outlined" as const },
-    { label: "مندوب فعّال", value: "1.2k", icon: "star_outlined" as const },
-    { label: "طلبية شهرياً", value: "18k", icon: "book_outlined" as const },
-  ],
-  activities: [
-    { text: 'شركة "نور الشام" أنشأت حسابها للتو', time: "قبل دقيقتين" },
-    { text: 'شركة "الأمانة للتوزيع" أكملت الإعداد', time: "قبل ساعة" },
-  ],
-};
 
 const registerSchema = z
   .object({
@@ -73,7 +47,10 @@ const registerSchema = z
     password: z
       .string()
       .min(8, "كلمة المرور يجب أن تكون 8 أحرف على الأقل")
-      .regex(/^(?=.*[a-zA-Z])(?=.*[0-9])/, "كلمة المرور يجب أن تحتوي على أحرف وأرقام على الأقل"),
+      .regex(
+        /^(?=.*[a-zA-Z])(?=.*[0-9])/,
+        "كلمة المرور يجب أن تحتوي على أحرف وأرقام على الأقل",
+      ),
     confirmPassword: z.string().min(8, "تأكيد كلمة المرور مطلوب"),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -88,7 +65,6 @@ const HERO_TRANSITION = { duration: 0.35, ease: [0.32, 0.72, 0, 1] } as const;
 const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState(MOCK_TABS[0]);
   const isKeyboardOpen = useKeyboardOpen();
 
   const form = useForm<RegisterFormValues>({
@@ -154,7 +130,8 @@ const RegisterPage = () => {
                     />
                   </h1>
                   <p className="text-sm text-muted-foreground">
-                    أنشئ حساب شركتك وابدأ بإدارة مناديبك وطلباتك من مكان واحد
+                    أنشئ حساب شركتك وابدأ بإدارة مناديبك، طلباتك، وفواتيرك من
+                    مكان واحد
                   </p>
                 </div>
               </motion.div>
@@ -302,156 +279,8 @@ const RegisterPage = () => {
             </p>
           </motion.div>
         </div>
-        <div className="hidden lg:block w-full max-w-140">
-          <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="rounded-2xl border border-border overflow-hidden bg-card"
-          >
-            <div className="flex items-center justify-center pt-6 pb-4">
-              <div className="flex rounded-full p-1 bg-primary/4">
-                {MOCK_TABS.map((tab) => (
-                  <Button
-                    key={tab}
-                    variant="ghost"
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-8 py-2.5 rounded-full text-sm font-medium transition-all duration-300 ${
-                      activeTab === tab
-                        ? "bg-primary text-white"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {tab}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <AnimatePresence mode="wait">
-              {activeTab === "لماذا تختارنا" ? (
-                <motion.div
-                  key="benefits"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25 }}
-                  className="px-6 pb-6 space-y-3"
-                >
-                  {REGISTER_BENEFITS.map((b, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.3, delay: 0.06 * i }}
-                      className="flex items-start gap-4 rounded-xl bg-primary/4/50 p-4 hover:bg-primary/4 transition-colors"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
-                        <IconRenderer
-                          name={b.icon}
-                          className="w-4 h-4 text-primary"
-                        />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-foreground">
-                          {b.title}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {b.desc}
-                        </p>
-                      </div>
-                    </motion.div>
-                  ))}
-
-                  <div className="rounded-xl border border-border bg-card p-4 space-y-3 mt-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 rounded-full flex items-center justify-center">
-                        <IconRenderer
-                          name="book_outlined"
-                          className="w-4 h-4 text-white"
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        كل ما تحتاجه لإدارة شركتك
-                      </span>
-                    </div>
-                    {[
-                      "تسجيل مجاني بدون بطاقة ائتمانية",
-                      "دعم فني على مدار الساعة",
-                      "إعداد الحساب خلال دقائق",
-                    ].map((s, i) => (
-                      <div key={i} className="flex items-center gap-2.5">
-                        <IconRenderer
-                          name="tick_filled"
-                          className="w-4 h-4 text-primary shrink-0"
-                        />
-                        <span className="text-sm text-muted-foreground">
-                          {s}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="overview"
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.25 }}
-                  className="px-6 pb-6 space-y-4"
-                >
-                  <div className="grid grid-cols-3 gap-3">
-                    {OVERVIEW_CONTENT.stats.map((stat, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.25, delay: 0.05 * i }}
-                        className="rounded-xl bg-primary/4/50 p-4 flex flex-col items-center gap-2"
-                      >
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                          <IconRenderer
-                            name={stat.icon}
-                            className="w-4 h-4 text-primary"
-                          />
-                        </div>
-                        <p className="text-sm font-bold text-foreground">
-                          {stat.value}
-                        </p>
-                        <p className="text-[10px] text-muted-foreground text-center">
-                          {stat.label}
-                        </p>
-                      </motion.div>
-                    ))}
-                  </div>
-                  <div className="space-y-3">
-                    {OVERVIEW_CONTENT.activities.map((activity, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: 0.08 * i }}
-                        className="rounded-xl border border-border bg-card p-4"
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-semibold text-foreground">
-                            نشاط جديد
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">
-                            {activity.time}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">
-                          {activity.text}
-                        </p>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
+        <div className="hidden lg:block w-full max-w-140 space-y-4">
+          <AuthDashboardPreview variant="register" />
         </div>
       </div>
     </div>

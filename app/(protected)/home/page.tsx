@@ -175,9 +175,8 @@ const INDICATOR_ICON_CLASS: Record<string, string> = {
   info: "text-white/80",
 };
 
-/** القسم تحت — تنقيب بيانات: الوضع الحالي ← التوقع لكل مؤشر على مستوى المنصة */
 const ANALYSIS_INTRO =
-  "بناءً على تحليل بيانات المنصة خلال الفترة الحالية، وبافتراض استمرار نفس المعدلات لنهاية الشهر:";
+  "بناءً على تحليل بيانات المنصة خلال الفترة الحالية، وبافتراض استمرار المعدلات ذاتها حتى نهاية الشهر:";
 
 const PERFORMANCE_PROJECTIONS: {
   metric: string;
@@ -188,33 +187,33 @@ const PERFORMANCE_PROJECTIONS: {
   {
     metric: "المبيعات",
     current: "الوضع الحالي: 86.4 مليون ل.س منذ بداية الشهر",
-    projected: "التوقع: ≈ 95 مليون ل.س نهاية الشهر (+10%)",
+    projected: "التوقع: نحو 95 مليون ل.س بحلول نهاية الشهر (+10%)",
     trend: "up",
   },
   {
     metric: "الطلبيات",
     current: "الوضع الحالي: 1,240 طلبية منذ بداية الشهر",
-    projected: "التوقع: ≈ 1,410 طلبية نهاية الشهر (+14%)",
+    projected: "التوقع: نحو 1,410 طلبية بحلول نهاية الشهر (+14%)",
     trend: "up",
   },
   {
     metric: "المناديب الأقل نشاطاً",
-    current: "الوضع الحالي: 3 مناديب معدل زياراتهم منخفض هالأسبوع",
-    projected: "التوقع: خطر تراجع مبيعاتهم 15-20% إذا استمر الوضع",
+    current: "الوضع الحالي: انخفض معدل زيارات 3 مناديب هذا الأسبوع",
+    projected: "التوقع: مخاطرة بتراجع مبيعاتهم بنسبة 15-20% إذا استمر الوضع",
     trend: "down",
   },
   {
     metric: "المرتجعات",
     current: "الوضع الحالي: 8.9% من إجمالي الطلبيات مرتجعة",
-    projected: "التوقع: بتضل ضمن المعدل الطبيعي (8-10%)",
+    projected: "التوقع: يُتوقع أن تبقى ضمن المعدل الطبيعي (8-10%)",
     trend: "steady",
   },
 ];
 
 const PERFORMANCE_RECOMMENDATIONS = [
-  "متابعة المناديب التلاتة يلي تراجع نشاطهم قبل ما ينعكس عالمبيعات.",
-  "تشجيع باقي المناديب لتقليل الاعتماد على 5 مناديب بس بالمبيعات.",
-  "مراقبة نسبة المرتجع أسبوعياً حتى تضل ضمن الحد الطبيعي.",
+  "متابعة المناديب الثلاثة الذين تراجع نشاطهم، قبل أن ينعكس ذلك سلباً على المبيعات.",
+  "تشجيع بقية المناديب لتقليل الاعتماد على خمسة مناديب فقط في تحقيق المبيعات.",
+  "مراقبة نسبة المرتجعات أسبوعياً لتبقى ضمن الحد الطبيعي.",
 ];
 
 const TREND_ICON: Record<string, iconName> = {
@@ -606,7 +605,7 @@ function ForecastBanner() {
 }
 
 /* ============================================================
-   تحليل الأداء والتوقعات
+   نظرة عامة على الأداء والتوقعات
    ============================================================ */
 
 function AnalysisSkeleton() {
@@ -653,7 +652,7 @@ function AnalysisSection() {
           <IconRenderer name="ai_outlined" className="size-4" />
         </div>
         <h2 className="text-lg sm:text-xl font-medium text-foreground">
-          تحليل الأداء والتوقعات — كل المنصة
+          نظرة عامة على الأداء والتوقعات
         </h2>
       </div>
 
@@ -691,7 +690,7 @@ function AnalysisSection() {
 
       <div className="mt-6 pt-6 border-t border-border">
         <h3 className="text-sm font-semibold mb-3 text-foreground">
-          شو لازم يصير بناءً عالتوقعات
+          الخطوات الموصى بها بناءً على هذه التوقعات
         </h3>
         <ul className="list-disc ps-5 space-y-2">
           {PERFORMANCE_RECOMMENDATIONS.map((rec, idx) => (
@@ -985,14 +984,8 @@ function ActivitySection({ loading }: { loading: boolean }) {
    ============================================================ */
 
 export default function PlatformOverview() {
-
-
-
   return (
-    <div
-      dir="rtl"
-      className="w-full bg-background min-h-screen p-4 sm:p-6 lg:p-8"
-    >
+    <div>
       <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
         <div>
           <h1 className="text-lg sm:text-xl font-semibold text-foreground">
@@ -1003,7 +996,7 @@ export default function PlatformOverview() {
           </p>
         </div>
 
-        <KpiRow  />
+        <KpiRow />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
           <OrdersDistributionCard />
