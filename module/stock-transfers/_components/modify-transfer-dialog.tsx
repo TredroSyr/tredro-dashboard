@@ -112,7 +112,7 @@ export function ModifyTransferDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="flex max-h-[85vh] flex-col sm:max-w-md">
         <DialogHeader>
           <DialogTitle>تعديل الكميات — {transfer.number}</DialogTitle>
           <DialogDescription>
@@ -121,14 +121,17 @@ export function ModifyTransferDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex min-h-0 flex-1 flex-col gap-4"
+          >
             {banner && (
               <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
                 {banner}
               </p>
             )}
 
-            <div className="flex flex-col gap-2">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto">
               {fields.map((field, index) => (
                 <div
                   key={field.id}
