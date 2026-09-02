@@ -15,20 +15,25 @@ import {
   ModifyStockTransferPayload,
 } from "../types";
 
-export const useStockTransfersQuery = (params?: ListStockTransfersParams) =>
+export const useStockTransfersQuery = (
+  params?: ListStockTransfersParams,
+  refetchInterval?: number,
+) =>
   useQuery({
     queryKey: ["stock-transfers", "list", params],
     queryFn: () => listStockTransfers(params),
+    refetchInterval,
   });
 
 export const useStockTransferQuery = (
   id?: string | number,
-  options?: { enabled?: boolean },
+  options?: { enabled?: boolean; refetchInterval?: number },
 ) =>
   useQuery({
     queryKey: ["stock-transfers", "detail", id],
     queryFn: () => getStockTransfer(id as string | number),
     enabled: (options?.enabled ?? true) && Boolean(id),
+    refetchInterval: options?.refetchInterval,
   });
 
 export const useStockTransferHistoryQuery = (

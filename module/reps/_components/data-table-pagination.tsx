@@ -4,10 +4,9 @@ import * as React from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Rep } from "../types";
 
 interface DataTablePaginationProps {
-  pagination?: Pick<PaginatedResponse<Rep>, "page" | "totalPages">;
+  pagination?: { page: number; totalPages: number };
   onPageChange: (page: number) => void;
   isLoading?: boolean;
 }

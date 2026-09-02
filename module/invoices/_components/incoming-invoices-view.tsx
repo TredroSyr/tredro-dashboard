@@ -209,7 +209,7 @@ export function IncomingInvoicesView() {
                         className="gap-1.5"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        <IconRenderer name="more_outlined" className="size-3.5" />
+                        <IconRenderer name="menu_outlined" className="size-3.5" />
                         إجراءات
                       </Button>
                     </DropdownMenuTrigger>

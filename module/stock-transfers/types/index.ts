@@ -43,9 +43,12 @@ export interface StockTransfer {
   destination_warehouse_name: string;
   status: StockTransferStatus;
   requested_at: string;
+  pickup_within_hours: number;
+  pickup_deadline: string;
   approved_at: string | null;
   received_at: string | null;
   cancelled_at: string | null;
+  line_count: number;
   notes: string;
   created_at: string;
   updated_at: string;

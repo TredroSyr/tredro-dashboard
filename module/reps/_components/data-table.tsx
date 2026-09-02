@@ -36,10 +36,11 @@ interface DataTableProps<TData, TValue> {
   isError?: boolean;
   errorMessage?: string;
   onRetry?: () => void;
-  pagination?: Pick<PaginatedResponse<TData>, "page" | "totalPages">;
+  pagination?: { page: number; totalPages: number };
   onPageChange?: (page: number) => void;
   renderCard?: (row: TData) => React.ReactNode;
   actionsColumnId?: string;
+  showToolbar?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -56,6 +57,7 @@ export function DataTable<TData, TValue>({
   onPageChange,
   renderCard,
   actionsColumnId = "actions",
+  showToolbar = true,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -78,12 +80,14 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="rounded-md border border-border">
-      <DataTableToolbar
-        table={table}
-        total={total}
-        search={search}
-        onSearchChange={onSearchChange}
-      />
+      {showToolbar && (
+        <DataTableToolbar
+          table={table}
+          total={total}
+          search={search}
+          onSearchChange={onSearchChange}
+        />
+      )}
 
       <div className="hidden md:block px-6">
         <Table>

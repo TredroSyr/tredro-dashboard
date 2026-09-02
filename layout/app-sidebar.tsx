@@ -118,10 +118,10 @@ const navConfig: NavItemConfig[] = [
   },
   {
     key: "stock-transfers",
-    label: "تسليم بضاعة للمندوب",
+    label: "طلبات المندوب",
     href: "/stock-transfers",
-    icon: "assign_outlined",
-    activeIcon: "assign_filled",
+    icon: "list_outlined",
+    activeIcon: "list_filled",
     requiredModule: "stock_transfers",
   },
   {

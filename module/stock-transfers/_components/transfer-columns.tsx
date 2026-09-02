@@ -11,7 +11,7 @@ import {
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import type { StockTransfer } from "../types";
-import { formatDateTime } from "../lib/format";
+import { formatDateTime, calculateRemainingTime } from "../lib/format";
 import { StockTransferStatusBadge } from "./status-badge";
 
 const CANCELLABLE_STATUSES = new Set([
@@ -42,7 +42,9 @@ export function createTransferColumns({
       header: "رقم الطلب",
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-medium text-foreground">{row.original.number}</span>
+          <span className="font-medium text-foreground tabular-nums" dir="ltr">
+            {row.original.number}
+          </span>
           <span className="text-xs text-muted-foreground">
             {formatDateTime(row.original.requested_at)}
           </span>
@@ -66,11 +68,31 @@ export function createTransferColumns({
       ),
     },
     {
-      id: "lines",
-      header: "الأصناف",
+      id: "pickup_deadline",
+      header: "وقت الاستلام",
+      cell: ({ row }) => {
+        const remaining = calculateRemainingTime(row.original.pickup_deadline);
+        const isExpired = remaining === "انتهى الوقت";
+        return (
+          <div className="flex flex-col">
+            <span className={`text-sm font-medium ${
+              isExpired ? "text-destructive" : "text-foreground"
+            }`}>
+              {remaining}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatDateTime(row.original.pickup_deadline)}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "line_count",
+      header: "عدد الأصناف",
       cell: ({ row }) => (
-        <span className="tabular-nums text-foreground">
-          {row.original.lines?.length ?? "—"}
+        <span className="tabular-nums text-foreground" dir="ltr">
+          {row.original.line_count ?? 0}
         </span>
       ),
     },
