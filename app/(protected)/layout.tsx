@@ -8,14 +8,17 @@ import { OnboardingWarningBanner } from "@/components/tredro/onboarding-warning-
 import { PermissionsProvider } from "@/components/provider/PermissionsProvider";
 import { PermissionsLoadingGate } from "@/module/users/_components/permissions-loading-gate";
 import { RefreshIndicator } from "@/components/tredro/refresh-indicator";
-import { RefreshProvider, useRefresh } from "@/components/provider/RefreshProvider";
+import {
+  RefreshProvider,
+  useRefresh,
+} from "@/components/provider/RefreshProvider";
 import { useQueryClient } from "@tanstack/react-query";
 
 type ProtectedLayoutProps = {
   children: React.ReactNode;
 };
 
-const MIN_SPIN_MS = 800;
+const MIN_SPIN_MS = 500;
 
 function ProtectedLayoutContent({ children }: ProtectedLayoutProps) {
   useAuthInit();
@@ -60,7 +63,10 @@ function ProtectedLayoutContent({ children }: ProtectedLayoutProps) {
       <RefreshIndicator />
       <PermissionsProvider>
         <PermissionsLoadingGate>
-          <AppSidebar banner={<OnboardingWarningBanner />} onRefresh={handleRefresh}>
+          <AppSidebar
+            banner={<OnboardingWarningBanner />}
+            onRefresh={handleRefresh}
+          >
             {children}
           </AppSidebar>
         </PermissionsLoadingGate>
