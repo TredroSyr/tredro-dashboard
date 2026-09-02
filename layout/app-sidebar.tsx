@@ -138,17 +138,19 @@ const navConfig: NavItemConfig[] = [
 // Sub Components
 // ==========================================
 
-const MobileTopBar = () => {
+const MobileTopBar = ({ onRefresh }: { onRefresh?: () => void }) => {
   return (
     <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
       <SidebarTrigger className="cursor-pointer transition-transform duration-200 hover:scale-110" />
-      <Image
-        src="/tredro/full_logo.svg"
-        alt="logo"
-        width={100}
-        height={50}
-        className="cursor-pointer transition-transform duration-200 hover:scale-105"
-      />
+      <button type="button" onClick={onRefresh}>
+        <Image
+          src="/tredro/full_logo.svg"
+          alt="logo"
+          width={100}
+          height={50}
+          className="cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95"
+        />
+      </button>
     </div>
   );
 };
@@ -343,9 +345,10 @@ function NavItem({ item, isActive, onClick }: NavItemProps) {
 interface AppSidebarProps {
   children: React.ReactNode;
   banner?: React.ReactNode;
+  onRefresh?: () => void;
 }
 
-const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
+const AppSidebarContent = ({ children, banner, onRefresh }: AppSidebarProps) => {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const user = useAuthStore((state) => state.user);
@@ -377,21 +380,33 @@ const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
           <div className="flex items-center justify-between gap-2 group-data-[state=expanded]:flex-row-reverse group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:items-center lg:justify-center">
             <SidebarTrigger className="hidden shrink-0 cursor-pointer transition-transform duration-200 hover:scale-110 md:flex lg:hidden" />
 
-            <Image
-              src="/tredro/full_logo.svg"
-              alt="logo"
-              width={140}
-              height={70}
-              className="hidden h-auto w-[140px] cursor-pointer object-contain transition-all duration-200 group-data-[state=expanded]:block"
-            />
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="hidden group-data-[state=expanded]:block"
+            >
+              <Image
+                src="/tredro/full_logo.svg"
+                alt="logo"
+                width={140}
+                height={70}
+                className="h-auto w-[140px] cursor-pointer object-contain transition-all duration-200 hover:scale-105 active:scale-95"
+              />
+            </button>
 
-            <Image
-              src="/tredro/logo.svg"
-              alt="logo"
-              width={32}
-              height={32}
-              className="hidden h-auto w-8 cursor-pointer object-contain transition-all duration-200 group-data-[collapsible=icon]:block"
-            />
+            <button
+              type="button"
+              onClick={onRefresh}
+              className="hidden group-data-[collapsible=icon]:block"
+            >
+              <Image
+                src="/tredro/logo.svg"
+                alt="logo"
+                width={32}
+                height={32}
+                className="h-auto w-8 cursor-pointer object-contain transition-all duration-200 hover:scale-110 active:scale-95"
+              />
+            </button>
           </div>
         </SidebarHeader>
 
@@ -478,7 +493,7 @@ const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
       </Sidebar>
 
       <SidebarInset>
-        <MobileTopBar />
+        <MobileTopBar onRefresh={onRefresh} />
         <div className="flex h-full flex-col pt-12  lg:pt-0">
           {banner}
           <main className="flex-1   overflow-auto">{children}</main>
@@ -488,10 +503,12 @@ const AppSidebarContent = ({ children, banner }: AppSidebarProps) => {
   );
 };
 
-const AppSidebar = ({ children, banner }: AppSidebarProps) => {
+const AppSidebar = ({ children, banner, onRefresh }: AppSidebarProps) => {
   return (
     <SidebarProvider>
-      <AppSidebarContent banner={banner}>{children}</AppSidebarContent>
+      <AppSidebarContent banner={banner} onRefresh={onRefresh}>
+        {children}
+      </AppSidebarContent>
     </SidebarProvider>
   );
 };

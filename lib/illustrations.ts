@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image";
+import type { iconName } from "@/assets/icons/iconRenderer/types";
 import permissionImg from "@/public/illustration/permission-denied.png";
 import repsImg from "@/public/illustration/empty-reps.png";
 import productsImg from "@/public/illustration/empty-products.png";
@@ -12,15 +13,11 @@ export const stateImages = {
 
 export type EmptyStateVariant =
   | "reps"
-  | "customers"
   | "products"
-  | "orders"
-  | "invoices"
-  | "roles";
+  | "invoices";
 
 export interface EmptyStatePreset {
-  image: string | StaticImageData;
-  alt: string;
+  icon: iconName;
   title: string;
   description: string;
   actionLabel: string;
@@ -28,45 +25,21 @@ export interface EmptyStatePreset {
 
 export const emptyStatePresets: Record<EmptyStateVariant, EmptyStatePreset> = {
   reps: {
-    image: repsImg,
-    alt: "بطاقة مندوب فارغة",
+    icon: "users_outlined",
     title: "لم تضف أي مندوب بعد",
     description: "أضف مناديبك لتتمكن من متابعة زياراتهم وتوزيع الطلبات عليهم.",
     actionLabel: "إضافة مندوب",
   },
-  // customers: {
-  //   image: customersImg,
-  //   alt: "دفتر زبائن فارغ",
-  //   title: "قائمة الزبائن فارغة",
-  //   description: "ابدأ بإضافة زبائنك لتتمكن من تسجيل طلباتهم وفواتيرهم.",
-  //   actionLabel: "إضافة زبون",
-  // },
   products: {
-    image: productsImg,
-    alt: "رفوف منتجات فارغة",
+    icon: "cart_outlined",
     title: "لا توجد منتجات في المستودع",
     description: "أضف منتجاتك وحدّد أسعارها وكمياتها لتبدأ البيع.",
     actionLabel: "إضافة منتج",
   },
-  // orders: {
-  //   image: ordersImg,
-  //   alt: "قائمة طلبات فارغة",
-  //   title: "لا توجد طلبات حتى الآن",
-  //   description: "عندما يسجّل مناديبك أو زبائنك طلبًا جديدًا سيظهر هنا مباشرة.",
-  //   actionLabel: "إنشاء طلب",
-  // },
   invoices: {
-    image: invoicesImg,
-    alt: "فاتورة فارغة",
+    icon: "sales_outlined",
     title: "لا توجد فواتير بعد",
     description: "فواتير البيع التي يصدرها المناديب عند التسليم ستظهر هنا مع حالة التحصيل.",
     actionLabel: "إنشاء فاتورة",
   },
-  // roles: {
-  //   image: rolesImg,
-  //   alt: "مستخدمون وصلاحيات",
-  //   title: "لم تنشئ أي دور أو مستخدم",
-  //   description: "أنشئ أدوارًا وحدّد صلاحياتها ثم ادعُ فريقك للانضمام.",
-  //   actionLabel: "إضافة مستخدم",
-  // },
 };
