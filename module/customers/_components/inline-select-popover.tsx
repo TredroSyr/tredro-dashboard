@@ -110,7 +110,11 @@ export function InlineSelectPopover({
       <PopoverContent
         className="p-0"
         align={align}
-        style={triggerWidth ? { width: triggerWidth } : undefined}
+        style={
+          triggerWidth && triggerWidth > 288
+            ? { width: triggerWidth }
+            : undefined
+        }
       >
         <Command shouldFilter={false}>
           <CommandInput
