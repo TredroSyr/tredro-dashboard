@@ -4,6 +4,7 @@ import { useCallback, useEffect } from "react";
 import { ProtectedRoute } from "@/guards/protected-route";
 import AppSidebar from "@/layout/app-sidebar";
 import { useAuthInit } from "@/module/auth/hook/use-token-guard";
+import { useRegisterPushNotifications } from "@/module/notifications/hooks/use-register-push-notifications";
 import { OnboardingWarningBanner } from "@/components/tredro/onboarding-warning-banner";
 import { PermissionsProvider } from "@/components/provider/PermissionsProvider";
 import { PermissionsLoadingGate } from "@/module/users/_components/permissions-loading-gate";
@@ -21,7 +22,8 @@ type ProtectedLayoutProps = {
 const MIN_SPIN_MS = 500;
 
 function ProtectedLayoutContent({ children }: ProtectedLayoutProps) {
-  useAuthInit();
+  const { isAuthenticated } = useAuthInit();
+  useRegisterPushNotifications(isAuthenticated);
   const queryClient = useQueryClient();
   const { isRefreshing, startRefresh, endRefresh } = useRefresh();
 

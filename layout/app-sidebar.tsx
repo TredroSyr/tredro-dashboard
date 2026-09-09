@@ -135,6 +135,14 @@ const navConfig: NavItemConfig[] = [
     activeIcon: "authorities_filled",
     ownerOnly: true,
   },
+  {
+    key: "notifications",
+    label: "الإشعارات",
+    href: "/notifications",
+    icon: "notification_outlined",
+    activeIcon: "notification_filled",
+    // No restriction - everyone can see their own notifications
+  },
 ];
 
 // ==========================================
