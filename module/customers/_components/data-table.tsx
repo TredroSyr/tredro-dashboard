@@ -114,6 +114,19 @@ export function DataTable<TData, TValue>({
   const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
   const [internalPage, setInternalPage] = React.useState(1);
 
+  // Jump back to page 1 when the user changes search/filters - but NOT just
+  // because the underlying data refetched (e.g. after adding/editing a row),
+  // which would otherwise kick the user off the page they were viewing.
+  const isFirstRender = React.useRef(true);
+  React.useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    setInternalPage(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, columnFilters]);
+
   const tableColumns = React.useMemo(() => {
     if (!enableRowSelection) return columns;
     const selectColumn: ColumnDef<TData, TValue> = {
@@ -163,6 +176,10 @@ export function DataTable<TData, TValue>({
     getSortedRowModel: getSortedRowModel(),
     ...(usingInternalPagination ? {
       getPaginationRowModel: getPaginationRowModel(),
+      // We reset the page explicitly (see the effect above) - without this,
+      // react-table's default auto-reset kicks the user back to page 1 on
+      // every data change, including an unrelated background refetch.
+      autoResetPageIndex: false,
     } : {
       manualPagination: true,
     }),

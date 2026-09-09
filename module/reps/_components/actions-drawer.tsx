@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Copy, Check } from "lucide-react";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +59,12 @@ function useIsMobile(breakpoint = 768) {
   return isMobile;
 }
 
+const passwordSchema = z
+  .string()
+  .min(8, "كلمة المرور يجب ألا تقل عن 8 أحرف")
+  .regex(/[A-Za-z]/, "كلمة المرور يجب أن تحتوي على حرف واحد على الأقل")
+  .regex(/[0-9]/, "كلمة المرور يجب أن تحتوي على رقم واحد على الأقل");
+
 function buildSchema(mode: "create" | "edit") {
   return z.object({
     name: z.string().min(1, "الاسم مطلوب"),
@@ -65,12 +72,8 @@ function buildSchema(mode: "create" | "edit") {
     referral_code: z.string().min(1, "كود الإحالة مطلوب"),
     password:
       mode === "create"
-        ? z.string().min(6, "كلمة المرور يجب ألا تقل عن 6 أحرف")
-        : z
-            .string()
-            .min(6, "كلمة المرور يجب ألا تقل عن 6 أحرف")
-            .optional()
-            .or(z.literal("")),
+        ? passwordSchema
+        : z.union([passwordSchema, z.literal("")]).optional(),
     is_active: z.boolean(),
   });
 }
@@ -258,6 +261,7 @@ export function RepFormDrawer({
   onOpenChange,
 }: RepFormDrawerProps) {
   const isMobile = useIsMobile();
+  const [showPassword, setShowPassword] = React.useState(false);
   const schema = React.useMemo(() => buildSchema(mode), [mode]);
 
   const { data: repRes, isLoading: isLoadingRep } = useRepQuery(repId, {
@@ -517,18 +521,37 @@ export function RepFormDrawer({
                           : "كلمة المرور الجديدة (اختياري)"}
                       </FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          isLoading={isFieldsLoading}
-                          type="password"
-                          placeholder={
-                            mode === "create"
-                              ? "6 أحرف على الأقل"
-                              : "اتركه فارغاً لعدم التغيير"
-                          }
-                          dir="ltr"
-                          className="h-12"
-                        />
+                        <div className="relative w-full">
+                          <Input
+                            {...field}
+                            isLoading={isFieldsLoading}
+                            type={showPassword ? "text" : "password"}
+                            placeholder={
+                              mode === "create"
+                                ? "8 أحرف على الأقل مع حرف ورقم"
+                                : "اتركه فارغاً لعدم التغيير"
+                            }
+                            dir="ltr"
+                            className="h-12 pl-4 pr-12 w-full"
+                          />
+                          {!isFieldsLoading && (
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword((prev) => !prev)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
+                              tabIndex={-1}
+                            >
+                              <IconRenderer
+                                name={
+                                  showPassword
+                                    ? "eye_invisible_outlined"
+                                    : "eye_visible_outlined"
+                                }
+                                className="w-4 h-4"
+                              />
+                            </button>
+                          )}
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

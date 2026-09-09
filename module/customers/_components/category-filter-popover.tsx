@@ -18,6 +18,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useCategoriesQuery } from "../hooks/categories";
+import { NO_CATEGORY_FILTER_VALUE } from "./filter-constants";
 
 interface CategoryFilterPopoverProps {
   value: string[];
@@ -65,6 +66,16 @@ export function CategoryFilterPopover({
               <>
                 <CommandEmpty>لا توجد تصنيفات</CommandEmpty>
                 <CommandGroup>
+                  <CommandItem
+                    value={`بدون تصنيف ${NO_CATEGORY_FILTER_VALUE}`}
+                    onSelect={() => toggle(NO_CATEGORY_FILTER_VALUE)}
+                    className="gap-2"
+                  >
+                    <Checkbox checked={value.includes(NO_CATEGORY_FILTER_VALUE)} />
+                    <span className="text-sm font-normal text-muted-foreground">
+                      بدون تصنيف
+                    </span>
+                  </CommandItem>
                   {categories.map((c) => (
                     <CommandItem
                       key={c.id}

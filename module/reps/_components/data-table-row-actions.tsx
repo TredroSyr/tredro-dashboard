@@ -1,9 +1,15 @@
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Trash2, Pencil, Eye } from "lucide-react";
 import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -39,23 +45,35 @@ export function DataTableRowActions<TData>({
           size="icon"
           onClick={() => router.push(`/reps/detail?id=${item.id}`)}
         >
-          <Eye className="size-4 text-muted-foreground" />
+          <IconRenderer
+            name="eye_visible_outlined"
+            className="size-4 text-muted-foreground"
+          />
         </Button>
         <PermissionGate module="reps" requireAction fallback={null}>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setEditDrawerOpen(true)}
-          >
-            <Pencil className="size-4 text-muted-foreground" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setDeleteDialogOpen(true)}
-          >
-            <Trash2 className="size-4 text-destructive" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger>
+              <Button variant="ghost" size="icon">
+                <IconRenderer name="menu_outlined" className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setEditDrawerOpen(true)}>
+                <IconRenderer name="edit_outlined" className="size-4" />
+                تعديل
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => setDeleteDialogOpen(true)}
+                className="text-destructive focus:text-destructive"
+              >
+                <IconRenderer
+                  name="bin_outlined"
+                  className="size-4 text-destructive"
+                />
+                حذف
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </PermissionGate>
       </div>
 

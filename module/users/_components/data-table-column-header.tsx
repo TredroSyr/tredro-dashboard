@@ -140,7 +140,7 @@ export function DataTableColumnHeader<TData, TValue>({
 
   return (
     <div className={cn("flex items-center gap-1.5", className)}>
-      <span className="text-gray-500 font-medium text-sm">{title}</span>
+      <span className="text-foreground font-medium text-sm">{title}</span>
       {description && (
         <TooltipProvider>
           <Tooltip>

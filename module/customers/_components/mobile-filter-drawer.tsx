@@ -23,6 +23,7 @@ import { useRepsQuery } from "@/module/reps/hooks";
 import { Customer } from "../types";
 import { cn } from "@/lib/utils";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
+import { NO_CATEGORY_FILTER_VALUE, NO_REP_FILTER_VALUE } from "./filter-constants";
 
 interface FilterBadgeProps {
   count: number;
@@ -63,23 +64,27 @@ export function MobileFilterDrawer<TData extends Customer>({
   const reps = repsRes?.data?.reps ?? [];
 
   const repOptions = React.useMemo(
-    () => reps.map((r) => ({ value: String(r.id), label: r.name })),
+    () => [
+      { value: NO_REP_FILTER_VALUE, label: "بدون مندوب" },
+      ...reps.map((r) => ({ value: String(r.id), label: r.name })),
+    ],
     [reps],
   );
 
   const categoryOptions = React.useMemo(
-    () =>
-      categories.map((c) => ({
+    () => [
+      { value: NO_CATEGORY_FILTER_VALUE, label: "بدون تصنيف" },
+      ...categories.map((c) => ({
         value: String(c.id),
         label: c.is_global ? `${c.name} (افتراضي)` : c.name,
       })),
+    ],
     [categories],
   );
 
   // Local filter states
   const [nameFilter, setNameFilter] = React.useState("");
   const [phoneFilter, setPhoneFilter] = React.useState("");
-  const [emailFilter, setEmailFilter] = React.useState("");
   const [repPicker, setRepPicker] = React.useState("");
   const [categoryPicker, setCategoryPicker] = React.useState("");
   const [selectedRepIds, setSelectedRepIds] = React.useState<string[]>([]);
@@ -94,7 +99,6 @@ export function MobileFilterDrawer<TData extends Customer>({
     if (open) {
       setNameFilter((table.getColumn("name")?.getFilterValue() as string) ?? "");
       setPhoneFilter((table.getColumn("phone")?.getFilterValue() as string) ?? "");
-      setEmailFilter((table.getColumn("email")?.getFilterValue() as string) ?? "");
       setSelectedRepIds(
         (table.getColumn("assigned_reps")?.getFilterValue() as string[]) ?? [],
       );
@@ -165,7 +169,6 @@ export function MobileFilterDrawer<TData extends Customer>({
     let count = 0;
     if (nameFilter.trim()) count++;
     if (phoneFilter.trim()) count++;
-    if (emailFilter.trim()) count++;
     if (!hideRepFilter) count += selectedRepIds.length;
     count += selectedCategoryIds.length;
     count += selectedWorkDays.length;
@@ -175,7 +178,6 @@ export function MobileFilterDrawer<TData extends Customer>({
   }, [
     nameFilter,
     phoneFilter,
-    emailFilter,
     hideRepFilter,
     selectedRepIds,
     selectedCategoryIds,
@@ -186,7 +188,6 @@ export function MobileFilterDrawer<TData extends Customer>({
   const applyFilters = () => {
     table.getColumn("name")?.setFilterValue(nameFilter.trim() || undefined);
     table.getColumn("phone")?.setFilterValue(phoneFilter.trim() || undefined);
-    table.getColumn("email")?.setFilterValue(emailFilter.trim() || undefined);
     if (!hideRepFilter) {
       table
         .getColumn("assigned_reps")
@@ -209,7 +210,6 @@ export function MobileFilterDrawer<TData extends Customer>({
   const clearAllFilters = () => {
     setNameFilter("");
     setPhoneFilter("");
-    setEmailFilter("");
     setRepPicker("");
     setCategoryPicker("");
     setSelectedRepIds([]);
@@ -301,21 +301,6 @@ export function MobileFilterDrawer<TData extends Customer>({
                 </div>
               </div>
 
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1 block">
-                  البريد الإلكتروني
-                </Label>
-                <div className="relative">
-                  <Search className="absolute right-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    placeholder="ابحث بالبريد..."
-                    value={emailFilter}
-                    onChange={(e) => setEmailFilter(e.target.value)}
-                    className="pr-8 h-12"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
             </div>
           </div>
 

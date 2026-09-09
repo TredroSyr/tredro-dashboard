@@ -12,6 +12,7 @@ import { WorkDaysCell } from "./work-days-cell";
 import { Customer, AssignedRepDetail } from "../types";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { WORK_DAYS } from "./work-day-picker";
+import { NO_CATEGORY_FILTER_VALUE, NO_REP_FILTER_VALUE } from "./filter-constants";
 
 // Work day filter options - using full Arabic names
 const WORK_DAY_FILTER_OPTIONS = WORK_DAYS.map((d) => ({
@@ -69,31 +70,9 @@ export const columns: ColumnDef<Customer>[] = [
     maxSize: 160,
   },
   {
-    accessorKey: "email",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="البريد الإلكتروني" type="text" />
-    ),
-    cell: ({ row }) => (
-      <EditableTextCell
-        value={row.original.email ?? ""}
-        placeholder="-"
-        dir="ltr"
-        onSave={(v) => ({ id: row.original.id, email: v })}
-        maxWidth="150px"
-      />
-    ),
-    filterFn: (row, id, filterValue: string) => {
-      if (!filterValue?.trim()) return true;
-      const value = (row.getValue(id) as string) ?? "";
-      return value.toLowerCase().includes(filterValue.toLowerCase());
-    },
-    size: 180,
-    minSize: 120,
-    maxSize: 250,
-  },
-  {
     id: "category",
-    accessorFn: (row) => row.category_details?.id ?? null,
+    accessorFn: (row) =>
+      row.category_details ? String(row.category_details.id) : NO_CATEGORY_FILTER_VALUE,
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="التصنيف" />
     ),
@@ -110,7 +89,8 @@ export const columns: ColumnDef<Customer>[] = [
     id: "assigned_reps",
     accessorFn: (row) => {
       // Return array of rep IDs for filtering (as strings)
-      return (row.assigned_reps_details ?? []).map((r) => String(r.id));
+      const ids = (row.assigned_reps_details ?? []).map((r) => String(r.id));
+      return ids.length ? ids : [NO_REP_FILTER_VALUE];
     },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="المندوبون" />

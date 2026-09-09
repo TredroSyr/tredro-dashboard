@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Moon, Sun } from "lucide-react";
 import {
   Sidebar,
@@ -29,6 +30,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { iconName } from "@/assets/icons/iconRenderer/types";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
@@ -37,6 +39,7 @@ import { useAuthStore } from "@/module/auth/store/auth-store";
 
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { ModuleName } from "@/module/users/types";
+import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 import { useState } from "react";
 
 // ==========================================
@@ -94,7 +97,7 @@ const navConfig: NavItemConfig[] = [
   },
   {
     key: "orders",
-    label: "الطلبات",
+    label: "طلبات العملاء",
     href: "/orders",
     icon: "list_outlined",
     activeIcon: "list_filled",
@@ -195,14 +198,26 @@ const ThemeToggle = ({ onAction }: { onAction: () => void }) => {
 
 const LogoutMenuItem = ({ onAction }: { onAction: () => void }) => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const clearAuth = useAuthStore((state) => state.clearAuth);
   const [open, setOpen] = useState(false);
 
   const handleConfirmLogout = () => {
-    clearAuth();
+    const toastId = toast.loading("جاري تسجيل الخروج...");
+
     setOpen(false);
     onAction();
-    router.push("/auth/login");
+
+    // Let the loading toast paint before we tear things down and navigate away
+    setTimeout(() => {
+      clearAuth();
+
+      // Wipe all cached queries so no stale/previous-user data lingers
+      queryClient.clear();
+
+      router.push("/auth/login");
+      toast.close(toastId);
+    }, 500);
   };
 
   return (
@@ -266,6 +281,27 @@ function SidebarSkeleton() {
 }
 
 // ==========================================
+// Orders Pending-Count Badge
+// ==========================================
+
+/** Live count of orders awaiting a response — the "more details" carried alongside the orders nav label. */
+function OrdersPendingBadge() {
+  const { data } = useCustomerRequestsQuery({ status: "pending" });
+  const count = data?.data?.pagination?.count ?? 0;
+
+  if (!count) return null;
+
+  return (
+    <Badge
+      variant="secondary"
+      className="h-4 shrink-0 rounded-full bg-amber-100 px-1.5 text-[10px] tabular-nums text-amber-700 group-data-[collapsible=icon]:hidden dark:bg-amber-950/50 dark:text-amber-400"
+    >
+      {count}
+    </Badge>
+  );
+}
+
+// ==========================================
 // Single Nav Item Component
 // ==========================================
 
@@ -301,8 +337,9 @@ function NavItem({ item, isActive, onClick }: NavItemProps) {
                   : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
               }`}
             />
-            <span className="truncate group-data-[collapsible=icon]:hidden">
-              {item.label}
+            <span className="flex flex-1 items-center justify-between gap-2 overflow-hidden group-data-[collapsible=icon]:hidden">
+              <span className="truncate">{item.label}</span>
+              {item.key === "orders" && <OrdersPendingBadge />}
             </span>
           </Link>
         }

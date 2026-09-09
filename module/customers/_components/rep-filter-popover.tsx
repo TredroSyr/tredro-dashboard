@@ -18,6 +18,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { useRepsQuery } from "@/module/reps/hooks";
+import { NO_REP_FILTER_VALUE } from "./filter-constants";
 
 interface RepFilterPopoverProps {
   value: string[];
@@ -65,6 +66,16 @@ export function RepFilterPopover({
               <>
                 <CommandEmpty>لا توجد مندوبون</CommandEmpty>
                 <CommandGroup>
+                  <CommandItem
+                    value={`بدون مندوب ${NO_REP_FILTER_VALUE}`}
+                    onSelect={() => toggle(NO_REP_FILTER_VALUE)}
+                    className="gap-2"
+                  >
+                    <Checkbox checked={value.includes(NO_REP_FILTER_VALUE)} />
+                    <span className="text-sm font-normal text-muted-foreground">
+                      بدون مندوب
+                    </span>
+                  </CommandItem>
                   {reps.map((rep) => (
                     <CommandItem
                       key={rep.id}

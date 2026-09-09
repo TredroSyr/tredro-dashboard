@@ -9,6 +9,9 @@ import { RepWarehouseTab } from "@/module/warehouses/_components/rep-warehouse-t
 import { ErrorDisplay } from "@/components/ui/error-display";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
 import { useRepQuery } from "../hooks";
+import { useCustomersQuery } from "@/module/customers/hooks";
+import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
+import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 
 type TabValue = "overview" | "invoices" | "customers" | "warehouse";
 
@@ -16,6 +19,21 @@ export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
   const { data: repData, isLoading, isError, refetch } = useRepQuery(repId);
   const rep = repData?.data?.rep;
+
+  const { data: customersData, isLoading: isCustomersLoading } =
+    useCustomersQuery(repId);
+  const customersCount = customersData?.data?.customers.length ?? 0;
+
+  const { data: invoicesData, isLoading: isInvoicesLoading } =
+    useSalesInvoicesQuery({ rep: repId });
+  const invoicesCount = invoicesData?.data?.pagination.count ?? 0;
+
+  const { data: ordersData, isLoading: isOrdersLoading } =
+    useCustomerRequestsQuery({ rep: repId });
+  const ordersCount = ordersData?.data?.pagination.count ?? 0;
+
+  const isCountsLoading =
+    isCustomersLoading || isInvoicesLoading || isOrdersLoading;
 
   // Show error state with retry button
   if (isError) {
@@ -50,19 +68,19 @@ export function RepDetailClient({ repId }: { repId: string }) {
           name={rep?.name}
           phone={rep?.phone}
           isOnline={rep?.is_active}
-          customersCount={0} // TODO: Update when we have customer count API for rep
-          isLoading={isLoading}
+          customersCount={customersCount}
+          isLoading={isLoading || isCountsLoading}
         />
 
         <RepDetailTabs
           value={activeTab}
           onValueChange={setActiveTab}
-          counts={{ invoices: 0, orders: 0, customers: 0 }} // TODO: Update with real counts when APIs are available
-          trends={{
-            invoices: { direction: "up", percentage: 0 },
-            orders: { direction: "up", percentage: 0 },
+          counts={{
+            invoices: invoicesCount,
+            orders: ordersCount,
+            customers: customersCount,
           }}
-          isLoading={isLoading}
+          isLoading={isLoading || isCountsLoading}
         />
       </div>
 

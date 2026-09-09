@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { EmptyState } from "@/components/tredro/empty-state";
@@ -9,12 +10,19 @@ import { useRepsQuery } from "@/module/reps/hooks";
 import { formatDate } from "@/module/invoices/lib/format";
 import { OrdersDataTable } from "./data-table";
 import { createOrderColumns } from "./columns";
-import { OrderStatusTabs } from "./status-tabs";
 import { RequestStatusBadge } from "./status-badge";
-import { OrderDetailDrawer } from "./order-detail-drawer";
 import { NeedsRepAssignmentBanner } from "./needs-rep-assignment-banner";
 import { useCustomerRequestsQuery } from "../hooks";
-import type { CustomerRequest, CustomerRequestStatus } from "../types";
+import { STATUS_LABEL } from "../lib/format";
+import type { CustomerRequestStatus } from "../types";
+
+const STATUS_OPTIONS = [
+  { value: "all", label: "كل الحالات" },
+  ...(Object.keys(STATUS_LABEL) as CustomerRequestStatus[]).map((status) => ({
+    value: status,
+    label: STATUS_LABEL[status],
+  })),
+];
 
 interface OrdersViewProps {
   /** Scope to one customer's requests (their "orders" tab) — hides the customer filter/column. */
@@ -25,11 +33,16 @@ interface OrdersViewProps {
 }
 
 export function OrdersView({ customerId, customerName, repId }: OrdersViewProps = {}) {
+  const router = useRouter();
   const [status, setStatus] = React.useState<CustomerRequestStatus | "all">("all");
   const [customer, setCustomer] = React.useState("");
   const [rep, setRep] = React.useState("");
   const [page, setPage] = React.useState(1);
-  const [selectedRequest, setSelectedRequest] = React.useState<CustomerRequest | null>(null);
+
+  const goToOrder = React.useCallback(
+    (request: { id: number }) => router.push(`/orders/detail?id=${request.id}`),
+    [router],
+  );
 
   const hideCustomerFilter = Boolean(customerId);
   const hideRepFilter = Boolean(repId);
@@ -77,19 +90,19 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
   const columns = React.useMemo(
     () =>
       createOrderColumns({
-        onView: setSelectedRequest,
+        onView: goToOrder,
         hideCustomerColumn: hideCustomerFilter,
       }),
-    [hideCustomerFilter],
+    [goToOrder, hideCustomerFilter],
   );
 
   return (
     <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
       {!hideCustomerFilter && (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-2 pb-4">
+          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
             طلبات العملاء
-            <Badge className="font-normal">{totalCount}</Badge>
+            <Badge>{totalCount} طلب</Badge>
           </h2>
         </div>
       )}
@@ -100,8 +113,6 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
           customerName={customerName}
         />
       )}
-
-      <OrderStatusTabs value={status} onChange={setStatus} />
 
       <div className="flex flex-wrap items-center gap-2">
         {!hideCustomerFilter && (
@@ -125,6 +136,15 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
             className="h-8 w-[170px] rounded-lg"
           />
         )}
+
+        <SearchableSelect
+          options={STATUS_OPTIONS}
+          value={status}
+          onChange={(value) => setStatus(value as CustomerRequestStatus | "all")}
+          placeholder="كل الحالات"
+          hideSearch
+          className="h-8 w-[150px] rounded-lg"
+        />
       </div>
 
       <OrdersDataTable
@@ -138,7 +158,7 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
           error instanceof Error ? error.message : "حدث خطأ أثناء تحميل الطلبات"
         }
         onRetry={() => refetch()}
-        onRowClick={setSelectedRequest}
+        onRowClick={goToOrder}
         renderMobileCard={(request) => (
           <div className="flex flex-col gap-2">
             <div className="flex items-start justify-between gap-2">
@@ -155,12 +175,6 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
           </div>
         )}
         emptyState={<EmptyState variant="orders" size="sm" />}
-      />
-
-      <OrderDetailDrawer
-        requestId={selectedRequest?.id ?? null}
-        open={Boolean(selectedRequest)}
-        onOpenChange={(open) => !open && setSelectedRequest(null)}
       />
     </div>
   );

@@ -65,10 +65,6 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
         value={activeTab}
         onValueChange={setActiveTab}
         counts={{ invoices: invoicesCount, orders: ordersCount, reps: customer?.assigned_reps_details?.length ?? 0 }}
-        trends={{
-          invoices: { direction: "up", percentage: 0 },
-          orders: { direction: "up", percentage: 0 },
-        }}
         isLoading={isLoading}
       />
 

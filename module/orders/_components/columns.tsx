@@ -1,7 +1,9 @@
 "use client";
 
 import { ColumnDef } from "@tanstack/react-table";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { PhoneInput } from "@/components/tredro/phone-input";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { EntityLink } from "@/module/invoices/_components/entity-link";
 import { formatDate } from "@/module/invoices/lib/format";
@@ -21,18 +23,21 @@ export function createOrderColumns({
     accessorKey: "customer_name",
     header: "الزبون",
     cell: ({ row }) => (
-      <div className="flex flex-col">
+      <div className="flex flex-col gap-1">
         <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
           {row.original.customer_name}
         </EntityLink>
-        <span className="text-xs text-muted-foreground" dir="ltr">
-          {row.original.customer_phone}
-        </span>
+        <PhoneInput value={row.original.customer_phone} readOnly />
       </div>
     ),
   };
 
   return [
+    {
+      id: "index",
+      header: "#",
+      cell: ({ row }) => <Badge variant="outline">{row.index + 1}</Badge>,
+    },
     ...(hideCustomerColumn ? [] : [customerColumn]),
     {
       id: "rep",
