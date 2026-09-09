@@ -27,7 +27,6 @@ import {
   useOnboardingMutation,
 } from "@/module/auth/hook/onboarding";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
-import { ImageWithFallback } from "@/components/tredro/image-with-fallback";
 import { ApiErrorResponse } from "@/module/auth/types";
 import { useBannerStore } from "@/store/use-banner-store";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
@@ -35,6 +34,29 @@ import { IconRenderer } from "@/assets/icons/iconRenderer";
 const MAX_LOGO_SIZE = 2 * 1024 * 1024;
 const MAX_COVER_SIZE = 5 * 1024 * 1024;
 const FORM_ID = "profile-onboarding-form";
+
+// Base URL used only for resolving relative asset paths (images) returned
+// by the API. Strips a trailing "/api" since static files are usually
+// served from the root domain, not under "/api".
+const ASSET_BASE_URL = (process.env.NEXT_PUBLIC_BASE_URL ?? "").replace(
+  /\/api\/?$/,
+  "",
+);
+
+function resolveImageSrc(src: string | null | undefined): string | null {
+  if (!src) return null;
+
+  if (
+    /^(https?:)?\/\//.test(src) ||
+    src.startsWith("data:") ||
+    src.startsWith("blob:")
+  ) {
+    return src;
+  }
+
+  const cleanPath = src.startsWith("/") ? src : `/${src}`;
+  return `${ASSET_BASE_URL}${cleanPath}`;
+}
 
 const profileSchema = z.object({
   governorate: z.string().min(1, "اختر المحافظة"),
@@ -64,7 +86,7 @@ const ProfilePage = () => {
     companyLogo || null,
   );
   const [coverPreview, setCoverPreview] = useState<string | null>(
-    companyCover || null,
+    resolveImageSrc(companyCover),
   );
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     user?.company?.business_type || null,
@@ -220,11 +242,23 @@ const ProfilePage = () => {
             className="hidden"
             onChange={handleCoverChange}
           />
-          <ImageWithFallback
-            src={coverPreview}
-            alt="صورة غلاف الشركة"
-            iconSize={64}
-          />
+          {coverPreview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={coverPreview}
+              alt="صورة غلاف الشركة"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-l from-primary/30 to-primary/10 flex items-center justify-center">
+              <IconRenderer
+                name="no_image_filled"
+                className="text-primary/50"
+                width={64}
+                height={64}
+              />
+            </div>
+          )}
           <button
             type="button"
             onClick={() => coverInputRef.current?.click()}

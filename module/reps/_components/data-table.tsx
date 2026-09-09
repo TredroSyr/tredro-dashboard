@@ -41,6 +41,8 @@ interface DataTableProps<TData, TValue> {
   renderCard?: (row: TData) => React.ReactNode;
   actionsColumnId?: string;
   showToolbar?: boolean;
+  /** Set to false when the caller already wraps the table in its own bordered card (e.g. a custom toolbar above it). */
+  bordered?: boolean;
 }
 
 export function DataTable<TData, TValue>({
@@ -58,6 +60,7 @@ export function DataTable<TData, TValue>({
   renderCard,
   actionsColumnId = "actions",
   showToolbar = true,
+  bordered = true,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -79,7 +82,7 @@ export function DataTable<TData, TValue>({
   const rows = table.getRowModel().rows;
 
   return (
-    <div className="rounded-md border border-border">
+    <div className={bordered ? "rounded-md border border-border" : undefined}>
       {showToolbar && (
         <DataTableToolbar
           table={table}

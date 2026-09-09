@@ -165,28 +165,27 @@ export default function StockTransfersView() {
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-lg font-semibold tracking-tight sm:text-xl">
-              طلبات المندوب
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              طلبات المناديب لتحميل الفان، من الموافقة حتى الاستلام
-            </p>
-          </div>
-          <PermissionGate module="invoices" requireAction fallback={null}>
-            <Button size="sm" className="gap-1.5" onClick={() => setDispatchOpen(true)}>
-              <IconRenderer name="plus_outlined" className="size-3.5" />
-              إرسال بضاعة لمندوب
-            </Button>
-          </PermissionGate>
+    <div className="rounded-md border border-border">
+      <div className="flex items-center justify-between border-b border-border px-6 py-6">
+        <div>
+          <h1 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+            <span>طلبات المندوب</span>
+            <Badge className="font-normal">{filteredTransfers.length} طلب</Badge>
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            طلبات المناديب لتحميل الفان، من الموافقة حتى الاستلام
+          </p>
         </div>
+        <PermissionGate module="invoices" requireAction fallback={null}>
+          <Button size="sm" className="gap-1.5" onClick={() => setDispatchOpen(true)}>
+            <IconRenderer name="plus_outlined" className="size-3.5" />
+            إرسال بضاعة لمندوب
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Filters section */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-4 sm:px-6 border-b border-border">
+      <div className="flex flex-wrap items-center gap-2 py-4 px-6 border-b border-border">
         <div className="relative w-full xs:w-[220px] sm:w-[240px]">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -237,64 +236,61 @@ export default function StockTransfersView() {
             مسح الفلاتر
           </Button>
         )}
-
-        <Badge className="font-normal">{filteredTransfers.length} طلب</Badge>
       </div>
 
-      <div className="px-4 py-5 sm:px-6">
-        <DataTable
-          columns={columns}
-          data={paginatedTransfers}
-          total={filteredTransfers.length}
-          search={search}
-          onSearchChange={handleSearchChange}
-          isLoading={isLoading}
-          isError={isError}
-          errorMessage={
-            error instanceof Error ? error.message : "حدث خطأ أثناء تحميل الطلبات"
-          }
-          onRetry={() => refetch()}
-          pagination={{ page, totalPages }}
-          onPageChange={setPage}
-          showToolbar={false}
-          renderCard={(t: StockTransfer) => (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-foreground tabular-nums" dir="ltr">
-                    {t.number}
-                  </p>
-                  <p className="text-xs text-muted-foreground tabular-nums" dir="ltr">
-                    {t.rep_name} · {formatDateNumeric(t.requested_at)}
-                  </p>
-                </div>
-                <StockTransferStatusBadge status={t.status} />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t.source_warehouse_name} ← {t.destination_warehouse_name}
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="text-xs text-muted-foreground">
-                  عدد الأصناف: <span className="tabular-nums" dir="ltr">{t.line_count ?? 0}</span>
+      <DataTable
+        columns={columns}
+        data={paginatedTransfers}
+        total={filteredTransfers.length}
+        search={search}
+        onSearchChange={handleSearchChange}
+        isLoading={isLoading}
+        isError={isError}
+        errorMessage={
+          error instanceof Error ? error.message : "حدث خطأ أثناء تحميل الطلبات"
+        }
+        onRetry={() => refetch()}
+        pagination={{ page, totalPages }}
+        onPageChange={setPage}
+        showToolbar={false}
+        bordered={false}
+        renderCard={(t: StockTransfer) => (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-medium text-foreground tabular-nums" dir="ltr">
+                  {t.number}
                 </p>
-                {t.pickup_deadline && renderPickupBadge(t)}
+                <p className="text-xs text-muted-foreground tabular-nums" dir="ltr">
+                  {t.rep_name} · {formatDateNumeric(t.requested_at)}
+                </p>
               </div>
-              <div className="flex items-center justify-end gap-2 border-t border-border pt-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    goToDetail(t);
-                  }}
-                >
-                  عرض التفاصيل
-                </Button>
-              </div>
+              <StockTransferStatusBadge status={t.status} />
             </div>
-          )}
-        />
-      </div>
+            <p className="text-xs text-muted-foreground">
+              {t.source_warehouse_name} ← {t.destination_warehouse_name}
+            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs text-muted-foreground">
+                عدد الأصناف: <span className="tabular-nums" dir="ltr">{t.line_count ?? 0}</span>
+              </p>
+              {t.pickup_deadline && renderPickupBadge(t)}
+            </div>
+            <div className="flex items-center justify-end gap-2 border-t border-border pt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  goToDetail(t);
+                }}
+              >
+                عرض التفاصيل
+              </Button>
+            </div>
+          </div>
+        )}
+      />
 
       <ModifyTransferDialog
         transfer={modifyTarget}

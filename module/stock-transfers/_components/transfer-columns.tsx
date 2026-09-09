@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
+import { DataTableColumnHeader } from "@/module/reps/_components/data-table-column-header";
 import type { StockTransfer } from "../types";
 import { formatDateTime, calculateRemainingTime } from "../lib/format";
 import { StockTransferStatusBadge } from "./status-badge";
@@ -39,7 +40,9 @@ export function createTransferColumns({
   return [
     {
       accessorKey: "number",
-      header: "رقم الطلب",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="رقم الطلب" />
+      ),
       cell: ({ row }) => (
         <div className="flex flex-col">
           <span className="font-medium text-foreground tabular-nums" dir="ltr">
@@ -53,7 +56,9 @@ export function createTransferColumns({
     },
     {
       accessorKey: "rep_name",
-      header: "المندوب",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="المندوب" />
+      ),
       cell: ({ row }) => (
         <span className="text-foreground">{row.original.rep_name}</span>
       ),
@@ -89,7 +94,9 @@ export function createTransferColumns({
     },
     {
       accessorKey: "line_count",
-      header: "عدد الأصناف",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="عدد الأصناف" />
+      ),
       cell: ({ row }) => (
         <span className="tabular-nums text-foreground" dir="ltr">
           {row.original.line_count ?? 0}
@@ -98,7 +105,9 @@ export function createTransferColumns({
     },
     {
       accessorKey: "status",
-      header: "الحالة",
+      header: ({ column }) => (
+        <DataTableColumnHeader column={column} title="الحالة" />
+      ),
       cell: ({ row }) => <StockTransferStatusBadge status={row.original.status} />,
     },
     {
