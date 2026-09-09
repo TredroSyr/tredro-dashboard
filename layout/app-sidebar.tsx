@@ -40,6 +40,11 @@ import { useAuthStore } from "@/module/auth/store/auth-store";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { ModuleName } from "@/module/users/types";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
+import {
+  useUnreadNotificationsCountQuery,
+  useUnregisterNotificationDeviceMutation,
+} from "@/module/notifications/hooks";
+import { FCM_TOKEN_STORAGE_KEY } from "@/module/notifications/hooks/use-register-push-notifications";
 import { useState } from "react";
 
 // ==========================================
@@ -208,6 +213,7 @@ const LogoutMenuItem = ({ onAction }: { onAction: () => void }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const clearAuth = useAuthStore((state) => state.clearAuth);
+  const { mutate: unregisterDevice } = useUnregisterNotificationDeviceMutation();
   const [open, setOpen] = useState(false);
 
   const handleConfirmLogout = () => {
@@ -215,6 +221,16 @@ const LogoutMenuItem = ({ onAction }: { onAction: () => void }) => {
 
     setOpen(false);
     onAction();
+
+    // This device's push token belongs to whoever is signed in on it (backend
+    // §4.3) — unregister it now, and clear the dedup cache so the next sign-in
+    // (possibly a different user) always re-registers instead of assuming
+    // "same token = already registered".
+    const fcmToken = window.localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
+    if (fcmToken) {
+      unregisterDevice(fcmToken);
+      window.localStorage.removeItem(FCM_TOKEN_STORAGE_KEY);
+    }
 
     // Let the loading toast paint before we tear things down and navigate away
     setTimeout(() => {
@@ -310,6 +326,27 @@ function OrdersPendingBadge() {
 }
 
 // ==========================================
+// Notifications Unread-Count Badge
+// ==========================================
+
+/** Live unread count for the bell — backed by GET /notifications/unread-count/. */
+function NotificationsUnreadBadge() {
+  const { data } = useUnreadNotificationsCountQuery();
+  const count = data?.data?.unread_count ?? 0;
+
+  if (!count) return null;
+
+  return (
+    <Badge
+      variant="secondary"
+      className="h-4 shrink-0 rounded-full bg-amber-100 px-1.5 text-[10px] tabular-nums text-amber-700 group-data-[collapsible=icon]:hidden dark:bg-amber-950/50 dark:text-amber-400"
+    >
+      {count}
+    </Badge>
+  );
+}
+
+// ==========================================
 // Single Nav Item Component
 // ==========================================
 
@@ -348,6 +385,7 @@ function NavItem({ item, isActive, onClick }: NavItemProps) {
             <span className="flex flex-1 items-center justify-between gap-2 overflow-hidden group-data-[collapsible=icon]:hidden">
               <span className="truncate">{item.label}</span>
               {item.key === "orders" && <OrdersPendingBadge />}
+              {item.key === "notifications" && <NotificationsUnreadBadge />}
             </span>
           </Link>
         }

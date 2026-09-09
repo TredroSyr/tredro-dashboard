@@ -1,22 +1,30 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
+import { Capacitor } from "@capacitor/core";
 import { toast } from "@/components/ui/toast";
-import { useRegisterFcmTokenMutation } from "./index";
+import {
+  useMarkNotificationReadMutation,
+  useRegisterNotificationDeviceMutation,
+} from "./index";
 import {
   registerForPushNotifications,
   PushPayload,
 } from "../lib/push-notifications";
 import { playNotificationSound } from "../lib/notification-sound";
+import { DevicePlatform } from "../types";
 
-const FCM_TOKEN_STORAGE_KEY = "fcm_token";
+export const FCM_TOKEN_STORAGE_KEY = "fcm_token";
 
 // Dedup concurrent registrations (StrictMode double-effect in dev).
 let registrationInFlight = false;
 
 /** Registers for push notifications once and sends the resulting token to the backend. */
 export const useRegisterPushNotifications = (enabled: boolean) => {
-  const { mutate: sendToken } = useRegisterFcmTokenMutation();
+  const { mutate: registerDevice } = useRegisterNotificationDeviceMutation();
+  const { mutate: markRead } = useMarkNotificationReadMutation();
+  const queryClient = useQueryClient();
   const router = useRouter();
   const hasRegistered = useRef(false);
 
@@ -38,7 +46,7 @@ export const useRegisterPushNotifications = (enabled: boolean) => {
         timeout: 6000,
         actionProps: {
           children: "عرض",
-          onClick: () => router.push(payload.url || "/notifications"),
+          onClick: () => router.push(payload.url),
         },
       });
 
@@ -71,25 +79,38 @@ export const useRegisterPushNotifications = (enabled: boolean) => {
           return;
         }
 
-        sendToken(token, {
-          onSuccess: () => {
-            console.log("✅ [push] token sent to /fcm-token/");
-            window.localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
-            registrationInFlight = false;
+        const platform: DevicePlatform = Capacitor.isNativePlatform()
+          ? (Capacitor.getPlatform() as DevicePlatform)
+          : "web";
+
+        registerDevice(
+          { token, platform },
+          {
+            onSuccess: () => {
+              console.log("✅ [push] device registered:", platform);
+              window.localStorage.setItem(FCM_TOKEN_STORAGE_KEY, token);
+              registrationInFlight = false;
+            },
+            onError: (error) => {
+              console.error("❌ [push] failed to register device:", error);
+              registrationInFlight = false;
+            },
           },
-          onError: (error) => {
-            console.error("❌ [push] failed to send token to backend:", error);
-            registrationInFlight = false;
-          },
-        });
+        );
       },
       onForegroundNotification: (payload) => {
         console.log("📩 [push] foreground notification:", payload);
         showNotificationToast(payload);
+        // A new notification landed — refresh the bell badge/list rather than
+        // guessing at the new unread count client-side.
+        queryClient.invalidateQueries({ queryKey: ["notifications"] });
       },
       onNotificationTap: (payload) => {
         console.log("👆 [push] notification tapped:", payload);
-        router.push(payload.url || "/notifications");
+        if (payload.notificationId) {
+          markRead(payload.notificationId);
+        }
+        router.push(payload.url);
       },
     }).finally(() => {
       // Safety net for paths that never call onToken (denied permission,
@@ -97,5 +118,5 @@ export const useRegisterPushNotifications = (enabled: boolean) => {
       // stay stuck true and block every future attempt.
       registrationInFlight = false;
     });
-  }, [enabled, sendToken, router]);
+  }, [enabled, registerDevice, markRead, queryClient, router]);
 };

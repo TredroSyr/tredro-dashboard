@@ -218,21 +218,23 @@ self.addEventListener('notificationclick', (event) => {
   console.log('[push-sw] notificationclick:', event.notification);
   event.notification.close();
 
+  // The routing decision (which screen a given event_key opens) lives once,
+  // client-side, in module/notifications/lib/notification-routing.ts — this
+  // just hands the raw data over instead of duplicating that map here.
   const data = event.notification.data || {};
-  const targetUrl = data.url || '/notifications';
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsArr) => {
       for (const client of clientsArr) {
         if ('focus' in client) {
-          client.postMessage({ type: 'notification-click', title: event.notification.title, body: event.notification.body, url: targetUrl });
+          client.postMessage({ type: 'notification-click', title: event.notification.title, body: event.notification.body, data });
           if (client.url.includes(self.location.origin)) {
             return client.focus();
           }
         }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow('/notifications');
       }
     })
   );

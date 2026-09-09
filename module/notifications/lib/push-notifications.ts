@@ -5,13 +5,28 @@ import {
   listenForegroundFcmMessages,
   requestFcmToken,
 } from "@/lib/firebase";
+import { resolveNotificationUrl } from "./notification-routing";
 
 /** Normalized shape both the native and web paths reduce down to, so the rest of the app handles push in one standard way. */
 export interface PushPayload {
   title: string;
   body: string;
-  url?: string;
+  /** The inbox row id (backend §5 `data.notification_id`) — needed to mark it read on tap. */
+  notificationId?: string;
+  url: string;
 }
+
+/** Every value in FCM's `data` block is a string (backend §5). */
+const buildPayload = (
+  title: string,
+  body: string,
+  data: Record<string, unknown> | undefined,
+): PushPayload => ({
+  title,
+  body,
+  notificationId: data?.notification_id ? String(data.notification_id) : undefined,
+  url: resolveNotificationUrl(data?.event_key as string | undefined, data),
+});
 
 export interface PushHandlers {
   onToken: (token: string) => void;
@@ -41,21 +56,25 @@ const registerNative = async (handlers: PushHandlers) => {
 
   await PushNotifications.addListener("pushNotificationReceived", (notification) => {
     console.log("📩 [push] native foreground notification:", notification);
-    handlers.onForegroundNotification({
-      title: notification.title || "Tredro",
-      body: notification.body || "",
-      url: notification.data?.url,
-    });
+    handlers.onForegroundNotification(
+      buildPayload(
+        notification.title || "Tredro",
+        notification.body || "",
+        notification.data,
+      ),
+    );
   });
 
   await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
     const { notification } = action;
     console.log("👆 [push] native notification tapped:", notification);
-    handlers.onNotificationTap({
-      title: notification.title || "Tredro",
-      body: notification.body || "",
-      url: notification.data?.url,
-    });
+    handlers.onNotificationTap(
+      buildPayload(
+        notification.title || "Tredro",
+        notification.body || "",
+        notification.data,
+      ),
+    );
   });
 
   await PushNotifications.register();
@@ -87,11 +106,13 @@ const registerWeb = async (handlers: PushHandlers) => {
   listenForegroundFcmMessages((payload) => {
     console.log("📩 [push] raw onMessage payload:", payload);
     console.log("🔔 [push] document.visibilityState:", document.visibilityState);
-    handlers.onForegroundNotification({
-      title: payload.notification?.title || payload.data?.title || "Tredro",
-      body: payload.notification?.body || payload.data?.body || "",
-      url: payload.data?.url,
-    });
+    handlers.onForegroundNotification(
+      buildPayload(
+        payload.notification?.title || payload.data?.title || "Tredro",
+        payload.notification?.body || payload.data?.body || "",
+        payload.data,
+      ),
+    );
   });
 
   // The service worker posts this when the user clicks a notification it showed
@@ -99,11 +120,13 @@ const registerWeb = async (handlers: PushHandlers) => {
   navigator.serviceWorker.addEventListener("message", (event) => {
     if (event.data?.type !== "notification-click") return;
     console.log("👆 [push] web notification tapped (from SW):", event.data);
-    handlers.onNotificationTap({
-      title: event.data.title || "Tredro",
-      body: event.data.body || "",
-      url: event.data.url,
-    });
+    handlers.onNotificationTap(
+      buildPayload(
+        event.data.title || "Tredro",
+        event.data.body || "",
+        event.data.data,
+      ),
+    );
   });
 };
 
