@@ -85,12 +85,14 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
 
   return (
     <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
-          طلبات العملاء
-          <Badge className="font-normal">{totalCount}</Badge>
-        </h2>
-      </div>
+      {!hideCustomerFilter && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-foreground sm:text-base">
+            طلبات العملاء
+            <Badge className="font-normal">{totalCount}</Badge>
+          </h2>
+        </div>
+      )}
 
       {showAssignmentBanner && customerId && (
         <NeedsRepAssignmentBanner

@@ -8,7 +8,7 @@ import {
 } from "../types";
 import { useAuthStore } from "../store/auth-store";
 import { login, register } from "../api";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 export const useLoginMutation = (options?: {
   onError?: (error: AxiosError<ApiErrorResponse>) => void;

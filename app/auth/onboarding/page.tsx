@@ -2,7 +2,7 @@
 import { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AxiosError } from "axios";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useKeyboardOpen } from "@/hooks/use-keyboard-open";

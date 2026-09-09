@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { getApiErrorMessage } from "@/hooks/use-api-form-error";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";

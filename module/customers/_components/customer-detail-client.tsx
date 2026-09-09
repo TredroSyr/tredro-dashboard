@@ -7,6 +7,7 @@ import { CustomerDetailHeader } from "./customer-detail-header";
 import CustomerOverview from "./customer-overview";
 import RepsView from "@/module/reps/_components/reps-view";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
+import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
 import { OrdersView } from "@/module/orders/_components/orders-view";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 
@@ -21,6 +22,8 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
   // filtered list the "orders" tab itself renders (see the customer-requests doc §6).
   const { data: requestsData } = useCustomerRequestsQuery({ customer: customerId });
   const ordersCount = requestsData?.data?.pagination?.count ?? 0;
+  const { data: invoicesData } = useSalesInvoicesQuery({ customer: customerId });
+  const invoicesCount = invoicesData?.data?.pagination?.count ?? 0;
 
   // Show error state with retry button
   if (isError) {
@@ -61,7 +64,7 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
       <CustomerDetailTabs
         value={activeTab}
         onValueChange={setActiveTab}
-        counts={{ invoices: 0, orders: ordersCount, reps: customer?.assigned_reps_details?.length ?? 0 }}
+        counts={{ invoices: invoicesCount, orders: ordersCount, reps: customer?.assigned_reps_details?.length ?? 0 }}
         trends={{
           invoices: { direction: "up", percentage: 0 },
           orders: { direction: "up", percentage: 0 },

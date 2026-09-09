@@ -4,7 +4,7 @@ import "./globals.css";
 import AppDownloadDrawer from "@/layout/app-download-drawer";
 import { thmanyahSans } from "@/lib/fonts";
 
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toast";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
 import WarmupConnection from "@/components/tredro/warmup-connection";
 import ErudaLoader from "@/components/tredro/ErudaLoader";
@@ -99,7 +99,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <QueryProvider>
           {children}
           <AppDownloadDrawer />
-          <Toaster position="top-center" richColors dir="rtl" />
+          <Toaster />
           <ErudaLoader />
         </QueryProvider>
       </body>

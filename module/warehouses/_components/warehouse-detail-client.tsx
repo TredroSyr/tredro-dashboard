@@ -25,7 +25,7 @@ import {
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { getApiErrorMessage } from "@/hooks/use-api-form-error";
 import {
   useDeactivateWarehouseMutation,

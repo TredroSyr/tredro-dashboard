@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { getApiErrorMessage } from "@/hooks/use-api-form-error";
 import { Check, Clock, Package, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
