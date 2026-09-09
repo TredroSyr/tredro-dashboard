@@ -1,7 +1,10 @@
 import { Capacitor } from "@capacitor/core";
 import { PushNotifications } from "@capacitor/push-notifications";
-import { getToken, onMessage } from "firebase/messaging";
-import { getFirebaseMessaging } from "@/lib/firebase";
+import {
+  ensureFirebaseSwRegistered,
+  listenForegroundFcmMessages,
+  requestFcmToken,
+} from "@/lib/firebase";
 
 /** Normalized shape both the native and web paths reduce down to, so the rest of the app handles push in one standard way. */
 export interface PushPayload {
@@ -37,6 +40,7 @@ const registerNative = async (handlers: PushHandlers) => {
   });
 
   await PushNotifications.addListener("pushNotificationReceived", (notification) => {
+    console.log("📩 [push] native foreground notification:", notification);
     handlers.onForegroundNotification({
       title: notification.title || "Tredro",
       body: notification.body || "",
@@ -46,6 +50,7 @@ const registerNative = async (handlers: PushHandlers) => {
 
   await PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
     const { notification } = action;
+    console.log("👆 [push] native notification tapped:", notification);
     handlers.onNotificationTap({
       title: notification.title || "Tredro",
       body: notification.body || "",
@@ -60,69 +65,40 @@ const registerNative = async (handlers: PushHandlers) => {
 const registerWeb = async (handlers: PushHandlers) => {
   console.log("🔔 [push] web platform detected, starting registration...");
 
-  if (typeof window === "undefined" || !("Notification" in window)) {
-    console.warn("⚠️ [push] Notification API not available in this browser");
-    return;
-  }
+  if (typeof window === "undefined") return;
 
-  const messaging = await getFirebaseMessaging();
-  if (!messaging) {
-    console.warn(
-      "⚠️ [push] firebase messaging is not supported in this browser/webview",
-    );
-    return;
-  }
-  console.log("🔔 [push] firebase messaging initialized");
+  // Background notifications (tab closed/hidden) need an active SW regardless
+  // of whether getToken() below succeeds.
+  await ensureFirebaseSwRegistered();
 
-  const permission = await Notification.requestPermission();
-  console.log("🔔 [push] web notification permission result:", permission);
-  if (permission !== "granted") {
-    console.warn("⚠️ [push] web permission not granted, aborting");
-    return;
-  }
-
-  const vapidKey = process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY;
-  if (!vapidKey) {
-    console.warn(
-      "⚠️ [push] NEXT_PUBLIC_FIREBASE_VAPID_KEY is not set — web push disabled",
-    );
-    return;
-  }
-
-  const registration = await navigator.serviceWorker.register(
-    "/firebase-messaging-sw.js",
-  );
-  console.log(
-    "🔔 [push] service worker registered, scope:",
-    registration.scope,
-  );
-
-  const token = await getToken(messaging, {
-    vapidKey,
-    serviceWorkerRegistration: registration,
-  });
-
+  const token = await requestFcmToken();
   if (token) {
-    console.log("✅ [push] web FCM token received:", token);
     handlers.onToken(token);
   } else {
-    console.warn("⚠️ [push] getToken() returned no token");
+    console.warn(
+      "⚠️ [push] no token returned (permission denied, unsupported, or missing config/VAPID key — see [push][lib] logs above)",
+    );
   }
 
-  // Fires only while this tab is open/focused — background messages are handled
-  // by the service worker (see public/firebase-messaging-sw.js) instead.
-  onMessage(messaging, (payload) => {
+  console.log("🔔 [push] onMessage listener attached — waiting for pushes");
+
+  // Fires only while this tab is open — background messages are handled by
+  // the service worker (app/firebase-messaging-sw.js/route.ts) instead.
+  listenForegroundFcmMessages((payload) => {
+    console.log("📩 [push] raw onMessage payload:", payload);
+    console.log("🔔 [push] document.visibilityState:", document.visibilityState);
     handlers.onForegroundNotification({
-      title: payload.notification?.title || "Tredro",
-      body: payload.notification?.body || "",
+      title: payload.notification?.title || payload.data?.title || "Tredro",
+      body: payload.notification?.body || payload.data?.body || "",
       url: payload.data?.url,
     });
   });
 
   // The service worker posts this when the user clicks a notification it showed
-  // in the background (see the `notificationclick` handler there).
+  // in the background (see the `notificationclick` handler in generateServiceWorker()).
   navigator.serviceWorker.addEventListener("message", (event) => {
     if (event.data?.type !== "notification-click") return;
+    console.log("👆 [push] web notification tapped (from SW):", event.data);
     handlers.onNotificationTap({
       title: event.data.title || "Tredro",
       body: event.data.body || "",

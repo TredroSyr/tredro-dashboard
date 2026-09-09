@@ -1,10 +1,13 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
-  appId: 'com.tredro.dashboard',
-  appName: 'tredro-dashborad',
+  appId: "com.tredro.dashboard",
+  appName: "tredro-dashborad",
   webDir: "out",
   plugins: {
+    CapacitorHttp: {
+      enabled: true,
+    },
     PushNotifications: {
       // Ensures Android/iOS show the system tray notification (with sound) even
       // while the app is in the foreground, instead of only firing the JS listener.
