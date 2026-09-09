@@ -14,7 +14,8 @@ export const stateImages = {
 export type EmptyStateVariant =
   | "reps"
   | "products"
-  | "invoices";
+  | "invoices"
+  | "orders";
 
 export interface EmptyStatePreset {
   icon: iconName;
@@ -41,5 +42,11 @@ export const emptyStatePresets: Record<EmptyStateVariant, EmptyStatePreset> = {
     title: "لا توجد فواتير بعد",
     description: "فواتير البيع التي يصدرها المناديب عند التسليم ستظهر هنا مع حالة التحصيل.",
     actionLabel: "إنشاء فاتورة",
+  },
+  orders: {
+    icon: "cart_outlined",
+    title: "لا توجد طلبات بعد",
+    description: "الطلبات التي يرسلها العملاء عبر المتجر ستظهر هنا بانتظار رد المندوب.",
+    actionLabel: "تحديث",
   },
 };

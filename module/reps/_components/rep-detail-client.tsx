@@ -10,7 +10,7 @@ import { ErrorDisplay } from "@/components/ui/error-display";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
 import { useRepQuery } from "../hooks";
 
-type TabValue = "overview" | "invoices" | "orders" | "customers" | "warehouse";
+type TabValue = "overview" | "invoices" | "customers" | "warehouse";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
@@ -70,11 +70,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
       <div className="px-6 pb-6">
         {activeTab === "overview" && <RepOverview isLoading={isLoading} />}
         {activeTab === "invoices" && <InvoicesView repId={repId} />}
-        {activeTab === "orders" && (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            {isLoading ? "جاري تحميل الطلبات..." : "محتوى الطلبات"}
-          </div>
-        )}
+
         {activeTab === "customers" && <CustomersView repId={repId} />}
         {activeTab === "warehouse" && <RepWarehouseTab repId={repId} />}
       </div>

@@ -7,6 +7,8 @@ import { CustomerDetailHeader } from "./customer-detail-header";
 import CustomerOverview from "./customer-overview";
 import RepsView from "@/module/reps/_components/reps-view";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
+import { OrdersView } from "@/module/orders/_components/orders-view";
+import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 
 type TabValue = "overview" | "invoices" | "orders" | "reps";
 
@@ -15,6 +17,10 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
   const { data: customerData, isLoading, isError, refetch } =
     useCustomerQuery(customerId);
   const customer = customerData?.data?.customer;
+  // There is no nested customer/orders route — the count is the same ?customer=
+  // filtered list the "orders" tab itself renders (see the customer-requests doc §6).
+  const { data: requestsData } = useCustomerRequestsQuery({ customer: customerId });
+  const ordersCount = requestsData?.data?.pagination?.count ?? 0;
 
   // Show error state with retry button
   if (isError) {
@@ -55,7 +61,7 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
       <CustomerDetailTabs
         value={activeTab}
         onValueChange={setActiveTab}
-        counts={{ invoices: 0, orders: 0, reps: customer?.assigned_reps_details?.length ?? 0 }}
+        counts={{ invoices: 0, orders: ordersCount, reps: customer?.assigned_reps_details?.length ?? 0 }}
         trends={{
           invoices: { direction: "up", percentage: 0 },
           orders: { direction: "up", percentage: 0 },
@@ -67,9 +73,7 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
         {activeTab === "overview" && <CustomerOverview isLoading={isLoading} />}
         {activeTab === "invoices" && <InvoicesView customerId={customerId} />}
         {activeTab === "orders" && (
-          <div className="text-sm text-muted-foreground py-8 text-center">
-            {isLoading ? "جاري تحميل الطلبات..." : "محتوى الطلبات"}
-          </div>
+          <OrdersView customerId={customerId} customerName={customer?.name} />
         )}
         {activeTab === "reps" && <RepsView customerId={customerId} />}
       </div>

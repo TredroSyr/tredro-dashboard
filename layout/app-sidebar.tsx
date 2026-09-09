@@ -98,7 +98,7 @@ const navConfig: NavItemConfig[] = [
     href: "/orders",
     icon: "list_outlined",
     activeIcon: "list_filled",
-    requiredModule: "orders",
+    requiredModule: "customer_requests",
   },
   {
     key: "invoices",

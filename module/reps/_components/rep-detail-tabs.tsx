@@ -19,13 +19,7 @@ const TABS = [
     iconOutlined: "payment_outlined" as iconName,
     countKey: "invoices",
   },
-  {
-    value: "orders",
-    label: "طلبات",
-    iconFilled: "cart_filled" as iconName,
-    iconOutlined: "cart_outlined" as iconName,
-    countKey: "orders",
-  },
+
   {
     value: "customers",
     label: "زبائن",
