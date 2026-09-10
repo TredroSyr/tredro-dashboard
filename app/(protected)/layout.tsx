@@ -9,6 +9,7 @@ import { OnboardingWarningBanner } from "@/components/tredro/onboarding-warning-
 import { PermissionsProvider } from "@/components/provider/PermissionsProvider";
 import { PermissionsLoadingGate } from "@/module/users/_components/permissions-loading-gate";
 import { RefreshIndicator } from "@/components/tredro/refresh-indicator";
+import { PullToRefresh } from "@/components/tredro/pull-to-refresh";
 import {
   RefreshProvider,
   useRefresh,
@@ -44,6 +45,13 @@ function ProtectedLayoutContent({ children }: ProtectedLayoutProps) {
     }
   }, [queryClient, isRefreshing, startRefresh, endRefresh]);
 
+  // Separate from handleRefresh (sidebar button) so the pull gesture's own
+  // inline indicator doesn't double up with the fixed top RefreshIndicator.
+  const handlePullRefresh = useCallback(
+    () => queryClient.refetchQueries({ type: "active" }),
+    [queryClient],
+  );
+
   // Auto-refresh when tab becomes visible (user opens from phone/switches back)
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -69,7 +77,9 @@ function ProtectedLayoutContent({ children }: ProtectedLayoutProps) {
             banner={<OnboardingWarningBanner />}
             onRefresh={handleRefresh}
           >
-            {children}
+            <PullToRefresh onRefresh={handlePullRefresh}>
+              {children}
+            </PullToRefresh>
           </AppSidebar>
         </PermissionsLoadingGate>
       </PermissionsProvider>

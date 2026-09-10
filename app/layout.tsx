@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AppDownloadDrawer from "@/layout/app-download-drawer";
@@ -8,6 +9,7 @@ import { Toaster } from "@/components/ui/toast";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
 // import WarmupConnection from "@/components/tredro/warmup-connection";
 import ErudaLoader from "@/components/tredro/ErudaLoader";
+import HardwareBackButton from "@/components/tredro/HardwareBackButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -101,6 +103,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <AppDownloadDrawer />
           <Toaster />
           <ErudaLoader />
+          <Suspense fallback={null}>
+            <HardwareBackButton />
+          </Suspense>
         </QueryProvider>
       </body>
     </html>

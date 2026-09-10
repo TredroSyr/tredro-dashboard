@@ -10,7 +10,7 @@ import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { toast } from "@/components/ui/toast";
 import { getApiErrorMessage } from "@/hooks/use-api-form-error";
-import { Clock, AlertTriangle } from "lucide-react";
+import { Clock, AlertTriangle, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { TransferDetailTabs } from "./transfer-detail-tabs";
 import {
@@ -47,6 +47,22 @@ export function TransferDetailClient({ transferId }: { transferId: string }) {
   const handleApprove = () => {
     if (transfer) {
       approveTransfer(transfer.id, {
+        onSuccess: () => {
+          toast.success("تمت الموافقة على الطلب بنجاح");
+          refetch();
+        },
+        onError: (error) => toast.error(getApiErrorMessage(error)),
+      });
+    }
+  };
+
+  const handleCancel = () => {
+    if (transfer) {
+      cancelTransfer(transfer.id, {
+        onSuccess: () => {
+          toast.success("تم إلغاء الطلب بنجاح");
+          refetch();
+        },
         onError: (error) => toast.error(getApiErrorMessage(error)),
       });
     }
@@ -164,115 +180,115 @@ export function TransferDetailClient({ transferId }: { transferId: string }) {
     <div>
       <div className="sticky top-0 z-20 bg-card">
         <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-6">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => router.push("/stock-transfers")}
-              className="shrink-0"
-            >
-              <IconRenderer name="arrow_right_outlined" className="size-5" />
-            </Button>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex min-w-0 flex-col gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {isLoading || !transfer ? (
+                  <Skeleton className="h-6 w-32" />
+                ) : (
+                  <h1
+                    className="text-base font-semibold tracking-tight sm:text-lg tabular-nums"
+                    dir="ltr"
+                  >
+                    {transfer.number}
+                  </h1>
+                )}
+                {isLoading || !transfer ? (
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                ) : (
+                  <StockTransferStatusBadge status={transfer.status} />
+                )}
+              </div>
+
               {isLoading || !transfer ? (
-                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-10 w-64" />
               ) : (
-                <h1
-                  className="text-lg font-semibold tracking-tight sm:text-xl tabular-nums"
-                  dir="ltr"
-                >
-                  {transfer.number}
-                </h1>
+                <div className="flex flex-col gap-1 text-sm text-muted-foreground">
+                  <p>
+                    {transfer.rep_name} · {transfer.source_warehouse_name} ←{" "}
+                    {transfer.destination_warehouse_name}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span>تاريخ الطلب: {formatDateTime(transfer.requested_at)}</span>
+                    {transfer.pickup_deadline && (
+                      <div className="flex items-center gap-1">
+                        <span>وقت الاستلام:</span>
+                        <Badge
+                          variant={
+                            calculateRemainingTime(transfer.pickup_deadline) ===
+                            "انتهى الوقت"
+                              ? "destructive"
+                              : "secondary"
+                          }
+                          className="tabular-nums gap-1"
+                        >
+                          {calculateRemainingTime(transfer.pickup_deadline) ===
+                          "انتهى الوقت" ? (
+                            <AlertTriangle className="h-3 w-3" />
+                          ) : (
+                            <Clock className="h-3 w-3" />
+                          )}
+                          {calculateRemainingTime(transfer.pickup_deadline)}
+                        </Badge>
+                        <span className="tabular-nums" dir="ltr">
+                          ({formatDateTime(transfer.pickup_deadline)})
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               )}
-              {isLoading || !transfer ? (
-                <Skeleton className="h-6 w-16 rounded-full" />
-              ) : (
-                <StockTransferStatusBadge status={transfer.status} />
-              )}
+            </div>
+
+            <div className="flex w-full shrink-0 items-center gap-2 sm:w-auto">
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 gap-1.5 sm:w-auto sm:px-3"
+                onClick={() => router.push("/stock-transfers")}
+              >
+                <ArrowRight className="h-4 w-4" />
+                <span className="hidden sm:inline">رجوع</span>
+              </Button>
             </div>
           </div>
 
-          {!isLoading && transfer && (
-            <>
-              <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-                <p>
-                  {transfer.rep_name} · {transfer.source_warehouse_name} ←{" "}
-                  {transfer.destination_warehouse_name}
-                </p>
-                <div className="flex flex-wrap items-center gap-3">
-                  <span>تاريخ الطلب: {formatDateTime(transfer.requested_at)}</span>
-                  {transfer.pickup_deadline && (
-                    <div className="flex items-center gap-1">
-                      <span>وقت الاستلام:</span>
-                      <Badge
-                        variant={
-                          calculateRemainingTime(transfer.pickup_deadline) ===
-                          "انتهى الوقت"
-                            ? "destructive"
-                            : "secondary"
-                        }
-                        className="tabular-nums gap-1"
-                      >
-                        {calculateRemainingTime(transfer.pickup_deadline) ===
-                        "انتهى الوقت" ? (
-                          <AlertTriangle className="h-3 w-3" />
-                        ) : (
-                          <Clock className="h-3 w-3" />
-                        )}
-                        {calculateRemainingTime(transfer.pickup_deadline)}
-                      </Badge>
-                      <span className="tabular-nums" dir="ltr">
-                        ({formatDateTime(transfer.pickup_deadline)})
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                <PermissionGate module="invoices" requireAction fallback={null}>
-                  {canAct && (
-                    <>
-                      {transfer.status === "pending" && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="gap-1.5"
-                            onClick={() => setModifyOpen(true)}
-                          >
-                            <IconRenderer name="edit_outlined" className="size-4" />
-                            تعديل الكميات
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="gap-1.5"
-                            disabled={isApproving}
-                            onClick={handleApprove}
-                          >
-                            <IconRenderer name="tick_outlined" className="size-4" />
-                            موافقة على الكميات المطلوبة
-                          </Button>
-                        </>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        disabled={isCancelling}
-                        onClick={() =>
-                          cancelTransfer(transfer.id, {
-                            onError: (error) => toast.error(getApiErrorMessage(error)),
-                          })
-                        }
-                      >
-                        إلغاء الطلب
-                      </Button>
-                    </>
-                  )}
-                </PermissionGate>
-              </div>
-            </>
+          {!isLoading && transfer && canAct && (
+            <div className="flex flex-wrap gap-2">
+              <PermissionGate module="invoices" requireAction fallback={null}>
+                {transfer.status === "pending" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => setModifyOpen(true)}
+                    >
+                      <IconRenderer name="edit_outlined" className="size-4" />
+                      تعديل الكميات
+                    </Button>
+                    <Button
+                      size="sm"
+                      className="gap-1.5"
+                      disabled={isApproving}
+                      onClick={handleApprove}
+                    >
+                      <IconRenderer name="tick_outlined" className="size-4" />
+                      موافقة على الكميات المطلوبة
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  disabled={isCancelling}
+                  onClick={handleCancel}
+                >
+                  إلغاء الطلب
+                </Button>
+              </PermissionGate>
+            </div>
           )}
         </div>
 
