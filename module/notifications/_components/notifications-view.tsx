@@ -8,6 +8,8 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,13 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { iconName } from "@/assets/icons/iconRenderer/types";
 import { toast } from "@/components/ui/toast";
@@ -37,18 +32,72 @@ import {
 import { resolveNotificationUrl } from "../lib/notification-routing";
 import { Notification } from "../types";
 
-const EVENT_ICON: Record<string, iconName> = {
-  customer_request: "list_outlined",
-  stock_transfer: "folder_outlined",
+type ReadStatus = "unread" | "read";
+
+/** Distinct icon + color per event key so notification types are visually scannable at a glance. */
+const EVENT_CONFIG: Record<string, { icon: iconName; badgeClass: string }> = {
+  "customer_request.created": {
+    icon: "list_outlined",
+    badgeClass: "bg-sky-500/10 text-sky-600",
+  },
+  "customer_request.accepted": {
+    icon: "tick_outlined",
+    badgeClass: "bg-emerald-500/10 text-emerald-600",
+  },
+  "customer_request.rejected": {
+    icon: "close_outlined",
+    badgeClass: "bg-red-500/10 text-red-600",
+  },
+  "stock_transfer.requested": {
+    icon: "cart_outlined",
+    badgeClass: "bg-amber-500/10 text-amber-600",
+  },
+  "stock_transfer.dispatched": {
+    icon: "send_outlined",
+    badgeClass: "bg-blue-500/10 text-blue-600",
+  },
+  "stock_transfer.modified": {
+    icon: "edit_outlined",
+    badgeClass: "bg-violet-500/10 text-violet-600",
+  },
+  "stock_transfer.confirmed": {
+    icon: "success_outlined",
+    badgeClass: "bg-emerald-500/10 text-emerald-600",
+  },
+  "stock_transfer.received": {
+    icon: "download_outlined",
+    badgeClass: "bg-teal-500/10 text-teal-600",
+  },
+  "stock_transfer.cancelled": {
+    icon: "block_outlined",
+    badgeClass: "bg-rose-500/10 text-rose-600",
+  },
 };
 
-const getEventIcon = (eventKey: string): iconName =>
-  EVENT_ICON[eventKey.split(".")[0]] ?? "notification_outlined";
-
-const FILTER_LABEL: Record<"all" | "unread", string> = {
-  all: "الكل",
-  unread: "غير مقروء",
+const DEFAULT_EVENT_CONFIG: { icon: iconName; badgeClass: string } = {
+  icon: "notification_outlined",
+  badgeClass: "bg-muted text-muted-foreground",
 };
+
+const getEventConfig = (eventKey: string) => EVENT_CONFIG[eventKey] ?? DEFAULT_EVENT_CONFIG;
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function getSenderInfo(payload: Record<string, unknown>): { name?: string; avatar?: string } {
+  const name = typeof payload.sender_name === "string" ? payload.sender_name : undefined;
+  const avatar =
+    typeof payload.sender_avatar === "string"
+      ? payload.sender_avatar
+      : typeof payload.avatar_url === "string"
+        ? payload.avatar_url
+        : undefined;
+  return { name, avatar };
+}
 
 const QUOTES = [
   { text: "لا تنتظر اللحظة المثالية، اصنعها بنفسك.", author: "مجهول" },
@@ -80,28 +129,40 @@ function groupByDate(items: Notification[]) {
 function NotificationRow({
   notification,
   onOpen,
+  onMarkRead,
 }: {
   notification: Notification;
   onOpen: (notification: Notification) => void;
+  onMarkRead: (id: number) => void;
 }) {
   const isUnread = !notification.is_read;
+  const { icon, badgeClass } = getEventConfig(notification.event_key);
+  const sender = getSenderInfo(notification.payload);
+  const initials = sender.name ? getInitials(sender.name) : undefined;
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onOpen(notification)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onOpen(notification);
+        }
+      }}
       className={cn(
-        "flex w-full items-start gap-3 px-4 py-3 text-start transition-colors hover:bg-muted/60",
+        "group/row flex w-full cursor-pointer items-start gap-2.5 px-3 py-3 text-start transition-colors hover:bg-muted/60 sm:gap-3 sm:px-4",
         isUnread && "bg-primary/[0.04]",
       )}
     >
       <span
         className={cn(
           "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full",
-          isUnread ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground",
+          badgeClass,
         )}
       >
-        <IconRenderer name={getEventIcon(notification.event_key)} className="size-4" />
+        <IconRenderer name={icon} className="size-4" />
       </span>
 
       <div className="min-w-0 flex-1">
@@ -116,16 +177,42 @@ function NotificationRow({
           </p>
           {isUnread && <span className="size-1.5 shrink-0 rounded-full bg-primary" />}
         </div>
-        <p className="mt-0.5 truncate text-sm text-muted-foreground">{notification.body}</p>
+
+        <div className="mt-1 flex min-w-0 items-center gap-1.5">
+          <Avatar size="sm" className="shrink-0">
+            {sender.avatar && <AvatarImage src={sender.avatar} alt={sender.name ?? ""} />}
+            <AvatarFallback size="sm" className="text-[10px] font-semibold">
+              {initials ?? <IconRenderer name="user_outlined" className="size-3" />}
+            </AvatarFallback>
+          </Avatar>
+          <p className="truncate text-sm text-muted-foreground">{notification.body}</p>
+        </div>
       </div>
 
-      <span className="mt-0.5 shrink-0 text-xs whitespace-nowrap text-muted-foreground tabular-nums">
-        {formatDistanceToNowStrict(new Date(notification.created_at), {
-          addSuffix: true,
-          locale: ar,
-        })}
-      </span>
-    </button>
+      <div className="flex shrink-0 items-center gap-1">
+        <span className="hidden text-xs whitespace-nowrap text-muted-foreground tabular-nums group-hover/row:sm:hidden sm:inline">
+          {formatDistanceToNowStrict(new Date(notification.created_at), {
+            addSuffix: true,
+            locale: ar,
+          })}
+        </span>
+
+        {isUnread && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="hidden group-hover/row:inline-flex"
+            title="تحديد كمقروء"
+            onClick={(event) => {
+              event.stopPropagation();
+              onMarkRead(notification.id);
+            }}
+          >
+            <IconRenderer name="tick_outlined" className="size-4" />
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -204,13 +291,13 @@ function InboxZeroState() {
 
 export default function NotificationsView() {
   const router = useRouter();
-  const [filter, setFilter] = React.useState<"all" | "unread">("all");
+  const [status, setStatus] = React.useState<ReadStatus>("unread");
   const [page, setPage] = React.useState(1);
   const [items, setItems] = React.useState<Notification[]>([]);
   const [confirmClearOpen, setConfirmClearOpen] = React.useState(false);
 
   const { data, isLoading, isFetching } = useNotificationsQuery({
-    unread: filter === "unread" ? true : undefined,
+    unread: status === "unread",
     page,
   });
 
@@ -221,8 +308,8 @@ export default function NotificationsView() {
     );
   }, [data, page]);
 
-  const handleFilterChange = (value: "all" | "unread") => {
-    setFilter(value);
+  const handleStatusChange = (value: ReadStatus) => {
+    setStatus(value);
     setPage(1);
   };
 
@@ -250,19 +337,12 @@ export default function NotificationsView() {
   };
 
   const groups = groupByDate(items);
-  const isInboxZero = filter === "unread" && !isLoading && items.length === 0;
+  const isInboxZero = status === "unread" && !isLoading && items.length === 0;
 
   return (
     <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <h1 className="text-lg font-bold text-foreground">الإشعارات</h1>
-          {unreadCount > 0 && (
-            <Badge variant="secondary" className="tabular-nums">
-              {unreadCount} جديد
-            </Badge>
-          )}
-        </div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-lg font-bold text-foreground">الإشعارات</h1>
         {unreadCount > 0 && (
           <Button
             variant="ghost"
@@ -276,23 +356,24 @@ export default function NotificationsView() {
         )}
       </div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger>
-          <Button variant="outline" size="sm" className="self-start">
-            <IconRenderer name="filter_outlined" className="size-3.5" />
-            {FILTER_LABEL[filter]}
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start">
-          <DropdownMenuRadioGroup
-            value={filter}
-            onValueChange={(value) => handleFilterChange(value as "all" | "unread")}
-          >
-            <DropdownMenuRadioItem value="all">الكل</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="unread">غير مقروء</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+        <Tabs
+          value={status}
+          onValueChange={(value) => handleStatusChange(value as ReadStatus)}
+        >
+          <TabsList variant="line" className="w-fit">
+            <TabsTrigger value="unread" className="gap-1.5">
+              غير مقروء
+              {unreadCount > 0 && (
+                <span className="inline-flex h-4.5 min-w-4.5 items-center justify-center rounded-full bg-primary/15 px-1 text-[11px] font-semibold text-primary tabular-nums">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="read">مقروء</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {isLoading ? (
         <NotificationsSkeleton />
@@ -314,6 +395,7 @@ export default function NotificationsView() {
                       key={notification.id}
                       notification={notification}
                       onOpen={openNotification}
+                      onMarkRead={markRead}
                     />
                   ))}
                 </div>
@@ -340,7 +422,7 @@ export default function NotificationsView() {
             <AlertDialogTitle>تحديد كل الإشعارات كمقروءة؟</AlertDialogTitle>
             <AlertDialogDescription>
               سيتم تحديد جميع الإشعارات ({unreadCount}) كمقروءة، ويمكنك الاطلاع عليها
-              لاحقاً من تبويب «الكل».
+              لاحقاً من تبويب «مقروء».
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
