@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
@@ -19,23 +20,32 @@ import {
 } from "@/components/ui/dialog";
 import { Rep } from "../types";
 import { useDeleteRepMutation } from "../hooks";
+import { useRemoveRepsMutation } from "@/module/customers/hooks";
 import { RepFormDrawer } from "./actions-drawer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
+  /** Present when the row is rendered inside a customer's "reps" tab — the rep still
+   * exists elsewhere, so the destructive action here unassigns them from this customer
+   * instead of deleting the rep account. */
+  customerId?: string | number;
 }
 
 export function DataTableRowActions<TData>({
   row,
+  customerId,
 }: DataTableRowActionsProps<TData>) {
   const item = row.original as Rep;
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const isCustomerScoped = customerId !== undefined;
 
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [editDrawerOpen, setEditDrawerOpen] = React.useState(false);
 
   const { mutate: deleteRep, isPending: isDeleting } = useDeleteRepMutation();
+  const { mutate: removeFromCustomer, isPending: isRemoving } = useRemoveRepsMutation();
 
   return (
     <>
@@ -67,10 +77,10 @@ export function DataTableRowActions<TData>({
                 className="text-destructive focus:text-destructive"
               >
                 <IconRenderer
-                  name="bin_outlined"
+                  name={isCustomerScoped ? "minus_circle_outlined" : "bin_outlined"}
                   className="size-4 text-destructive"
                 />
-                حذف
+                {isCustomerScoped ? "إزالة من هذا العميل" : "حذف"}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -87,24 +97,56 @@ export function DataTableRowActions<TData>({
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-right">حذف المندوب</DialogTitle>
+            <DialogTitle className="text-right">
+              {isCustomerScoped ? "إزالة المندوب من العميل" : "حذف المندوب"}
+            </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground text-right">
-            هل أنت متأكد من حذف{" "}
-            <span className="font-medium text-foreground">{item.name}</span>؟ لا
-            يمكن التراجع عن هذا الإجراء.
+            {isCustomerScoped ? (
+              <>
+                هل أنت متأكد من إزالة{" "}
+                <span className="font-medium text-foreground">{item.name}</span>{" "}
+                من قائمة مناديب هذا العميل؟ يبقى حساب المندوب موجوداً ويمكن
+                تعيينه لهذا العميل مرة أخرى لاحقاً.
+              </>
+            ) : (
+              <>
+                هل أنت متأكد من حذف{" "}
+                <span className="font-medium text-foreground">{item.name}</span>؟
+                لا يمكن التراجع عن هذا الإجراء.
+              </>
+            )}
           </p>
           <DialogFooter className="flex-row-reverse gap-2">
             <Button
               variant="destructive"
-              disabled={isDeleting}
+              disabled={isCustomerScoped ? isRemoving : isDeleting}
               onClick={() => {
-                deleteRep(item.id, {
-                  onSuccess: () => setDeleteDialogOpen(false),
-                });
+                if (isCustomerScoped) {
+                  removeFromCustomer(
+                    { id: Number(customerId), rep_ids: [item.id] },
+                    {
+                      onSuccess: () => {
+                        setDeleteDialogOpen(false);
+                        queryClient.invalidateQueries({ queryKey: ["reps", "list"] });
+                        queryClient.invalidateQueries({ queryKey: ["customers", "detail"] });
+                      },
+                    },
+                  );
+                } else {
+                  deleteRep(item.id, {
+                    onSuccess: () => setDeleteDialogOpen(false),
+                  });
+                }
               }}
             >
-              {isDeleting ? "جارٍ الحذف..." : "حذف"}
+              {isCustomerScoped
+                ? isRemoving
+                  ? "جارٍ الإزالة..."
+                  : "إزالة"
+                : isDeleting
+                  ? "جارٍ الحذف..."
+                  : "حذف"}
             </Button>
             <Button
               variant="outline"

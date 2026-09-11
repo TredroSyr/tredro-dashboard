@@ -9,6 +9,7 @@ export type NotificationEventKey =
   | "customer_request.created"
   | "customer_request.accepted"
   | "customer_request.rejected"
+  | "customer_request.unassigned"
   | "stock_transfer.requested"
   | "stock_transfer.dispatched"
   | "stock_transfer.modified"

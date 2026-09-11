@@ -2,7 +2,7 @@
 
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { Badge } from "@/components/ui/badge";
-import { columns } from "./columns";
+import { createColumns } from "./columns";
 import { DataTable } from "./data-table";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { useRepsQuery } from "../hooks";
@@ -51,6 +51,8 @@ export default function RepsView({ customerId }: RepsViewProps) {
     setPage(1);
   };
 
+  const columns = useMemo(() => createColumns({ customerId }), [customerId]);
+
   return (
     <DataTable
       data={paginatedReps}
@@ -80,7 +82,7 @@ export default function RepsView({ customerId }: RepsViewProps) {
             {user.referral_code ?? "-"}
           </span>
           <div className="flex justify-end pt-2 border-t border-border">
-            <DataTableRowActions row={{ original: user } as any} />
+            <DataTableRowActions row={{ original: user } as any} customerId={customerId} />
           </div>
         </div>
       )}

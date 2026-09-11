@@ -3,6 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { EmptyState } from "@/components/tredro/empty-state";
 import { useCustomersQuery } from "@/module/customers/hooks";
@@ -11,6 +13,7 @@ import { formatDate } from "@/module/invoices/lib/format";
 import { OrdersDataTable } from "./data-table";
 import { createOrderColumns } from "./columns";
 import { RequestStatusBadge } from "./status-badge";
+import { RepAssignmentCell } from "./rep-assignment-cell";
 import { NeedsRepAssignmentBanner } from "./needs-rep-assignment-banner";
 import { useCustomerRequestsQuery } from "../hooks";
 import { STATUS_LABEL } from "../lib/format";
@@ -30,9 +33,16 @@ interface OrdersViewProps {
   customerName?: string;
   /** Scope to one rep's requests (their "orders" tab) — hides the rep filter. */
   repId?: string | number;
+  /** Set when the caller already renders its own NeedsRepAssignmentBanner (e.g. the customer detail page). */
+  hideAssignmentBanner?: boolean;
 }
 
-export function OrdersView({ customerId, customerName, repId }: OrdersViewProps = {}) {
+export function OrdersView({
+  customerId,
+  customerName,
+  repId,
+  hideAssignmentBanner = false,
+}: OrdersViewProps = {}) {
   const router = useRouter();
   const [status, setStatus] = React.useState<CustomerRequestStatus | "all">("all");
   const [customer, setCustomer] = React.useState("");
@@ -81,7 +91,8 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
 
   // Per §4 of the doc, the flag is per customer — every request on this scoped
   // page carries the same value, so one row is enough to decide the banner.
-  const showAssignmentBanner = hideCustomerFilter && requests.some((r) => r.needs_rep_assignment);
+  const showAssignmentBanner =
+    hideCustomerFilter && !hideAssignmentBanner && requests.some((r) => r.needs_rep_assignment);
 
   React.useEffect(() => {
     setPage(1);
@@ -160,7 +171,7 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
         onRetry={() => refetch()}
         onRowClick={goToOrder}
         renderMobileCard={(request) => (
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
               <div>
                 {!hideCustomerFilter && (
@@ -170,7 +181,26 @@ export function OrdersView({ customerId, customerName, repId }: OrdersViewProps 
                   {formatDate(request.created_at)} · {request.line_count} صنف
                 </p>
               </div>
-              <RequestStatusBadge status={request.status} />
+              <div className="flex items-center gap-1">
+                <RequestStatusBadge status={request.status} />
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  title="عرض الطلب"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    goToOrder(request);
+                  }}
+                >
+                  <IconRenderer name="eye_visible_outlined" className="size-4" />
+                </Button>
+              </div>
+            </div>
+            <div
+              className="flex items-center gap-1.5"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <RepAssignmentCell request={request} />
             </div>
           </div>
         )}

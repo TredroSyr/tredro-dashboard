@@ -22,7 +22,8 @@ export const resolveNotificationUrl = (
     }
     case "customer_request.created":
     case "customer_request.accepted":
-    case "customer_request.rejected": {
+    case "customer_request.rejected":
+    case "customer_request.unassigned": {
       const customerRequestId = id("customer_request_id");
       return customerRequestId
         ? `/orders/detail?id=${customerRequestId}`

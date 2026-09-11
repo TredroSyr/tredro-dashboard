@@ -9,6 +9,7 @@ import RepsView from "@/module/reps/_components/reps-view";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
 import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
 import { OrdersView } from "@/module/orders/_components/orders-view";
+import { NeedsRepAssignmentBanner } from "@/module/orders/_components/needs-rep-assignment-banner";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 
 type TabValue = "overview" | "invoices" | "orders" | "reps";
@@ -68,11 +69,21 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
         isLoading={isLoading}
       />
 
+      {!isLoading && customer && customer.assigned_reps_details.length === 0 && (
+        <div className="px-6 pt-4">
+          <NeedsRepAssignmentBanner customerId={customer.id} customerName={customer.name} />
+        </div>
+      )}
+
       <div className="px-6 pb-6">
         {activeTab === "overview" && <CustomerOverview isLoading={isLoading} />}
         {activeTab === "invoices" && <InvoicesView customerId={customerId} />}
         {activeTab === "orders" && (
-          <OrdersView customerId={customerId} customerName={customer?.name} />
+          <OrdersView
+            customerId={customerId}
+            customerName={customer?.name}
+            hideAssignmentBanner
+          />
         )}
         {activeTab === "reps" && <RepsView customerId={customerId} />}
       </div>

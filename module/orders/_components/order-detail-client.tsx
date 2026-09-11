@@ -49,6 +49,7 @@ export function OrderDetailClient({ requestId }: { requestId: string }) {
   return (
     <div>
       <OrderDetailHeader
+        customerId={request?.customer}
         customerName={request?.customer_name}
         customerPhone={request?.customer_phone}
         status={request?.status}

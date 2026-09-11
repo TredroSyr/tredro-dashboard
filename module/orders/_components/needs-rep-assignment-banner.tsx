@@ -55,6 +55,7 @@ export function NeedsRepAssignmentBanner({
             {
               onSuccess: () => {
                 queryClient.invalidateQueries({ queryKey: ["customerRequests"] });
+                queryClient.invalidateQueries({ queryKey: ["customers", "detail"] });
               },
             },
           );

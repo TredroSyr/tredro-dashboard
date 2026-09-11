@@ -72,6 +72,11 @@ const EVENT_CONFIG: Record<
     badgeClass: "bg-red-500/10 text-red-600",
     label: "رفض طلب عميل",
   },
+  "customer_request.unassigned": {
+    icon: "add_user_outlined",
+    badgeClass: "bg-orange-500/10 text-orange-600",
+    label: "طلب عميل بدون مندوب",
+  },
   "stock_transfer.requested": {
     icon: "re_order_outlined",
     badgeClass: "bg-amber-500/10 text-amber-600",

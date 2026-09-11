@@ -1,15 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
 import type { CustomerRequestStatus } from "../types";
 import { RequestStatusBadge } from "./status-badge";
 
 interface OrderDetailHeaderProps {
+  customerId?: number;
   customerName?: string;
   customerPhone?: string;
   status?: CustomerRequestStatus;
@@ -18,6 +21,7 @@ interface OrderDetailHeaderProps {
 }
 
 export function OrderDetailHeader({
+  customerId,
   customerName,
   customerPhone,
   status,
@@ -34,7 +38,7 @@ export function OrderDetailHeader({
             {isLoading ? (
               <Skeleton className="h-6 w-32" />
             ) : (
-              <h1 className="text-base font-semibold tracking-tight sm:text-lg truncate">
+              <h1 className="truncate text-base font-semibold tracking-tight sm:text-lg">
                 {customerName ?? "تفاصيل الطلب"}
               </h1>
             )}
@@ -57,15 +61,27 @@ export function OrderDetailHeader({
           </div>
         </div>
 
-        <Button
-          variant="outline"
-          size="icon"
-          className="shrink-0 gap-1.5 sm:w-auto sm:px-3"
-          onClick={() => router.back()}
-        >
-          <ArrowRight className="h-4 w-4" />
-          <span className="hidden sm:inline">رجوع</span>
-        </Button>
+        <div className="flex shrink-0 items-center gap-2">
+          {customerId && (
+            <Link
+              href={`/customers/detail?id=${customerId}`}
+              title="عرض ملف العميل"
+              className={buttonVariants({ variant: "outline", size: "icon" })}
+            >
+              <IconRenderer name="eye_visible_outlined" className="size-4" />
+            </Link>
+          )}
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="gap-1.5 sm:w-auto sm:px-3"
+            onClick={() => router.back()}
+          >
+            <ArrowRight className="h-4 w-4" />
+            <span className="hidden sm:inline">رجوع</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
