@@ -41,7 +41,11 @@ export function createOrderColumns({
     {
       id: "rep",
       header: "المندوب",
-      cell: ({ row }) => <RepAssignmentCell request={row.original} />,
+      cell: ({ row }) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <RepAssignmentCell request={row.original} />
+        </div>
+      ),
     },
     {
       id: "status",
