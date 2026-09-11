@@ -1,5 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "@/components/ui/toast";
+import { ApiErrorResponse } from "@/module/auth/types";
 import {
   listSalesInvoices,
   getSalesInvoice,
@@ -39,6 +42,10 @@ import {
   LastPurchasePricesByCurrency,
 } from "../types";
 
+const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>) => {
+  toast.error(error.response?.data?.message || fallback);
+};
+
 // ---- Sales invoices ----
 export const useSalesInvoicesQuery = (params?: ListSalesInvoicesParams) =>
   useQuery({
@@ -74,12 +81,14 @@ export const useCreateSalesInvoiceMutation = () => {
   return useMutation({
     mutationFn: (payload: CreateSalesInvoicePayload) =>
       createSalesInvoice(payload),
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["invoices", "sales", "list"] });
       if (variables.credit_ids?.length) {
         queryClient.invalidateQueries({ queryKey: ["invoices", "credits"] });
       }
+      toast.success(data.message || "تم إنشاء الفاتورة بنجاح");
     },
+    onError: onErrorToast("تعذّر إنشاء الفاتورة"),
   });
 };
 
@@ -93,7 +102,7 @@ export const useRecordPaymentMutation = () => {
       invoiceId: number | string;
       payload: RecordPaymentPayload;
     }) => recordPayment(invoiceId, payload),
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["invoices", "sales", "list"] });
       queryClient.invalidateQueries({
         queryKey: ["invoices", "sales", "detail", String(variables.invoiceId)],
@@ -102,7 +111,9 @@ export const useRecordPaymentMutation = () => {
         queryKey: ["invoices", "sales", "history", String(variables.invoiceId)],
       });
       queryClient.invalidateQueries({ queryKey: ["invoices", "payments"] });
+      toast.success(data.message || "تم تسجيل الدفعة بنجاح");
     },
+    onError: onErrorToast("تعذّر تسجيل الدفعة"),
   });
 };
 
@@ -142,11 +153,13 @@ export const useCreateIncomingInvoiceMutation = () => {
   return useMutation({
     mutationFn: (payload: CreateIncomingInvoicePayload) =>
       createIncomingInvoice(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({
         queryKey: ["invoices", "incoming", "list"],
       });
+      toast.success(data.message || "تم إنشاء فاتورة الوارد بنجاح");
     },
+    onError: onErrorToast("تعذّر إنشاء فاتورة الوارد"),
   });
 };
 
@@ -154,14 +167,16 @@ export const useIssueIncomingInvoiceMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number | string) => issueIncomingInvoice(id),
-    onSuccess: (_data, id) => {
+    onSuccess: (data, id) => {
       queryClient.invalidateQueries({
         queryKey: ["invoices", "incoming", "list"],
       });
       queryClient.invalidateQueries({
         queryKey: ["invoices", "incoming", "detail", String(id)],
       });
+      toast.success(data.message || "تم ترحيل الفاتورة بنجاح");
     },
+    onError: onErrorToast("تعذّر ترحيل الفاتورة"),
   });
 };
 
@@ -223,14 +238,16 @@ export const useCancelIncomingInvoiceMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number | string) => cancelIncomingInvoice(id),
-    onSuccess: (_data, id) => {
+    onSuccess: (data, id) => {
       queryClient.invalidateQueries({
         queryKey: ["invoices", "incoming", "list"],
       });
       queryClient.invalidateQueries({
         queryKey: ["invoices", "incoming", "detail", String(id)],
       });
+      toast.success(data.message || "تم إلغاء الفاتورة بنجاح");
     },
+    onError: onErrorToast("تعذّر إلغاء الفاتورة"),
   });
 };
 
@@ -266,7 +283,9 @@ export const useCreateReturnInvoiceMutation = () => {
           queryKey: ["invoices", "sales", "detail", String(salesInvoiceId)],
         });
       }
+      toast.success(data.message || "تم إنشاء فاتورة المرتجع بنجاح");
     },
+    onError: onErrorToast("تعذّر إنشاء فاتورة المرتجع"),
   });
 };
 
@@ -295,7 +314,9 @@ export const useIssueReturnInvoiceMutation = () => {
         });
       }
       queryClient.invalidateQueries({ queryKey: ["invoices", "credits"] });
+      toast.success(data.message || "تم ترحيل فاتورة المرتجع بنجاح");
     },
+    onError: onErrorToast("تعذّر ترحيل فاتورة المرتجع"),
   });
 };
 
@@ -314,9 +335,11 @@ export const useCancelCustomerCreditMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number | string) => cancelCustomerCredit(id),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["invoices", "credits"] });
+      toast.success(data.message || "تم إلغاء رصيد العميل بنجاح");
     },
+    onError: onErrorToast("تعذّر إلغاء رصيد العميل"),
   });
 };
 
@@ -346,8 +369,10 @@ export const useUpdateInvoiceSettingsMutation = () => {
   return useMutation({
     mutationFn: (payload: UpdateInvoiceSettingsPayload) =>
       updateInvoiceSettings(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["invoices", "settings"] });
+      toast.success(data.message || "تم تحديث إعدادات الفواتير بنجاح");
     },
+    onError: onErrorToast("تعذّر تحديث إعدادات الفواتير"),
   });
 };

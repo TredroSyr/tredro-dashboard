@@ -41,12 +41,11 @@ import {
   WarehouseLowStockBadge,
 } from "./warehouse-stock-columns";
 import type { WarehouseProductStockRow } from "../types";
+import { PAGE_SIZE } from "@/lib/constants";
 
 function formatQuantity(value: string) {
   return Number(value).toLocaleString("ar", { maximumFractionDigits: 3 });
 }
-
-const STOCK_PAGE_SIZE = 8;
 
 export function WarehouseDetailClient({
   warehouseId,
@@ -83,11 +82,11 @@ export function WarehouseDetailClient({
 
   const stockTotalPages = Math.max(
     1,
-    Math.ceil(filteredStock.length / STOCK_PAGE_SIZE),
+    Math.ceil(filteredStock.length / PAGE_SIZE),
   );
   const stock = React.useMemo(() => {
-    const start = (stockPage - 1) * STOCK_PAGE_SIZE;
-    return filteredStock.slice(start, start + STOCK_PAGE_SIZE);
+    const start = (stockPage - 1) * PAGE_SIZE;
+    return filteredStock.slice(start, start + PAGE_SIZE);
   }, [filteredStock, stockPage]);
 
   const handleStockSearchChange = (value: string) => {

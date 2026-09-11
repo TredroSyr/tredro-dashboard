@@ -1,6 +1,6 @@
 import { refreshAccessToken } from "@/module/auth/lib/auth";
 import { useAuthStore } from "@/module/auth/store/auth-store";
-import { playActionErrorSound } from "@/lib/action-sound";
+import { playActionErrorSound, playActionSuccessSound } from "@/lib/action-sound";
 import axios, {
   AxiosError,
   AxiosRequestConfig,
@@ -8,29 +8,44 @@ import axios, {
 } from "axios";
 
 // Methods that represent a user-initiated create/update/delete action.
-// Only these get a fail sound — GET requests (page loads, polling,
+// Only these get a sound — GET requests (page loads, polling,
 // react-query refetches) fire far too often to play a sound for.
 const MUTATING_METHODS = ["post", "put", "patch", "delete"];
 
-// Endpoints that are technically mutating but happen passively/in the
-// background (e.g. marking a notification read as soon as it's opened) —
-// not a deliberate user action, so they shouldn't get a sound either.
-const SILENT_URL_PATTERNS = [/notifications\/.*read/i];
+// Sound feedback (success + fail) is scoped to these business modules only —
+// invoices, reps, customers, and products. Everything else (auth, users,
+// warehouses, stock transfers, notifications, etc.) stays silent so the
+// sound doesn't turn into noise across the whole app.
+const SOUND_URL_PATTERNS = [
+  /companies\/sales-invoices/i,
+  /companies\/incoming-invoices/i,
+  /companies\/return-invoices/i,
+  /companies\/customer-credits/i,
+  /companies\/invoice-settings/i,
+  /companies\/reps/i,
+  /companies\/customers/i,
+  /companies\/customer-categories/i,
+  /companies\/products/i,
+  /companies\/product-categories/i,
+];
 
 const isMutatingRequest = (method?: string) =>
   !!method && MUTATING_METHODS.includes(method.toLowerCase());
 
-const shouldPlayErrorSound = (method?: string, url?: string) =>
-  isMutatingRequest(method) &&
-  !SILENT_URL_PATTERNS.some((pattern) => pattern.test(url ?? ""));
+const isSoundScopedUrl = (url?: string) =>
+  SOUND_URL_PATTERNS.some((pattern) => pattern.test(url ?? ""));
+
+const shouldPlaySound = (method?: string, url?: string) =>
+  isMutatingRequest(method) && isSoundScopedUrl(url);
 
 // Rejects with `error`, playing the action-fail sound first if the request
-// that caused it was a create/update/delete call. Use this instead of a bare
-// `Promise.reject(error)` for every *final* rejection below (i.e. not for
-// requests just queued for retry, and not for the retried request itself —
-// that retry gets its own success/error outcome through this same interceptor).
+// that caused it was a create/update/delete call on one of the scoped
+// modules. Use this instead of a bare `Promise.reject(error)` for every
+// *final* rejection below (i.e. not for requests just queued for retry, and
+// not for the retried request itself — that retry gets its own
+// success/error outcome through this same interceptor).
 const rejectWithSound = (error: AxiosError, rejectValue: unknown = error) => {
-  if (shouldPlayErrorSound(error.config?.method, error.config?.url)) {
+  if (shouldPlaySound(error.config?.method, error.config?.url)) {
     playActionErrorSound();
   }
   return Promise.reject(rejectValue);
@@ -129,7 +144,12 @@ const processQueue = (error: unknown, token: string | null = null) => {
 // Handles 401 errors by attempting a token refresh, then retrying.
 // ---------------------------------------------------------------------------
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (shouldPlaySound(response.config.method, response.config.url)) {
+      playActionSuccessSound();
+    }
+    return response;
+  },
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & {
       _retry?: boolean;

@@ -18,8 +18,7 @@ import { useCustomersViewStore } from "@/store/use-customers-view-store";
 import { Badge } from "@/components/ui/badge";
 import { Table } from "@tanstack/react-table";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
-
-const PAGE_SIZE = 8;
+import { PAGE_SIZE } from "@/lib/constants";
 
 interface CustomersViewProps {
   repId?: string | number;

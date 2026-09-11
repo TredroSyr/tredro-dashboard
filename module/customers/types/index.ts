@@ -65,6 +65,10 @@ export interface AssignRepsPayload {
   rep_ids?: number[];
   // New format with work days
   assignments?: Assignment[];
+  // Client-only flag (never sent to the backend, see api/index.ts) — set when
+  // this call only updates visit days for an already-assigned rep, so the
+  // mutation shows "visit days updated" instead of "rep assigned".
+  visitDaysOnly?: boolean;
 }
 
 export interface RemoveRepsPayload {

@@ -25,14 +25,13 @@ import { createWarehouseColumns } from "./warehouse-columns";
 import { WarehouseFormDialog } from "./warehouse-form-dialog";
 import { useDeactivateWarehouseMutation, useWarehousesQuery } from "../hooks";
 import type { Warehouse } from "../types";
+import { PAGE_SIZE } from "@/lib/constants";
 
 const STATUS_OPTIONS: { value: "all" | "true" | "false"; label: string }[] = [
   { value: "all", label: "كل الحالات" },
   { value: "true", label: "نشط" },
   { value: "false", label: "موقوف" },
 ];
-
-const PAGE_SIZE = 8;
 
 export default function WarehousesView() {
   const router = useRouter();
@@ -101,7 +100,7 @@ export default function WarehousesView() {
   );
 
   return (
-    <div className="flex flex-col px-4 py-5 sm:px-6">
+    <>
       <WarehousesDataTable
         columns={columns}
         data={warehouses}
@@ -244,6 +243,6 @@ export default function WarehousesView() {
           </AlertDialogContent>
         </AlertDialog>
       )}
-    </div>
+    </>
   );
 }

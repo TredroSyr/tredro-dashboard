@@ -45,6 +45,7 @@ import { CategoryPickerPopover } from "./category-picker-popover";
 import { WorkDayPicker } from "./work-day-picker";
 import { cn } from "@/lib/utils";
 import { useCategoriesQuery } from "../hooks/categories";
+import { useApiFormErrorHandler } from "@/hooks/use-api-form-error";
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = React.useState(false);
@@ -134,6 +135,8 @@ export function CustomerFormDrawer({
     },
   });
 
+  const handleApiError = useApiFormErrorHandler(form);
+
   const [phoneReady, setPhoneReady] = React.useState(mode === "create");
   const [repPicker, setRepPicker] = React.useState("");
   const [repWorkDays, setRepWorkDays] = React.useState<
@@ -208,7 +211,7 @@ export function CustomerFormDrawer({
         return;
       }
       assignReps(
-        { id, assignments: explicitAssignments },
+        { id, assignments: explicitAssignments, visitDaysOnly: true },
         { onSuccess: () => onOpenChange(false) },
       );
     };
@@ -223,7 +226,10 @@ export function CustomerFormDrawer({
           assigned_reps: repIds.length ? repIds : undefined,
           is_active: values.is_active,
         },
-        { onSuccess: (res) => applyWorkDays(res.data.customer.id) },
+        {
+          onSuccess: (res) => applyWorkDays(res.data.customer.id),
+          onError: handleApiError,
+        },
       );
       return;
     }
@@ -238,7 +244,10 @@ export function CustomerFormDrawer({
         assigned_reps: repIds,
         is_active: values.is_active,
       },
-      { onSuccess: () => applyWorkDays(customerId as number) },
+      {
+        onSuccess: () => applyWorkDays(customerId as number),
+        onError: handleApiError,
+      },
     );
   };
 
@@ -441,26 +450,29 @@ export function CustomerFormDrawer({
                   return (
                     <FormItem>
                       <FormLabel className="text-right block">
-                        المندوبون المسؤولون
+                        المندوب المسؤول
                       </FormLabel>
-                      <FormControl>
-                        <SearchableSelect
-                          options={availableOptions}
-                          value={repPicker}
-                          onChange={(v) => {
-                            field.onChange([...field.value, v]);
-                            setRepPicker("");
-                          }}
-                          loading={isLoadingReps || isFieldsLoading}
-                          placeholder="اختر مندوباً لإضافته"
-                          searchPlaceholder="ابحث عن مندوب..."
-                          emptyText={
-                            availableOptions.length
-                              ? "لا توجد نتائج"
-                              : "تمت إضافة جميع المندوبين"
-                          }
-                        />
-                      </FormControl>
+                      {selectedReps.length === 0 && (
+                        <FormControl>
+                          <SearchableSelect
+                            options={availableOptions}
+                            value={repPicker}
+                            onChange={(v) => {
+                              // A customer can only have one assigned rep.
+                              field.onChange([v]);
+                              setRepPicker("");
+                            }}
+                            loading={isLoadingReps || isFieldsLoading}
+                            placeholder="اختر مندوباً مسؤولاً"
+                            searchPlaceholder="ابحث عن مندوب..."
+                            emptyText={
+                              availableOptions.length
+                                ? "لا توجد نتائج"
+                                : "تمت إضافة جميع المندوبين"
+                            }
+                          />
+                        </FormControl>
+                      )}
 
                       {selectedReps.length > 0 && (
                         <div className="flex flex-col gap-2 pt-1">

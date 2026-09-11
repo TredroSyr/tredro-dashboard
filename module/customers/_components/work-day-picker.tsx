@@ -48,8 +48,6 @@ export function WorkDayPicker({
     onChange?.(newDays);
   };
 
-  const isShort = variant === "short" || variant === "compact";
-
   return (
     <div
       className={cn(
@@ -60,7 +58,8 @@ export function WorkDayPicker({
     >
       {WORK_DAYS.map((day) => {
         const isSelected = selectedSet.has(day.value);
-        const label = isShort ? day.short : day.label;
+        // Always show the full day name — no abbreviated ("short") labels.
+        const label = day.label;
 
         return (
           <button

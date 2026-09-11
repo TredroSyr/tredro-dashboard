@@ -43,8 +43,9 @@ export const useCreateSubUserMutation = (options?: {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateSubUserPayload) => createSubUser(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["subusers"] });
+      toast.success(data.message || "تم إنشاء المستخدم بنجاح");
       options?.onSuccess?.();
     },
     onError: (error: AxiosError<ApiErrorResponse>) => {
@@ -64,8 +65,9 @@ export const useUpdateSubUserMutation = (options?: {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateSubUserPayload) => updateSubUser(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["subusers"] });
+      toast.success(data.message || "تم تحديث المستخدم بنجاح");
       options?.onSuccess?.();
     },
     onError: (error: AxiosError<ApiErrorResponse>) => {
@@ -82,8 +84,11 @@ export const useDeleteSubUserMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deleteSubUser(id),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["subusers"] });
+      toast.success(data.message || "تم حذف المستخدم بنجاح");
     },
+    onError: (error: AxiosError<ApiErrorResponse>) =>
+      toast.error(error.response?.data?.message || "فشل حذف المستخدم"),
   });
 };

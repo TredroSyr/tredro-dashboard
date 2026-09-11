@@ -1,5 +1,6 @@
 "use client";
 import * as React from "react";
+import { Edit2 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -8,7 +9,9 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Customer, WorkDay } from "../types";
-import { WORK_DAYS, getWorkDayLabel, getWorkDayShortLabel } from "./work-day-picker";
+import { WORK_DAYS, WorkDayPicker, getWorkDayLabel } from "./work-day-picker";
+import { useAssignRepsMutation } from "../hooks";
+import { useRepsQuery } from "@/module/reps/hooks";
 import { cn } from "@/lib/utils";
 
 interface WorkDaysCellProps {
@@ -16,9 +19,28 @@ interface WorkDaysCellProps {
 }
 
 export function WorkDaysCell({ customer }: WorkDaysCellProps) {
-  const assignedReps = customer.assigned_reps_details ?? [];
+  const rep = (customer.assigned_reps_details ?? [])[0];
+  const { data: repsRes } = useRepsQuery();
+  const { mutate: assignReps, isPending } = useAssignRepsMutation();
 
-  if (assignedReps.length === 0) {
+  const repDefaultDays = React.useMemo(
+    () =>
+      ((repsRes?.data?.reps ?? []).find((r) => r.id === rep?.id)?.work_days as
+        | WorkDay[]
+        | undefined) ?? [],
+    [repsRes, rep?.id],
+  );
+
+  const explicitDays = (rep?.work_days as WorkDay[] | undefined) ?? [];
+  const isUsingDefault = explicitDays.length === 0;
+  // Show the default value pre-filled when the customer has no explicit
+  // override yet — the editor should reflect what's actually in effect.
+  const effectiveDays = isUsingDefault ? repDefaultDays : explicitDays;
+
+  const [draftDays, setDraftDays] = React.useState<WorkDay[]>(effectiveDays);
+  React.useEffect(() => setDraftDays(effectiveDays), [effectiveDays]);
+
+  if (!rep) {
     return (
       <span className="text-sm font-normal text-muted-foreground">
         بدون مندوب
@@ -26,147 +48,55 @@ export function WorkDaysCell({ customer }: WorkDaysCellProps) {
     );
   }
 
-  // Collect all unique work days across all assigned reps
-  const allWorkDays = new Set<WorkDay>();
-  const repsWithWorkDays: { name: string; work_days?: WorkDay[] }[] = [];
-  let hasDefaultDays = false;
-
-  for (const rep of assignedReps) {
-    repsWithWorkDays.push({
-      name: rep.name,
-      work_days: rep.work_days,
+  const handleChange = (days: WorkDay[]) => {
+    setDraftDays(days);
+    assignReps({
+      id: customer.id,
+      assignments: [
+        { rep_id: rep.id, work_days: days.length > 0 ? days : undefined },
+      ],
+      visitDaysOnly: true,
     });
-    if (rep.work_days && rep.work_days.length > 0) {
-      for (const day of rep.work_days) {
-        allWorkDays.add(day);
-      }
-    } else {
-        hasDefaultDays = true;
-      }
-  }
+  };
 
-  // If no explicit work days at all (all using default)
-  if (allWorkDays.size === 0) {
-    return (
-      <Popover>
-        <PopoverTrigger>
-          <button
-            type="button"
-            className="inline-flex items-center text-sm text-primary hover:text-primary/80"
-          >
-            <Badge
-              variant="secondary"
-              className="text-xs px-2 py-0.5 font-normal"
-            >
-            -
-            </Badge>
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3" side="left" align="center">
-          <div className="text-right space-y-2">
-            <p className="text-sm font-medium mb-2">المندوبون المسؤولون:</p>
-            {repsWithWorkDays.map((rep, idx) => (
-              <div key={idx} className="flex flex-col gap-1 p-2 rounded bg-muted/50">
-                <span className="text-sm font-medium">{rep.name}</span>
-                <span className="text-xs text-muted-foreground">
-                  يستخدم أيام العمل الافتراضية للمندوب
-                </span>
-              </div>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
-  // Mix of explicit days and default days
-  if (hasDefaultDays && allWorkDays.size > 0) {
-    return (
-      <Popover>
-        <PopoverTrigger>
-          <button
-            type="button"
-            className="inline-flex flex-wrap items-center gap-1 text-right"
-          >
-            {Array.from(allWorkDays).map((day) => (
-              <Badge
-                key={day}
-                variant="secondary"
-                className="text-xs px-1.5 py-0 h-auto font-normal"
-              >
-                {getWorkDayShortLabel(day)}
-              </Badge>
-            ))}
-            
-          </button>
-        </PopoverTrigger>
-        <PopoverContent className="w-auto p-3" side="left" align="center">
-          <div className="text-right space-y-2 min-w-[200px]">
-            <p className="text-sm font-medium mb-2">دورات زيارة المندوبين:</p>
-            {repsWithWorkDays.map((rep, idx) => (
-              <div key={idx} className="flex flex-col gap-1 p-2 rounded bg-muted/50">
-                <span className="text-sm font-medium">{rep.name}</span>
-                <div className="flex flex-wrap gap-1 justify-end">
-                  {rep.work_days && rep.work_days.length > 0 ? (
-                    rep.work_days.map((day) => (
-                      <span
-                        key={day}
-                        className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary"
-                      >
-                        {getWorkDayLabel(day)}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      أيام العمل الافتراضية
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </PopoverContent>
-      </Popover>
-    );
-  }
-
-  // All have explicit work days
   return (
     <Popover>
       <PopoverTrigger>
         <button
           type="button"
-          className="inline-flex flex-wrap items-center gap-1 text-right"
+          disabled={isPending}
+          title="تعديل أيام الزيارة"
+          className="inline-flex flex-wrap items-center gap-1 text-right rounded-md px-1 py-0.5 hover:bg-accent disabled:opacity-60"
         >
-          {Array.from(allWorkDays).map((day) => (
-            <Badge
-            key={day}
-            variant="secondary"
-            className="text-xs px-1.5 py-0 h-auto font-normal"
-          >
-            {getWorkDayShortLabel(day)}
-          </Badge>
-        ))}
+          {effectiveDays.length > 0 ? (
+            effectiveDays.map((day) => (
+              <Badge
+                key={day}
+                variant="secondary"
+                className="text-xs px-1.5 py-0 h-auto font-normal"
+              >
+                {getWorkDayLabel(day)}
+              </Badge>
+            ))
+          ) : (
+            <Badge variant="secondary" className="text-xs px-2 py-0.5 font-normal">
+              -
+            </Badge>
+          )}
+          <Edit2 className="size-3 text-muted-foreground shrink-0" />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-3" side="left" align="center">
         <div className="text-right space-y-2 min-w-[200px]">
-          <p className="text-sm font-medium mb-2">دورات زيارة المندوبين:</p>
-          {repsWithWorkDays.map((rep, idx) => (
-            <div key={idx} className="flex flex-col gap-1 p-2 rounded bg-muted/50">
-              <span className="text-sm font-medium">{rep.name}</span>
-              <div className="flex flex-wrap gap-1 justify-end">
-                {rep.work_days && rep.work_days.map((day) => (
-                  <span
-                    key={day}
-                    className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary"
-                  >
-                    {getWorkDayLabel(day)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
+          <p className="text-sm font-medium">أيام زيارة {rep.name}</p>
+          <WorkDayPicker
+            value={draftDays}
+            onChange={handleChange}
+            variant="compact"
+          />
+          <p className="text-xs text-muted-foreground">
+            اترك بدون تحديد لاستخدام أيام العمل الافتراضية للمندوب
+          </p>
         </div>
       </PopoverContent>
     </Popover>

@@ -75,10 +75,10 @@ export function WarehousesDataTable<TData, TValue>({
   const rows = table.getRowModel().rows;
 
   return (
-    <div className="rounded-xl border border-border">
+    <div className="rounded-md border border-border">
       {toolbar}
 
-      <div className="hidden lg:block overflow-x-auto">
+      <div className="hidden md:block overflow-x-auto px-6">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -169,7 +169,7 @@ export function WarehousesDataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="lg:hidden flex flex-col gap-3 px-4 py-3">
+      <div className="md:hidden flex flex-col gap-3 px-4 py-3">
         {isError ? (
           <Card>
             <CardContent className="p-6 flex flex-col items-center justify-center gap-3 text-center">

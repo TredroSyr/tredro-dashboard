@@ -4,9 +4,8 @@ import * as React from "react";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { AssignRepCell } from "./assign-rep-cell";
 import { CategoryCell } from "./category-cell";
-import { EditableTextCell } from "./editable-text-cell";
-import { EditablePhoneCell } from "./editable-phone-cell";
 import { EditableStatusCell } from "./editable-status-cell";
+import { WorkDaysCell } from "./work-days-cell";
 import { Customer } from "../types";
 import { useLongPress } from "../hook/use-long-press";
 import { IndeterminateCheckbox } from "./indeterminate-checkbox";
@@ -41,27 +40,26 @@ export function CustomerCard({
               onChange={onToggleSelect}
             />
           )}
-          <EditableTextCell
-            value={customer.name}
-            onSave={(v) => ({ id: customer.id, name: v })}
-          />
+          <span className="text-sm font-normal truncate">{customer.name}</span>
         </div>
         <EditableStatusCell customer={customer} />
       </div>
 
       <PhoneInput value={customer.phone} readOnly />
 
-      <EditableTextCell
-        value={customer.email ?? ""}
-        placeholder="بدون بريد إلكتروني"
-        dir="ltr"
-        onSave={(v) => ({ id: customer.id, email: v })}
-      />
-
       <div className="flex flex-wrap items-center gap-1.5">
         <CategoryCell customer={customer} />
         <AssignRepCell customer={customer} />
       </div>
+
+      {(customer.assigned_reps_details?.length ?? 0) > 0 && (
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground shrink-0">
+            أيام الزيارة:
+          </span>
+          <WorkDaysCell customer={customer} />
+        </div>
+      )}
 
       {!selectionMode && (
         <div className="flex justify-end pt-2 border-t border-border">

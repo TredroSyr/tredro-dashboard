@@ -213,7 +213,8 @@ const LogoutMenuItem = ({ onAction }: { onAction: () => void }) => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const clearAuth = useAuthStore((state) => state.clearAuth);
-  const { mutate: unregisterDevice } = useUnregisterNotificationDeviceMutation();
+  const { mutate: unregisterDevice } =
+    useUnregisterNotificationDeviceMutation();
   const [open, setOpen] = useState(false);
 
   const handleConfirmLogout = () => {
@@ -346,6 +347,40 @@ function NotificationsUnreadBadge() {
   );
 }
 
+/**
+ * Bell icon for the notifications nav item.
+ * When there are unread notifications it turns red, shakes to draw
+ * attention, and gets a small pulsing red dot — visible even when the
+ * sidebar is collapsed to icon-only mode (unlike the count badge above).
+ */
+function NotificationsNavIcon({
+  iconName,
+  className,
+}: {
+  iconName: iconName;
+  className: string;
+}) {
+  const { data } = useUnreadNotificationsCountQuery();
+  const hasUnread = (data?.data?.unread_count ?? 0) > 0;
+
+  return (
+    <span className="relative flex h-4 w-4 shrink-0">
+      <IconRenderer
+        name={iconName}
+        className={`${className} ${
+          hasUnread ? "animate-bell-shake text-destructive" : ""
+        }`}
+      />
+      {hasUnread && (
+        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+        </span>
+      )}
+    </span>
+  );
+}
+
 // ==========================================
 // Single Nav Item Component
 // ==========================================
@@ -374,14 +409,25 @@ function NavItem({ item, isActive, onClick }: NavItemProps) {
             onClick={onClick}
             className="flex w-full flex-nowrap items-center gap-2 overflow-hidden"
           >
-            <IconRenderer
-              name={iconName}
-              className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                isActive
-                  ? "scale-110 text-primary"
-                  : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
-              }`}
-            />
+            {item.key === "notifications" ? (
+              <NotificationsNavIcon
+                iconName={iconName}
+                className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                  isActive
+                    ? "scale-110 text-primary"
+                    : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
+                }`}
+              />
+            ) : (
+              <IconRenderer
+                name={iconName}
+                className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                  isActive
+                    ? "scale-110 text-primary"
+                    : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
+                }`}
+              />
+            )}
             <span className="flex flex-1 items-center justify-between gap-2 overflow-hidden group-data-[collapsible=icon]:hidden">
               <span className="truncate">{item.label}</span>
               {item.key === "orders" && <OrdersPendingBadge />}
@@ -431,7 +477,11 @@ interface AppSidebarProps {
   onRefresh?: () => void;
 }
 
-const AppSidebarContent = ({ children, banner, onRefresh }: AppSidebarProps) => {
+const AppSidebarContent = ({
+  children,
+  banner,
+  onRefresh,
+}: AppSidebarProps) => {
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const user = useAuthStore((state) => state.user);
@@ -555,20 +605,6 @@ const AppSidebarContent = ({ children, banner, onRefresh }: AppSidebarProps) => 
             </div>
 
             <ThemeToggle onAction={handleMobileClose} />
-
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                tooltip="المساعدة والمعلومات"
-                onClick={handleMobileClose}
-                className="cursor-pointer transition-all duration-200 hover:translate-x-1 hover:bg-muted active:scale-[0.97]"
-              >
-                <IconRenderer
-                  name="help_outlined"
-                  className="h-4 w-4 shrink-0 text-primary"
-                />
-                <span className="truncate">المساعدة والمعلومات</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
 
             <LogoutMenuItem onAction={handleMobileClose} />
           </SidebarMenu>

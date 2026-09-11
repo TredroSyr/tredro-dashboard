@@ -1,5 +1,8 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "@/components/ui/toast";
+import { ApiErrorResponse } from "@/module/auth/types";
 import {
   listStockTransfers,
   getStockTransfer,
@@ -14,6 +17,10 @@ import {
   ListStockTransfersParams,
   ModifyStockTransferPayload,
 } from "../types";
+
+const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>) => {
+  toast.error(error.response?.data?.message || fallback);
+};
 
 export const useStockTransfersQuery = (
   params?: ListStockTransfersParams,
@@ -64,12 +71,16 @@ export const useCreateStockTransferMutation = () => {
   return useMutation({
     mutationFn: (payload: CreateStockTransferPayload) =>
       createStockTransfer(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["stock-transfers", "list"] });
+      toast.success(data.message || "تم إنشاء طلب النقل بنجاح");
     },
+    onError: onErrorToast("تعذّر إنشاء طلب النقل"),
   });
 };
 
+// Approve/cancel already show their own toast at the call site (with a
+// refetch alongside it), so no automatic toast here to avoid double-firing.
 export const useApproveStockTransferMutation = () => {
   const invalidate = useInvalidateTransfer();
   return useMutation({
@@ -88,7 +99,11 @@ export const useModifyStockTransferMutation = () => {
       id: number | string;
       payload: ModifyStockTransferPayload;
     }) => modifyStockTransfer(id, payload),
-    onSuccess: (_data, variables) => invalidate(variables.id),
+    onSuccess: (data, variables) => {
+      invalidate(variables.id);
+      toast.success(data.message || "تم تعديل طلب النقل بنجاح");
+    },
+    onError: onErrorToast("تعذّر تعديل طلب النقل"),
   });
 };
 

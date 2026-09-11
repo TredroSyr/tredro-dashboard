@@ -34,6 +34,8 @@ interface OrdersDataTableProps<TData, TValue> {
   onRowClick?: (row: TData) => void;
   renderMobileCard?: (row: TData) => React.ReactNode;
   skeletonRows?: number;
+  /** Title / filters bar rendered above the table, inside the same bordered card. */
+  toolbar?: React.ReactNode;
 }
 
 export function OrdersDataTable<TData, TValue>({
@@ -49,6 +51,7 @@ export function OrdersDataTable<TData, TValue>({
   onRowClick,
   renderMobileCard,
   skeletonRows = 6,
+  toolbar,
 }: OrdersDataTableProps<TData, TValue>) {
   const table = useReactTable({
     data,
@@ -60,8 +63,10 @@ export function OrdersDataTable<TData, TValue>({
   const rows = table.getRowModel().rows;
 
   return (
-    <div className="rounded-xl border border-border">
-      <div className="hidden lg:block overflow-x-auto">
+    <div className="rounded-md border border-border">
+      {toolbar}
+
+      <div className="hidden md:block overflow-x-auto px-6">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -152,7 +157,7 @@ export function OrdersDataTable<TData, TValue>({
         </Table>
       </div>
 
-      <div className="lg:hidden flex flex-col gap-3 px-4 py-3">
+      <div className="md:hidden flex flex-col gap-3 px-4 py-3">
         {isError ? (
           <Card>
             <CardContent className="p-6 flex flex-col items-center justify-center gap-3 text-center">

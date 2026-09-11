@@ -9,8 +9,7 @@ import { useRepsQuery } from "../hooks";
 import { Rep } from "../types";
 
 import { useState, useMemo } from "react";
-
-const PAGE_SIZE = 8;
+import { PAGE_SIZE } from "@/lib/constants";
 
 interface RepsViewProps {
   customerId?: string | number;

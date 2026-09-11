@@ -27,7 +27,6 @@ export function createOrderColumns({
         <EntityLink href={`/customers/detail?id=${row.original.customer}`}>
           {row.original.customer_name}
         </EntityLink>
-        <PhoneInput value={row.original.customer_phone} readOnly />
       </div>
     ),
   };

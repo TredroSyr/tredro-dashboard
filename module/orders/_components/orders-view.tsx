@@ -18,6 +18,7 @@ import { NeedsRepAssignmentBanner } from "./needs-rep-assignment-banner";
 import { useCustomerRequestsQuery } from "../hooks";
 import { STATUS_LABEL } from "../lib/format";
 import type { CustomerRequestStatus } from "../types";
+import { PAGE_SIZE } from "@/lib/constants";
 
 const STATUS_OPTIONS = [
   { value: "all", label: "كل الحالات" },
@@ -61,7 +62,6 @@ export function OrdersView({
     status: status !== "all" ? status : undefined,
     customer: customerId ?? (customer || undefined),
     rep: repId ?? (rep || undefined),
-    page,
   });
 
   const { data: customersRes } = useCustomersQuery();
@@ -84,15 +84,18 @@ export function OrdersView({
     [repsRes],
   );
 
-  const requests = React.useMemo(() => data?.data?.requests ?? [], [data]);
-  const pagination = data?.data?.pagination;
-  const totalPages = pagination?.total_pages ?? 1;
-  const totalCount = pagination?.count ?? requests.length;
+  const allRequests = React.useMemo(() => data?.data?.requests ?? [], [data]);
+  const totalCount = allRequests.length;
+  const totalPages = Math.max(1, Math.ceil(allRequests.length / PAGE_SIZE));
+  const requests = React.useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return allRequests.slice(start, start + PAGE_SIZE);
+  }, [allRequests, page]);
 
-  // Per §4 of the doc, the flag is per customer — every request on this scoped
-  // page carries the same value, so one row is enough to decide the banner.
+  // Per §4 of the doc, the flag is per customer — every request in this scoped
+  // set carries the same value, so one row is enough to decide the banner.
   const showAssignmentBanner =
-    hideCustomerFilter && !hideAssignmentBanner && requests.some((r) => r.needs_rep_assignment);
+    hideCustomerFilter && !hideAssignmentBanner && allRequests.some((r) => r.needs_rep_assignment);
 
   React.useEffect(() => {
     setPage(1);
@@ -108,55 +111,15 @@ export function OrdersView({
   );
 
   return (
-    <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">
-      {!hideCustomerFilter && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-2 pb-4">
-          <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-foreground">
-            طلبات العملاء
-            <Badge>{totalCount} طلب</Badge>
-          </h2>
+    <>
+      {showAssignmentBanner && customerId && (
+        <div className="px-6 pt-4">
+          <NeedsRepAssignmentBanner
+            customerId={Number(customerId)}
+            customerName={customerName}
+          />
         </div>
       )}
-
-      {showAssignmentBanner && customerId && (
-        <NeedsRepAssignmentBanner
-          customerId={Number(customerId)}
-          customerName={customerName}
-        />
-      )}
-
-      <div className="flex flex-wrap items-center gap-2">
-        {!hideCustomerFilter && (
-          <SearchableSelect
-            options={customerOptions}
-            value={customer}
-            onChange={setCustomer}
-            placeholder="كل الزبائن"
-            searchPlaceholder="ابحث عن زبون..."
-            className="h-8 w-[180px] rounded-lg"
-          />
-        )}
-
-        {!hideRepFilter && (
-          <SearchableSelect
-            options={repOptions}
-            value={rep}
-            onChange={setRep}
-            placeholder="كل المناديب"
-            searchPlaceholder="ابحث عن مندوب..."
-            className="h-8 w-[170px] rounded-lg"
-          />
-        )}
-
-        <SearchableSelect
-          options={STATUS_OPTIONS}
-          value={status}
-          onChange={(value) => setStatus(value as CustomerRequestStatus | "all")}
-          placeholder="كل الحالات"
-          hideSearch
-          className="h-8 w-[150px] rounded-lg"
-        />
-      </div>
 
       <OrdersDataTable
         columns={columns}
@@ -170,6 +133,51 @@ export function OrdersView({
         }
         onRetry={() => refetch()}
         onRowClick={goToOrder}
+        toolbar={
+          <>
+            {!hideCustomerFilter && (
+              <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-6">
+                <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+                  <span>طلبات العملاء</span>
+                  <Badge>{totalCount} طلب</Badge>
+                </h1>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2 border-b border-border px-6 py-4">
+              {!hideCustomerFilter && (
+                <SearchableSelect
+                  options={customerOptions}
+                  value={customer}
+                  onChange={setCustomer}
+                  placeholder="كل الزبائن"
+                  searchPlaceholder="ابحث عن زبون..."
+                  className="h-8 w-[180px] rounded-lg"
+                />
+              )}
+
+              {!hideRepFilter && (
+                <SearchableSelect
+                  options={repOptions}
+                  value={rep}
+                  onChange={setRep}
+                  placeholder="كل المناديب"
+                  searchPlaceholder="ابحث عن مندوب..."
+                  className="h-8 w-[170px] rounded-lg"
+                />
+              )}
+
+              <SearchableSelect
+                options={STATUS_OPTIONS}
+                value={status}
+                onChange={(value) => setStatus(value as CustomerRequestStatus | "all")}
+                placeholder="كل الحالات"
+                hideSearch
+                className="h-8 w-[150px] rounded-lg"
+              />
+            </div>
+          </>
+        }
         renderMobileCard={(request) => (
           <div className="flex flex-col gap-3">
             <div className="flex items-start justify-between gap-2">
@@ -206,6 +214,6 @@ export function OrdersView({
         )}
         emptyState={<EmptyState variant="orders" size="sm" />}
       />
-    </div>
+    </>
   );
 }

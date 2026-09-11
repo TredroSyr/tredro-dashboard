@@ -8,8 +8,7 @@ import { DataTableRowActions } from "@/module/users/_components/data-table-row-a
 import { useSubUsersQuery } from "@/module/users/hooks";
 import { useState, useMemo } from "react";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
-
-const PAGE_SIZE = 8;
+import { PAGE_SIZE } from "@/lib/constants";
 
 function SubUsersPageContent() {
   const [search, setSearch] = useState("");

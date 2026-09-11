@@ -28,14 +28,14 @@ export function WarehousesDataTableToolbar({
   return (
     <>
       <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-6">
-        <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
+        <h1 className="flex items-center gap-2 text-lg font-semibold tracking-tight">
           <span>{title}</span>
           {total !== undefined && (
-            <Badge className="font-normal">
+            <Badge>
               {total} {totalLabel}
             </Badge>
           )}
-        </h2>
+        </h1>
       </div>
 
       {(onSearchChange || actions) && (

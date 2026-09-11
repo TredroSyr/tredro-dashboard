@@ -349,6 +349,35 @@
   }
 }
 
+@keyframes bellShake {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  10%,
+  30% {
+    transform: rotate(-12deg);
+  }
+  20%,
+  40% {
+    transform: rotate(12deg);
+  }
+  50% {
+    transform: rotate(-6deg);
+  }
+  60% {
+    transform: rotate(6deg);
+  }
+  70% {
+    transform: rotate(0deg);
+  }
+}
+
+@utility animate-bell-shake {
+  transform-origin: top center;
+  animation: bellShake 2.5s ease-in-out infinite;
+}
+
 @keyframes roadDash {
   from {
     transform: translateX(0);

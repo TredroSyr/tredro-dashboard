@@ -47,8 +47,8 @@ export function TransferDetailClient({ transferId }: { transferId: string }) {
   const handleApprove = () => {
     if (transfer) {
       approveTransfer(transfer.id, {
-        onSuccess: () => {
-          toast.success("تمت الموافقة على الطلب بنجاح");
+        onSuccess: (data) => {
+          toast.success(data.message || "تمت الموافقة على الطلب بنجاح");
           refetch();
         },
         onError: (error) => toast.error(getApiErrorMessage(error)),
@@ -59,8 +59,8 @@ export function TransferDetailClient({ transferId }: { transferId: string }) {
   const handleCancel = () => {
     if (transfer) {
       cancelTransfer(transfer.id, {
-        onSuccess: () => {
-          toast.success("تم إلغاء الطلب بنجاح");
+        onSuccess: (data) => {
+          toast.success(data.message || "تم إلغاء الطلب بنجاح");
           refetch();
         },
         onError: (error) => toast.error(getApiErrorMessage(error)),

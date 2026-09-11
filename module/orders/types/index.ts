@@ -70,7 +70,6 @@ export interface ListCustomerRequestsParams {
   status?: CustomerRequestStatus;
   customer?: number | string;
   rep?: number | string;
-  page?: number;
 }
 
 export type CustomerRequestsListResponse = ApiEnvelope<{

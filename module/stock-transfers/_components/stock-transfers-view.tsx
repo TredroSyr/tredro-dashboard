@@ -24,8 +24,7 @@ import {
 } from "../hooks";
 import type { StockTransfer, StockTransferStatus } from "../types";
 import { formatDateTime, calculateRemainingTime, formatDateNumeric } from "../lib/format";
-
-const PAGE_SIZE = 8;
+import { PAGE_SIZE } from "@/lib/constants";
 
 const STATUS_OPTIONS: { value: StockTransferStatus | "all"; label: string }[] = [
   { value: "all", label: "كل الحالات" },

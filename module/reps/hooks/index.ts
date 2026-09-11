@@ -1,7 +1,14 @@
 "use client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AxiosError } from "axios";
+import { toast } from "@/components/ui/toast";
+import { ApiErrorResponse } from "@/module/auth/types";
 import { listReps, getRep, createRep, updateRep, deleteRep } from "../api";
 import { CreateRepPayload, UpdateRepPayload } from "../types";
+
+const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>) => {
+  toast.error(error.response?.data?.message || fallback);
+};
 
 export const useRepsQuery = (customerId?: string | number) =>
   useQuery({
@@ -23,10 +30,12 @@ export const useCreateRepMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateRepPayload) => createRep(payload),
-    onSuccess: () => {
+    onSuccess: (data) => {
       // بس اللستة، ما إلها علاقة بـ detail queries
       queryClient.invalidateQueries({ queryKey: ["reps", "list"] });
+      toast.success(data.message || "تمت إضافة المندوب بنجاح");
     },
+    onError: onErrorToast("تعذّرت إضافة المندوب"),
   });
 };
 
@@ -34,13 +43,15 @@ export const useUpdateRepMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (payload: UpdateRepPayload) => updateRep(payload),
-    onSuccess: (_data, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["reps", "list"] });
       // إذا بدك كمان تحدّث الـ detail cache لنفس المندوب
       if (variables?.id) {
         queryClient.invalidateQueries({ queryKey: ["reps", "detail", variables.id] });
       }
+      toast.success(data.message || "تم تحديث المندوب بنجاح");
     },
+    onError: onErrorToast("تعذّر تحديث المندوب"),
   });
 };
 
@@ -48,8 +59,10 @@ export const useDeleteRepMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => deleteRep(id),
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["reps", "list"] });
+      toast.success(data.message || "تم حذف المندوب بنجاح");
     },
+    onError: onErrorToast("تعذّر حذف المندوب"),
   });
 };

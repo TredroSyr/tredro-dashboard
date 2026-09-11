@@ -4,10 +4,9 @@ import { ColumnDef } from "@tanstack/react-table";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { AssignRepCell } from "./assign-rep-cell";
-import { EditableTextCell } from "./editable-text-cell";
-import { EditablePhoneCell } from "./editable-phone-cell";
 import { EditableStatusCell } from "./editable-status-cell";
 import { CategoryCell } from "./category-cell";
+import { TruncatedCell } from "./truncated-text";
 import { WorkDaysCell } from "./work-days-cell";
 import { Customer, AssignedRepDetail } from "../types";
 import { PhoneInput } from "@/components/tredro/phone-input";
@@ -39,10 +38,10 @@ export const columns: ColumnDef<Customer>[] = [
       <DataTableColumnHeader column={column} title="الاسم" type="text" />
     ),
     cell: ({ row }) => (
-      <EditableTextCell
-        value={row.original.name}
-        onSave={(v) => ({ id: row.original.id, name: v })}
+      <TruncatedCell
+        text={row.original.name}
         maxWidth="120px"
+        className="text-sm font-normal"
       />
     ),
     filterFn: (row, id, filterValue: string) => {
