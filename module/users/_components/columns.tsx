@@ -35,17 +35,7 @@ export const columns: ColumnDef<SubUser>[] = [
     ),
     cell: ({ row }) => <PhoneInput value={row.original.phone} readOnly />,
   },
-  {
-    accessorKey: "email",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="البريد الإلكتروني" />
-    ),
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground" dir="ltr">
-        {val(row.original.email) || "-"}
-      </span>
-    ),
-  },
+
   {
     accessorKey: "role_name",
     header: ({ column }) => (

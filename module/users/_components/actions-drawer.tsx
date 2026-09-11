@@ -251,9 +251,7 @@ function buildSchema(mode: "create" | "edit") {
     password:
       mode === "create"
         ? passwordSchema
-        : z
-            .union([passwordSchema, z.literal("")])
-            .optional(),
+        : z.union([passwordSchema, z.literal("")]).optional(),
     is_active: z.boolean(),
     permissions: z.record(z.enum(PERMISSION_LEVELS)),
   });
@@ -398,9 +396,7 @@ export function SubUserFormDrawer({
           }
         });
       } else {
-        toast.error(
-          error.response?.data?.message || "حدث خطأ، حاول مرة أخرى",
-        );
+        toast.error(error.response?.data?.message || "حدث خطأ، حاول مرة أخرى");
       }
     };
 
@@ -462,263 +458,234 @@ export function SubUserFormDrawer({
   return (
     <>
       <Drawer
-      swipeDirection={isMobile ? "down" : "left"}
-      open={open}
-      onOpenChange={onOpenChange}
-    >
-      {/*
+        swipeDirection={isMobile ? "down" : "left"}
+        open={open}
+        onOpenChange={onOpenChange}
+      >
+        {/*
         Mobile: bottom sheet capped at 92% of the viewport height (never the
         full screen) with rounded top corners, so the app is visibly still
         behind it and it never fights the browser chrome / safe areas.
         Desktop: fixed-width side panel, unchanged from before.
       */}
-      <DrawerContent
-        className="
+        <DrawerContent
+          className="
           flex flex-col
           w-full h-[92dvh] max-h-[92dvh] rounded-t-2xl
           sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none
           md:max-w-xl
           lg:max-w-3xl
         "
-      >
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex flex-col flex-1 min-h-0"
-          >
-            {/* Header: extra top padding on mobile clears the drag handle */}
-            <DrawerHeader
-              className="
+        >
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="flex flex-col flex-1 min-h-0"
+            >
+              {/* Header: extra top padding on mobile clears the drag handle */}
+              <DrawerHeader
+                className="
                 flex-row items-center justify-between gap-3
                 px-4 pt-6 pb-3
                 sm:px-6 sm:pt-4
                 sticky top-0 z-10 bg-background border-b border-border
               "
-            >
-              <DrawerTitle className="text-right text-base sm:text-lg">
-                {mode === "create" ? "إضافة مستخدم  جديد" : "تعديل المستخدم "}
-              </DrawerTitle>
-              <div className="flex items-center gap-2 shrink-0">
-                <Button type="submit" disabled={isSaving} size="sm">
-                  {isSaving ? "جارٍ الحفظ..." : "حفظ"}
-                </Button>
-                <DrawerClose>
-                  <Button variant="outline" type="button" size="sm">
-                    إلغاء
+              >
+                <DrawerTitle className="text-right text-base sm:text-lg">
+                  {mode === "create" ? "إضافة مستخدم  جديد" : "تعديل المستخدم "}
+                </DrawerTitle>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button type="submit" disabled={isSaving} size="sm">
+                    {isSaving ? "جارٍ الحفظ..." : "حفظ"}
                   </Button>
-                </DrawerClose>
-              </div>
-            </DrawerHeader>
+                  <DrawerClose>
+                    <Button variant="outline" type="button" size="sm">
+                      إلغاء
+                    </Button>
+                  </DrawerClose>
+                </div>
+              </DrawerHeader>
 
-            {/* Scrollable body: generous padding on all sides, extra bottom
+              {/* Scrollable body: generous padding on all sides, extra bottom
                 padding on mobile so content clears the home-indicator area */}
-            <div
-              className="
+              <div
+                className="
                 flex flex-col gap-4
                 overflow-y-auto flex-1 min-h-0
                 px-4 py-4 pb-8
                 sm:px-6 sm:pb-6
               "
-            >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-right block">
-                      الاسم
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        isLoading={isLoadingSubUser}
-                        {...field}
-                        placeholder="أدخل اسم المستخدم"
-                        className="text-right h-12"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-right block">
-                      رقم الهاتف
-                    </FormLabel>
-                    <FormControl>
-                      <PhoneInput
-                        id="phone"
-                        value={field.value}
-                        onChange={field.onChange}
-                        className="h-12"
-                        isLoading={isLoadingSubUser}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-right block">
-                      البريد الإلكتروني (اختياري)
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        isLoading={isLoadingSubUser}
-                        {...field}
-                        type="email"
-                        placeholder="example@mail.com"
-                        dir="ltr"
-                        className="h-12"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-right block">
-                      {mode === "create"
-                        ? "كلمة المرور"
-                        : "كلمة المرور الجديدة (اختياري)"}
-                    </FormLabel>
-                    <FormControl>
-                      <div className="relative w-full">
+              >
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-right block">الاسم</FormLabel>
+                      <FormControl>
                         <Input
                           isLoading={isLoadingSubUser}
                           {...field}
-                          type={showPassword ? "text" : "password"}
-                          placeholder={
-                            mode === "create"
-                              ? "8 أحرف على الأقل مع حرف ورقم"
-                              : "اتركه فارغاً لعدم التغيير"
-                          }
-                          dir="ltr"
-                          className="h-12 pl-4 pr-12 w-full"
-                        />
-                        {!isLoadingSubUser && (
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword((prev) => !prev)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
-                            tabIndex={-1}
-                          >
-                            <IconRenderer
-                              name={
-                                showPassword
-                                  ? "eye_invisible_outlined"
-                                  : "eye_visible_outlined"
-                              }
-                              className="w-4 h-4"
-                            />
-                          </button>
-                        )}
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {mode === "edit" && (
-                <FormField
-                  control={form.control}
-                  name="is_active"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-md border border-border p-3">
-                      <FormLabel>الحساب مفعّل</FormLabel>
-                      <FormControl>
-                        <Switch
-                          isLoading={isLoadingSubUser}
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                          placeholder="أدخل اسم المستخدم"
+                          className="text-right h-12"
                         />
                       </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
 
-              <div className="flex flex-col gap-2">
-                <FormLabel className="text-right block">
-                  الصلاحيات
-                </FormLabel>
-                <div className="flex flex-col divide-y divide-border rounded-md border border-border">
-                  {modules.map((m) => (
-                    <div
-                      key={m.value}
-                      className="flex flex-col gap-2 p-3 sm:p-4"
-                    >
-                      <span className="text-sm font-medium">{m.label}</span>
-                      <Controller
-                        control={form.control}
-                        name={`permissions.${m.value}`}
-                        render={({ field }) => {
-                          const enabled = field.value !== "none";
-                          const canEdit = field.value === "read_write";
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-right block">
+                        رقم الهاتف
+                      </FormLabel>
+                      <FormControl>
+                        <PhoneInput
+                          id="phone"
+                          value={field.value}
+                          onChange={field.onChange}
+                          className="h-12"
+                          isLoading={isLoadingSubUser}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                          return (
-                            <div className="flex flex-col gap-2">
-                              <label className="flex items-center gap-2 text-sm">
-                                <Checkbox
-                                  checked={enabled}
-                                  onCheckedChange={(checked) =>
-                                    field.onChange(
-                                      checked ? "read" : "none",
-                                    )
-                                  }
-                                />
-                                منح الوصول لهذا القسم
-                              </label>
-                              <label
-                                className={`flex items-center gap-2 text-sm pr-6 ${
-                                  enabled ? "" : "opacity-50"
-                                }`}
-                              >
-                                <Checkbox
-                                  disabled={!enabled}
-                                  checked={canEdit}
-                                  onCheckedChange={(checked) =>
-                                    field.onChange(
-                                      checked ? "read_write" : "read",
-                                    )
-                                  }
-                                />
-                                السماح بالإضافة والتعديل والحذف (وليس فقط
-                                العرض)
-                              </label>
-                            </div>
-                          );
-                        }}
-                      />
-                    </div>
-                  ))}
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-right block">
+                        {mode === "create"
+                          ? "كلمة المرور"
+                          : "كلمة المرور الجديدة (اختياري)"}
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative w-full">
+                          <Input
+                            isLoading={isLoadingSubUser}
+                            {...field}
+                            type={showPassword ? "text" : "password"}
+                            placeholder={
+                              mode === "create"
+                                ? "8 أحرف على الأقل مع حرف ورقم"
+                                : "اتركه فارغاً لعدم التغيير"
+                            }
+                            dir="ltr"
+                            className="h-12 pl-4 pr-12 w-full"
+                          />
+                          {!isLoadingSubUser && (
+                            <button
+                              type="button"
+                              onClick={() => setShowPassword((prev) => !prev)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full flex items-center justify-center bg-muted/50 hover:bg-muted transition-colors"
+                              tabIndex={-1}
+                            >
+                              <IconRenderer
+                                name={
+                                  showPassword
+                                    ? "eye_invisible_outlined"
+                                    : "eye_visible_outlined"
+                                }
+                                className="w-4 h-4"
+                              />
+                            </button>
+                          )}
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {mode === "edit" && (
+                  <FormField
+                    control={form.control}
+                    name="is_active"
+                    render={({ field }) => (
+                      <FormItem className="flex items-center justify-between rounded-md border border-border p-3">
+                        <FormLabel>الحساب مفعّل</FormLabel>
+                        <FormControl>
+                          <Switch
+                            isLoading={isLoadingSubUser}
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                )}
+
+                <div className="flex flex-col gap-2">
+                  <FormLabel className="text-right block">الصلاحيات</FormLabel>
+                  <div className="flex flex-col divide-y divide-border rounded-md border border-border">
+                    {modules.map((m) => (
+                      <div
+                        key={m.value}
+                        className="flex flex-col gap-2 p-3 sm:p-4"
+                      >
+                        <span className="text-sm font-medium">{m.label}</span>
+                        <Controller
+                          control={form.control}
+                          name={`permissions.${m.value}`}
+                          render={({ field }) => {
+                            const enabled = field.value !== "none";
+                            const canEdit = field.value === "read_write";
+
+                            return (
+                              <div className="flex flex-col gap-2">
+                                <label className="flex items-center gap-2 text-sm">
+                                  <Checkbox
+                                    checked={enabled}
+                                    onCheckedChange={(checked) =>
+                                      field.onChange(checked ? "read" : "none")
+                                    }
+                                  />
+                                  منح الوصول لهذا القسم
+                                </label>
+                                <label
+                                  className={`flex items-center gap-2 text-sm pr-6 ${
+                                    enabled ? "" : "opacity-50"
+                                  }`}
+                                >
+                                  <Checkbox
+                                    disabled={!enabled}
+                                    checked={canEdit}
+                                    onCheckedChange={(checked) =>
+                                      field.onChange(
+                                        checked ? "read_write" : "read",
+                                      )
+                                    }
+                                  />
+                                  السماح بالإضافة والتعديل والحذف (وليس فقط
+                                  العرض)
+                                </label>
+                              </div>
+                            );
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
-          </form>
-        </Form>
-      </DrawerContent>
-    </Drawer>
+            </form>
+          </Form>
+        </DrawerContent>
+      </Drawer>
 
-    <CredentialsDialog
-      credentials={credentials}
-      onClose={() => setCredentials(null)}
-    />
+      <CredentialsDialog
+        credentials={credentials}
+        onClose={() => setCredentials(null)}
+      />
     </>
   );
 }
