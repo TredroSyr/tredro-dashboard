@@ -10,7 +10,6 @@ import { QueryProvider } from "@/components/provider/QueryClientProvider";
 // import WarmupConnection from "@/components/tredro/warmup-connection";
 import ErudaLoader from "@/components/tredro/ErudaLoader";
 import HardwareBackButton from "@/components/tredro/HardwareBackButton";
-import TopLoader from "@/components/tredro/TopLoader";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -99,9 +98,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body className=" flex flex-col font-thmanyah">
         {/* <WarmupConnection /> */}
-        <Suspense fallback={null}>
-          <TopLoader />
-        </Suspense>
+
         <QueryProvider>
           {children}
           <AppDownloadDrawer />
