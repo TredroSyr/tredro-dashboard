@@ -5,14 +5,13 @@ import { useCustomerQuery } from "../hooks";
 import { CustomerDetailTabs } from "./customer-detail-tabs";
 import { CustomerDetailHeader } from "./customer-detail-header";
 import CustomerOverview from "./customer-overview";
-import { CustomerRepsPanel } from "./customer-reps-panel";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
 import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
 import { OrdersView } from "@/module/orders/_components/orders-view";
 import { NeedsRepAssignmentBanner } from "@/module/orders/_components/needs-rep-assignment-banner";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 
-type TabValue = "overview" | "invoices" | "orders" | "reps";
+type TabValue = "overview" | "invoices" | "orders";
 
 export function CustomerDetailClient({ customerId }: { customerId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
@@ -58,14 +57,14 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
         phone={customer?.phone}
         email={customer?.email ?? undefined}
         isActive={customer?.is_active}
-        repsCount={customer?.assigned_reps_details?.length ?? 0}
+        customer={customer}
         isLoading={isLoading}
       />
 
       <CustomerDetailTabs
         value={activeTab}
         onValueChange={setActiveTab}
-        counts={{ invoices: invoicesCount, orders: ordersCount, reps: customer?.assigned_reps_details?.length ?? 0 }}
+        counts={{ invoices: invoicesCount, orders: ordersCount }}
         isLoading={isLoading}
       />
 
@@ -84,9 +83,6 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
             customerName={customer?.name}
             hideAssignmentBanner
           />
-        )}
-        {activeTab === "reps" && customer && (
-          <CustomerRepsPanel customer={customer} />
         )}
       </div>
     </div>

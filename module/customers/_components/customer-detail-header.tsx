@@ -9,13 +9,15 @@ import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { DateFilter } from "@/components/tredro/date-filter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CustomerRepControl } from "./customer-rep-control";
+import { Customer } from "../types";
 
 interface CustomerDetailHeaderProps {
   name?: string;
   phone?: string;
   email?: string;
   isActive?: boolean;
-  repsCount?: number;
+  customer?: Customer;
   dateRange?: DateRange;
   onDateRangeChange?: (range: DateRange | undefined) => void;
   isLoading?: boolean;
@@ -26,6 +28,7 @@ export function CustomerDetailHeader({
   phone,
   email,
   isActive,
+  customer,
   dateRange,
   onDateRangeChange,
   isLoading = false,
@@ -64,6 +67,11 @@ export function CustomerDetailHeader({
             )}
             {!isLoading && email && (
               <span className="text-sm text-muted-foreground">{email}</span>
+            )}
+            {isLoading ? (
+              <Skeleton className="h-8 w-28 rounded-md" />
+            ) : (
+              customer && <CustomerRepControl customer={customer} />
             )}
           </div>
         </div>
