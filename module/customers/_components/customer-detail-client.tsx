@@ -5,7 +5,7 @@ import { useCustomerQuery } from "../hooks";
 import { CustomerDetailTabs } from "./customer-detail-tabs";
 import { CustomerDetailHeader } from "./customer-detail-header";
 import CustomerOverview from "./customer-overview";
-import RepsView from "@/module/reps/_components/reps-view";
+import { CustomerRepsPanel } from "./customer-reps-panel";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
 import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
 import { OrdersView } from "@/module/orders/_components/orders-view";
@@ -85,7 +85,9 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
             hideAssignmentBanner
           />
         )}
-        {activeTab === "reps" && <RepsView customerId={customerId} />}
+        {activeTab === "reps" && customer && (
+          <CustomerRepsPanel customer={customer} />
+        )}
       </div>
     </div>
   );

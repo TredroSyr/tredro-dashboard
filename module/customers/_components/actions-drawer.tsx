@@ -355,28 +355,6 @@ export function CustomerFormDrawer({
 
               <FormField
                 control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-right block">
-                      البريد الإلكتروني (اختياري)
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        isLoading={isFieldsLoading}
-                        placeholder="example@email.com"
-                        dir="ltr"
-                        className="h-12"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
                 name="category"
                 render={({ field }) => {
                   const selectedCategory = categories.find(

@@ -2,14 +2,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import type { DateRange } from "react-day-picker";
-import {
-  X,
-  MapPin,
-  List,
-  CalendarDays,
-  CheckCircle2,
-  Circle,
-} from "lucide-react";
+import { X, MapPin, List, CalendarDays } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,8 +28,6 @@ const WEEKDAY_ORDER: WorkDay[] = [
 
 // Hard ceiling on how many days a picked range can project, as a safety net.
 const MAX_AGENDA_DAYS = 366;
-
-const VISITED_STORAGE_KEY = "customers-agenda-visited";
 
 interface AgendaVisit {
   customer: Customer;
@@ -115,23 +106,6 @@ export function CustomersAgendaView({
   const [selectedRepIds, setSelectedRepIds] = React.useState<Set<number>>(
     new Set(),
   );
-
-  // Read-only "visited today" status. Admins can only view this, not set
-  // it - it reflects whatever a rep marks from their own side. There's no
-  // backend field for this yet, so it's read from local storage for now
-  // (same key a future rep-facing surface would write to).
-  const [visitedKeys, setVisitedKeys] = React.useState<Set<string>>(
-    new Set(),
-  );
-
-  React.useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(VISITED_STORAGE_KEY);
-      if (raw) setVisitedKeys(new Set(JSON.parse(raw)));
-    } catch {
-      // ignore malformed/unavailable storage
-    }
-  }, []);
 
   const repDefaultsMap = React.useMemo(() => {
     const map = new Map<number, WorkDay[]>();
@@ -348,9 +322,6 @@ export function CustomersAgendaView({
                   </div>
 
                   {group.visits.map(({ customer, reps: visitReps }) => {
-                    const visitKey = `${groupKey}|${customer.id}`;
-                    const isVisited = visitedKeys.has(visitKey);
-
                     return (
                       <div
                         key={customer.id}
@@ -379,22 +350,6 @@ export function CustomersAgendaView({
                               {rep.name}
                             </Badge>
                           ))}
-                          <span
-                            title="حالة الزيارة (للعرض فقط)"
-                            className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                              isVisited
-                                ? "bg-emerald-500/15 text-emerald-600"
-                                : "bg-muted text-muted-foreground",
-                            )}
-                          >
-                            {isVisited ? (
-                              <CheckCircle2 className="size-3.5" />
-                            ) : (
-                              <Circle className="size-3.5" />
-                            )}
-                            {isVisited ? "تمت الزيارة" : "لم تتم بعد"}
-                          </span>
                         </div>
                       </div>
                     );

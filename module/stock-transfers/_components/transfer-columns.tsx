@@ -68,7 +68,8 @@ export function createTransferColumns({
       header: "المسار",
       cell: ({ row }) => (
         <span className="text-muted-foreground">
-          {row.original.source_warehouse_name} ← {row.original.destination_warehouse_name}
+          {row.original.source_warehouse_name} ←{" "}
+          {row.original.destination_warehouse_name}
         </span>
       ),
     },
@@ -80,9 +81,11 @@ export function createTransferColumns({
         const isExpired = remaining === "انتهى الوقت";
         return (
           <div className="flex flex-col">
-            <span className={`text-sm font-medium ${
-              isExpired ? "text-destructive" : "text-foreground"
-            }`}>
+            <span
+              className={`text-sm font-medium ${
+                isExpired ? "text-destructive" : "text-foreground"
+              }`}
+            >
               {remaining}
             </span>
             <span className="text-xs text-muted-foreground">
@@ -108,7 +111,9 @@ export function createTransferColumns({
       header: ({ column }) => (
         <DataTableColumnHeader column={column} title="الحالة" />
       ),
-      cell: ({ row }) => <StockTransferStatusBadge status={row.original.status} />,
+      cell: ({ row }) => (
+        <StockTransferStatusBadge status={row.original.status} />
+      ),
     },
     {
       id: "actions",
@@ -116,7 +121,8 @@ export function createTransferColumns({
       cell: ({ row }) => {
         const transfer = row.original;
         const canAct =
-          transfer.status === "pending" || CANCELLABLE_STATUSES.has(transfer.status);
+          transfer.status === "pending" ||
+          CANCELLABLE_STATUSES.has(transfer.status);
         return (
           <div className="flex items-center justify-end gap-1">
             {canAct && (
@@ -129,7 +135,7 @@ export function createTransferColumns({
                       title="إجراءات الطلب"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <IconRenderer name="more_outlined" className="size-4" />
+                      <IconRenderer name="menu_outlined" className="size-4" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-64">
@@ -142,7 +148,10 @@ export function createTransferColumns({
                             onApprove(transfer);
                           }}
                         >
-                          <IconRenderer name="tick_outlined" className="size-4" />
+                          <IconRenderer
+                            name="tick_outlined"
+                            className="size-4"
+                          />
                           الموافقة على الكميات المطلوبة
                         </DropdownMenuItem>
                         <DropdownMenuItem
@@ -151,7 +160,10 @@ export function createTransferColumns({
                             onModify(transfer);
                           }}
                         >
-                          <IconRenderer name="edit_outlined" className="size-4" />
+                          <IconRenderer
+                            name="edit_outlined"
+                            className="size-4"
+                          />
                           تعديل الكميات
                         </DropdownMenuItem>
                       </>
@@ -165,7 +177,10 @@ export function createTransferColumns({
                           onCancel(transfer);
                         }}
                       >
-                        <IconRenderer name="close_outlined" className="size-4" />
+                        <IconRenderer
+                          name="close_outlined"
+                          className="size-4"
+                        />
                         إلغاء الطلب
                       </DropdownMenuItem>
                     )}
