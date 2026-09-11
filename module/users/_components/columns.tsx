@@ -35,7 +35,6 @@ export const columns: ColumnDef<SubUser>[] = [
     ),
     cell: ({ row }) => <PhoneInput value={row.original.phone} readOnly />,
   },
-
   {
     accessorKey: "role_name",
     header: ({ column }) => (
