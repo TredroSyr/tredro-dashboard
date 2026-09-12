@@ -7,8 +7,7 @@ import { thmanyahSans } from "@/lib/fonts";
 
 import { Toaster } from "@/components/ui/toast";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
-// import WarmupConnection from "@/components/tredro/warmup-connection";
-import ErudaLoader from "@/components/tredro/ErudaLoader";
+
 import HardwareBackButton from "@/components/tredro/HardwareBackButton";
 import UpdateChecker from "@/components/tredro/UpdateChecker";
 
@@ -105,7 +104,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <AppDownloadDrawer />
           <UpdateChecker />
           <Toaster />
-          <ErudaLoader />
+          {/*  <ErudaLoader />*/}
           <Suspense fallback={null}>
             <HardwareBackButton />
           </Suspense>
