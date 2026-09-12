@@ -82,7 +82,7 @@ export function DataTable<TData, TValue>({
 
       {/* Desktop / tablet: table view */}
       <div className="hidden md:block px-6">
-        <Table className="w-auto">
+        <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id} className="border-b border-border">
