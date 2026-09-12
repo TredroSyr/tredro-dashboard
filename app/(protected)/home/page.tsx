@@ -985,33 +985,31 @@ function ActivitySection({ loading }: { loading: boolean }) {
 
 export default function PlatformOverview() {
   return (
-    <div>
-      <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-        <div>
-          <h1 className="text-lg sm:text-xl font-semibold text-foreground">
-            نظرة عامة على المنصة
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            ملخص شامل للمناديب، الزبائن، الطلبيات، الفواتير والمنتجات
-          </p>
-        </div>
-
-        <KpiRow />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          <OrdersDistributionCard />
-          <ForecastBanner />
-        </div>
-
-        <AnalysisSection />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-          <TopRepsSection />
-          <TopProductsSection />
-        </div>
-
-        <ActivitySection />
+    <div className="flex flex-col gap-5 sm:gap-6">
+      <div>
+        <h1 className="text-lg sm:text-xl font-semibold text-foreground">
+          نظرة عامة على المنصة
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+          ملخص شامل للمناديب، الزبائن، الطلبيات، الفواتير والمنتجات
+        </p>
       </div>
+
+      <KpiRow />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+        <OrdersDistributionCard />
+        <ForecastBanner />
+      </div>
+
+      <AnalysisSection />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
+        <TopRepsSection />
+        <TopProductsSection />
+      </div>
+
+      <ActivitySection />
     </div>
   );
 }
