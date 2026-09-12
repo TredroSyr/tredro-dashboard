@@ -1,9 +1,6 @@
-import type { StaticImageData } from "next/image";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
 import permissionImg from "@/public/illustration/permission-denied.png";
-import repsImg from "@/public/illustration/empty-reps.png";
-import productsImg from "@/public/illustration/empty-products.png";
-import invoicesImg from "@/public/illustration/empty-invoices.png";
+
 import notFoundImg from "@/public/illustration/404-robot.png";
 
 export const stateImages = {
@@ -11,11 +8,7 @@ export const stateImages = {
   notFound: notFoundImg,
 };
 
-export type EmptyStateVariant =
-  | "reps"
-  | "products"
-  | "invoices"
-  | "orders";
+export type EmptyStateVariant = "reps" | "products" | "invoices" | "orders";
 
 export interface EmptyStatePreset {
   icon: iconName;
@@ -40,13 +33,15 @@ export const emptyStatePresets: Record<EmptyStateVariant, EmptyStatePreset> = {
   invoices: {
     icon: "sales_outlined",
     title: "لا توجد فواتير بعد",
-    description: "فواتير البيع التي يصدرها المناديب عند التسليم ستظهر هنا مع حالة التحصيل.",
+    description:
+      "فواتير البيع التي يصدرها المناديب عند التسليم ستظهر هنا مع حالة التحصيل.",
     actionLabel: "إنشاء فاتورة",
   },
   orders: {
     icon: "cart_outlined",
     title: "لا توجد طلبات بعد",
-    description: "الطلبات التي يرسلها العملاء عبر المتجر ستظهر هنا بانتظار رد المندوب.",
+    description:
+      "الطلبات التي يرسلها العملاء عبر المتجر ستظهر هنا بانتظار رد المندوب.",
     actionLabel: "تحديث",
   },
 };
