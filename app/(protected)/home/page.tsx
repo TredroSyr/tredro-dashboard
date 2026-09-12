@@ -985,7 +985,7 @@ function ActivitySection({ loading }: { loading: boolean }) {
 
 export default function PlatformOverview() {
   return (
-    <div className="flex flex-col gap-5 sm:gap-6">
+    <div className="flex flex-col gap-5 sm:gap-6 p-4 sm:p-6">
       <div>
         <h1 className="text-lg sm:text-xl font-semibold text-foreground">
           نظرة عامة على المنصة
