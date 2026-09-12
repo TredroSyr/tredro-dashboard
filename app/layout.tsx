@@ -9,7 +9,6 @@ import { Toaster } from "@/components/ui/toast";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
 
 import HardwareBackButton from "@/components/tredro/HardwareBackButton";
-import UpdateChecker from "@/components/tredro/UpdateChecker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -102,7 +101,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <QueryProvider>
           {children}
           <AppDownloadDrawer />
-          <UpdateChecker />
           <Toaster />
           {/*  <ErudaLoader />*/}
           <Suspense fallback={null}>

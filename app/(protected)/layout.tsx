@@ -15,6 +15,7 @@ import {
   useRefresh,
 } from "@/components/provider/RefreshProvider";
 import { useQueryClient } from "@tanstack/react-query";
+import UpdateChecker from "@/components/tredro/UpdateChecker";
 
 type ProtectedLayoutProps = {
   children: React.ReactNode;
@@ -70,6 +71,7 @@ function ProtectedLayoutContent({ children }: ProtectedLayoutProps) {
 
   return (
     <ProtectedRoute>
+      <UpdateChecker />
       <RefreshIndicator />
       <PermissionsProvider>
         <PermissionsLoadingGate>
