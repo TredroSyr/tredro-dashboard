@@ -22,6 +22,7 @@ import {
   listCustomerCredits,
   cancelCustomerCredit,
   listPayments,
+  getInvoicesOverview,
   getOverdueReport,
   getInvoiceSettings,
   updateInvoiceSettings,
@@ -37,6 +38,7 @@ import {
   IssueReturnInvoicePayload,
   ListCustomerCreditsParams,
   ListPaymentsParams,
+  InvoicesOverviewParams,
   OverdueReportParams,
   UpdateInvoiceSettingsPayload,
   LastPurchasePricesByCurrency,
@@ -348,6 +350,13 @@ export const usePaymentsQuery = (params?: ListPaymentsParams) =>
   useQuery({
     queryKey: ["invoices", "payments", "list", params],
     queryFn: () => listPayments(params),
+  });
+
+// ---- Overview ----
+export const useInvoicesOverviewQuery = (params?: InvoicesOverviewParams) =>
+  useQuery({
+    queryKey: ["invoices", "overview", params],
+    queryFn: () => getInvoicesOverview(params),
   });
 
 // ---- Reports ----

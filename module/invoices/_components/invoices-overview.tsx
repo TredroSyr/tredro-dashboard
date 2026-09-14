@@ -1,143 +1,35 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorDisplay } from "@/components/ui/error-display";
+import { DateFilter } from "@/components/tredro/date-filter";
+import {
+  OverviewActivityGroup,
+  OverviewActivitySection,
+  OverviewActivityTile,
+  OverviewActivityTileSkeleton,
+  OverviewDistributionChart,
+  OverviewDistributionChartSkeleton,
+  OverviewStatCard,
+  OverviewStatCardRow,
+  OverviewStatCardSkeleton,
+  type OverviewDistributionBar,
+} from "@/components/tredro/overview-widgets";
+import { useInvoicesOverviewQuery } from "../hooks";
+import { formatDateShort, formatMoneyParts } from "../lib/format";
+import type { InvoicesOverview, SalesInvoiceStatus } from "../types";
 
-const KPIS: {
-  key: string;
-  label: string;
-  value: string | number;
-  suffix?: string;
-  change?: number | null;
-  icon: iconName;
-}[] = [
-  {
-    key: "invoiceCount",
-    label: "فواتير البيع هالشهر",
-    value: 128,
-    change: 9,
-    icon: "sales_outlined",
-  },
-  {
-    key: "totalSales",
-    label: "إجمالي المبيعات",
-    value: "8,450,000",
-    suffix: "ل.س",
-    change: 6,
-    icon: "revenue_outlined",
-  },
-  {
-    key: "collected",
-    label: "المحصّل هالشهر",
-    value: "6,120,000",
-    suffix: "ل.س",
-    change: 11,
-    icon: "transaction_outlined",
-  },
-  {
-    key: "overdue",
-    label: "ديون متأخرة",
-    value: "940,000",
-    suffix: "ل.س",
-    change: -4,
-    icon: "warning_outlined",
-  },
-  {
-    key: "avgInvoice",
-    label: "متوسط قيمة الفاتورة",
-    value: "66,000",
-    suffix: "ل.س",
-    change: 3,
-    icon: "price_outlined",
-  },
-  {
-    key: "returnRate",
-    label: "نسبة المرتجعات",
-    value: "2.1%",
-    change: -1,
-    icon: "undo_outlined",
-  },
-];
+const STATUS_LABELS: Record<SalesInvoiceStatus, string> = {
+  fully_paid: "مدفوعة بالكامل",
+  partially_paid: "مدفوعة جزئياً",
+  deferred: "آجلة",
+};
 
-const STATUS_DISTRIBUTION = [
-  { label: "مدفوعة بالكامل", value: 72 },
-  { label: "مدفوعة جزئياً", value: 31 },
-  { label: "آجلة", value: 18 },
-  { label: "متأخرة", value: 7 },
-];
-
-const ACTIVITY_GROUPS: {
-  key: string;
-  title: string;
-  icon: iconName;
-  tiles: {
-    value: string | number;
-    suffix?: string;
-    change: number | null;
-    label: string;
-    sub?: string;
-  }[];
-}[] = [
-  {
-    key: "sales",
-    title: "المبيعات",
-    icon: "sales_outlined",
-    tiles: [
-      {
-        value: "8,450,000",
-        suffix: "ل.س",
-        change: 6,
-        label: "إجمالي المبيعات",
-        sub: "آخر 30 يوم",
-      },
-      { value: 128, change: 9, label: "عدد الفواتير", sub: "آخر 30 يوم" },
-      {
-        value: "66,000",
-        suffix: "ل.س",
-        change: 3,
-        label: "متوسط الفاتورة",
-        sub: "آخر 30 يوم",
-      },
-    ],
-  },
-  {
-    key: "collections",
-    title: "التحصيل",
-    icon: "transaction_outlined",
-    tiles: [
-      {
-        value: "5,640,000",
-        suffix: "ل.س",
-        change: 10,
-        label: "محصّل نقداً",
-        sub: "آخر 30 يوم",
-      },
-      {
-        value: "480,000",
-        suffix: "ل.س",
-        change: 14,
-        label: "محصّل من رصيد دائن",
-        sub: "آخر 30 يوم",
-      },
-    ],
-  },
-  {
-    key: "debts",
-    title: "الديون",
-    icon: "report_outlined",
-    tiles: [
-      {
-        value: "940,000",
-        suffix: "ل.س",
-        change: -4,
-        label: "ديون متأخرة",
-        sub: "أكثر من 7 أيام",
-      },
-      { value: 14, change: -2, label: "فواتير متأخرة", sub: "بحاجة متابعة" },
-    ],
-  },
-];
+// ---- AI cards — no backend endpoint yet (dashboard_overview.md §8), kept as illustrative copy ----
 
 const FORECAST_BANNER: {
   indicator: "error" | "warning" | "success" | "info";
@@ -230,162 +122,6 @@ const INDICATOR_ICON_CLASS: Record<string, string> = {
   success: "text-emerald-200",
   info: "text-white/80",
 };
-
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-muted ${className}`} />;
-}
-
-function useDragScroll() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const state = useRef({ startX: 0, startLeft: 0 });
-
-  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    const el = ref.current;
-    if (!el) return;
-    setDragging(true);
-    state.current.startX = e.clientX;
-    state.current.startLeft = el.scrollLeft;
-    el.setPointerCapture(e.pointerId);
-  };
-  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    const el = ref.current;
-    if (!el) return;
-    el.scrollLeft = state.current.startLeft - (e.clientX - state.current.startX);
-  };
-  const endDrag = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    setDragging(false);
-    ref.current?.releasePointerCapture(e.pointerId);
-  };
-
-  return {
-    ref,
-    dragging,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp: endDrag,
-    onPointerCancel: endDrag,
-  };
-}
-
-function KpiCard({ item }: { item: (typeof KPIS)[number] }) {
-  const change = item.change ?? null;
-  const isUp = (change ?? 0) >= 0;
-  return (
-    <div className="shrink-0 w-[150px] sm:w-auto rounded-2xl border border-border bg-card p-3.5 sm:p-4 flex flex-col gap-2 min-w-0">
-      <div className="flex items-center justify-between">
-        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <IconRenderer name={item.icon} className="size-4" />
-        </div>
-        {change != null && (
-          <span
-            className={`text-[11px] font-medium flex items-center gap-0.5 ${
-              isUp ? "text-emerald-600" : "text-red-500"
-            }`}
-          >
-            <IconRenderer
-              name={isUp ? "arrow_up_outlined" : "arrow_down_outlined"}
-              className="size-3"
-            />
-            {Math.abs(change)}%
-          </span>
-        )}
-      </div>
-      <div className="flex items-baseline gap-1 flex-wrap">
-        <span className="text-xl sm:text-2xl font-semibold text-foreground truncate">
-          {item.value}
-        </span>
-        {item.suffix && (
-          <span className="text-xs text-muted-foreground">{item.suffix}</span>
-        )}
-      </div>
-      <span className="text-xs text-muted-foreground truncate">{item.label}</span>
-    </div>
-  );
-}
-
-function KpiRow() {
-  const drag = useDragScroll();
-  return (
-    <div
-      ref={drag.ref}
-      onPointerDown={drag.onPointerDown}
-      onPointerMove={drag.onPointerMove}
-      onPointerUp={drag.onPointerUp}
-      onPointerCancel={drag.onPointerCancel}
-      className={`flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible ${
-        drag.dragging ? "cursor-grabbing select-none" : "cursor-grab sm:cursor-auto"
-      }`}
-    >
-      {KPIS.map((item) => (
-        <KpiCard key={item.key} item={item} />
-      ))}
-    </div>
-  );
-}
-
-function StatusDistributionCard() {
-  const [sel, setSel] = useState(0);
-  const values = STATUS_DISTRIBUTION.map((d) => d.value);
-  const total = values.reduce((s, v) => s + v, 0);
-  const maxV = Math.max(...values, 1);
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 flex flex-col h-full">
-      <div className="flex items-start justify-between">
-        <span className="text-sm font-medium text-muted-foreground">
-          توزيع حالات الفواتير
-        </span>
-        <IconRenderer
-          name="arrow_up_right_outlined"
-          className="size-4 text-muted-foreground"
-        />
-      </div>
-      <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
-          {total}
-        </span>
-        <span className="text-xs text-muted-foreground">فاتورة</span>
-      </div>
-
-      <div className="mt-6 flex-1 flex items-end gap-2 sm:gap-4">
-        {STATUS_DISTRIBUTION.map((d, i) => {
-          const isSel = sel === i;
-          const h = (d.value / maxV) * 100;
-          return (
-            <button
-              key={d.label}
-              onClick={() => setSel(i)}
-              className="flex-1 flex flex-col items-center gap-2 min-w-0"
-            >
-              <div className="w-full h-28 sm:h-32 flex items-end">
-                <div
-                  className={`w-full rounded-md transition-all ${
-                    isSel ? "bg-primary" : "bg-primary/15"
-                  }`}
-                  style={{ height: `${h}%` }}
-                >
-                  {isSel && (
-                    <div className="w-full text-center pt-1">
-                      <span className="text-[11px] font-semibold text-primary-foreground">
-                        {d.value}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <span className="text-[11px] text-muted-foreground truncate w-full text-center">
-                {d.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
 
 function InsightBanner() {
   const [active, setActive] = useState(0);
@@ -494,84 +230,278 @@ function InvoiceInsights() {
   );
 }
 
-function ActivityStatTile({
-  tile,
-}: {
-  tile: (typeof ACTIVITY_GROUPS)[number]["tiles"][number];
-}) {
-  const isUp = (tile.change ?? 0) >= 0;
-  return (
-    <div className="shrink-0 w-[150px] sm:w-[164px] rounded-2xl border border-border bg-card p-4 flex flex-col justify-between h-[140px]">
-      <div className="flex items-center gap-1.5">
-        <span className="text-xl font-semibold text-foreground truncate">
-          {tile.value}
-        </span>
-        {tile.suffix && (
-          <span className="text-[11px] text-muted-foreground">{tile.suffix}</span>
-        )}
-        {tile.change != null && (
-          <IconRenderer
-            name={isUp ? "arrow_up_outlined" : "arrow_down_outlined"}
-            className={`size-3.5 ${isUp ? "text-emerald-600" : "text-red-500"}`}
-          />
-        )}
-      </div>
-      <div>
-        <div className="text-xs font-medium text-foreground">{tile.label}</div>
-        <div className="text-[11px] text-muted-foreground">{tile.sub}</div>
-      </div>
-    </div>
-  );
+// ---- Real data: KPI row, status distribution and activity section ----
+
+interface Kpi {
+  key: string;
+  label: string;
+  value: string | number;
+  suffix?: string;
+  change: number | null;
+  icon: iconName;
 }
 
-function ActivitySection() {
-  const drag = useDragScroll();
+function buildKpis(overview: InvoicesOverview): Kpi[] {
+  const { sales, collections, debts, returns, currency } = overview;
+  const totalAmount = formatMoneyParts(sales.total_amount.value, currency.code);
+  const collected = formatMoneyParts(collections.total_amount.value, currency.code);
+  const overdue = formatMoneyParts(debts.overdue.balance_due, currency.code);
+  const avgInvoice = formatMoneyParts(sales.average_amount.value, currency.code);
 
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <div
-        ref={drag.ref}
-        onPointerDown={drag.onPointerDown}
-        onPointerMove={drag.onPointerMove}
-        onPointerUp={drag.onPointerUp}
-        onPointerCancel={drag.onPointerCancel}
-        className={`overflow-x-auto [&::-webkit-scrollbar]:hidden ${
-          drag.dragging ? "cursor-grabbing select-none" : "cursor-grab"
-        }`}
-      >
-        <div className="flex min-w-max gap-6 sm:gap-8">
-          {ACTIVITY_GROUPS.map((group) => (
-            <div key={group.key} className="shrink-0">
-              <div className="mb-3 flex items-center gap-2">
-                <IconRenderer name={group.icon} className="size-4 text-muted-foreground" />
-                <h3 className="text-sm font-semibold text-foreground">{group.title}</h3>
-              </div>
-              <div className="flex gap-3">
-                {group.tiles.map((tile, i) => (
-                  <ActivityStatTile key={i} tile={tile} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return [
+    {
+      key: "invoiceCount",
+      label: "فواتير البيع هالفترة",
+      value: sales.invoice_count.value,
+      change: sales.invoice_count.change_pct,
+      icon: "sales_outlined",
+    },
+    {
+      key: "totalSales",
+      label: "إجمالي المبيعات",
+      value: totalAmount.amount,
+      suffix: totalAmount.label,
+      change: sales.total_amount.change_pct,
+      icon: "revenue_outlined",
+    },
+    {
+      key: "collected",
+      label: "المحصّل هالفترة",
+      value: collected.amount,
+      suffix: collected.label,
+      change: collections.total_amount.change_pct,
+      icon: "transaction_outlined",
+    },
+    {
+      key: "overdue",
+      // debts don't follow the date picker (dashboard_overview.md §4.1) — a running balance, not a period figure.
+      label: "ديون متأخرة",
+      value: overdue.amount,
+      suffix: overdue.label,
+      change: null,
+      icon: "warning_outlined",
+    },
+    {
+      key: "avgInvoice",
+      label: "متوسط قيمة الفاتورة",
+      value: avgInvoice.amount,
+      suffix: avgInvoice.label,
+      change: sales.average_amount.change_pct,
+      icon: "price_outlined",
+    },
+    {
+      key: "returnRate",
+      label: "نسبة المرتجعات",
+      value: `${returns.rate_pct.value}%`,
+      change: returns.rate_pct.change_pct,
+      icon: "undo_outlined",
+    },
+  ];
 }
+
+function buildStatusBars(overview: InvoicesOverview): {
+  bars: OverviewDistributionBar[];
+  total: number;
+} {
+  const bars: OverviewDistributionBar[] = overview.by_status.map((s) => ({
+    key: s.status,
+    label: STATUS_LABELS[s.status as SalesInvoiceStatus] ?? s.label,
+    value: s.count,
+  }));
+  // A true partition of sales.invoice_count — "overdue" overlaps deferred/partially_paid
+  // rather than being one more slice of it, so it's drawn but excluded from the total.
+  const total = bars.reduce((sum, b) => sum + b.value, 0);
+  bars.push({
+    key: "overdue",
+    label: "متأخرة",
+    value: overview.debts.overdue.invoice_count,
+    muted: true,
+  });
+  return { bars, total };
+}
+
+interface ActivityTileData {
+  value: string | number;
+  suffix?: string;
+  change: number | null;
+  label: string;
+  sub: string;
+}
+
+interface ActivityGroupData {
+  key: string;
+  title: string;
+  icon: iconName;
+  tiles: ActivityTileData[];
+}
+
+function buildActivityGroups(overview: InvoicesOverview): ActivityGroupData[] {
+  const { sales, collections, debts, currency } = overview;
+  const periodLabel = `${formatDateShort(overview.period.date_from)} - ${formatDateShort(
+    overview.period.date_to,
+  )}`;
+  const totalAmount = formatMoneyParts(sales.total_amount.value, currency.code);
+  const avgAmount = formatMoneyParts(sales.average_amount.value, currency.code);
+  const cashAmount = formatMoneyParts(collections.cash_amount.value, currency.code);
+  const creditAmount = formatMoneyParts(collections.credit_amount.value, currency.code);
+  const overdueBalance = formatMoneyParts(debts.overdue.balance_due, currency.code);
+
+  return [
+    {
+      key: "sales",
+      title: "المبيعات",
+      icon: "sales_outlined",
+      tiles: [
+        {
+          value: totalAmount.amount,
+          suffix: totalAmount.label,
+          change: sales.total_amount.change_pct,
+          label: "إجمالي المبيعات",
+          sub: periodLabel,
+        },
+        {
+          value: sales.invoice_count.value,
+          change: sales.invoice_count.change_pct,
+          label: "عدد الفواتير",
+          sub: periodLabel,
+        },
+        {
+          value: avgAmount.amount,
+          suffix: avgAmount.label,
+          change: sales.average_amount.change_pct,
+          label: "متوسط الفاتورة",
+          sub: periodLabel,
+        },
+      ],
+    },
+    {
+      key: "collections",
+      title: "التحصيل",
+      icon: "transaction_outlined",
+      tiles: [
+        {
+          value: cashAmount.amount,
+          suffix: cashAmount.label,
+          change: collections.cash_amount.change_pct,
+          label: "محصّل نقداً",
+          sub: periodLabel,
+        },
+        {
+          value: creditAmount.amount,
+          suffix: creditAmount.label,
+          change: collections.credit_amount.change_pct,
+          label: "محصّل من رصيد دائن",
+          sub: periodLabel,
+        },
+      ],
+    },
+    {
+      key: "debts",
+      title: "الديون",
+      icon: "report_outlined",
+      tiles: [
+        {
+          value: overdueBalance.amount,
+          suffix: overdueBalance.label,
+          change: null,
+          label: "ديون متأخرة",
+          sub: `أكثر من ${debts.threshold_days} أيام`,
+        },
+        {
+          value: debts.overdue.invoice_count,
+          change: null,
+          label: "فواتير متأخرة",
+          sub: "بحاجة متابعة",
+        },
+      ],
+    },
+  ];
+}
+
+const ACTIVITY_SKELETON_GROUP_SIZES = [3, 2, 2];
 
 export function InvoicesOverview() {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  const { data, isLoading, isError, refetch } = useInvoicesOverviewQuery({
+    date_from: dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : undefined,
+    date_to: dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : undefined,
+  });
+  const overview = data?.data;
+
+  const kpis = useMemo(() => (overview ? buildKpis(overview) : []), [overview]);
+  const statusDistribution = useMemo(
+    () => (overview ? buildStatusBars(overview) : null),
+    [overview],
+  );
+  const activityGroups = useMemo(
+    () => (overview ? buildActivityGroups(overview) : []),
+    [overview],
+  );
+
   return (
     <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-      <KpiRow />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <DateFilter mode="range" value={dateRange} onChange={setDateRange} />
+        {overview?.fx.stale && (
+          <span className="flex items-center gap-1.5 text-xs text-amber-600">
+            <IconRenderer name="warning_outlined" className="size-3.5" />
+            أسعار الصرف قد تكون غير محدّثة
+          </span>
+        )}
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-        <StatusDistributionCard />
+      {isError ? (
+        <ErrorDisplay onRetry={() => refetch()} />
+      ) : (
+        <OverviewStatCardRow>
+          {isLoading
+            ? Array.from({ length: 6 }).map((_, i) => <OverviewStatCardSkeleton key={i} />)
+            : kpis.map(({ key, ...item }) => <OverviewStatCard key={key} {...item} />)}
+        </OverviewStatCardRow>
+      )}
+
+      <div
+        className={`grid grid-cols-1 gap-4 sm:gap-5 ${isError ? "" : "lg:grid-cols-2"}`}
+      >
+        {!isError &&
+          (isLoading || !statusDistribution ? (
+            <OverviewDistributionChartSkeleton />
+          ) : (
+            <OverviewDistributionChart
+              title="توزيع حالات الفواتير"
+              total={statusDistribution.total}
+              totalSuffix="فاتورة"
+              bars={statusDistribution.bars}
+            />
+          ))}
         <InsightBanner />
       </div>
 
       <InvoiceInsights />
 
-      <ActivitySection />
+      {!isError && (
+        <OverviewActivitySection>
+          {isLoading
+            ? ACTIVITY_SKELETON_GROUP_SIZES.map((count, gi) => (
+                <div key={gi} className="shrink-0">
+                  <Skeleton className="h-4 w-20 mb-3" />
+                  <div className="flex gap-3">
+                    {Array.from({ length: count }).map((_, i) => (
+                      <OverviewActivityTileSkeleton key={i} />
+                    ))}
+                  </div>
+                </div>
+              ))
+            : activityGroups.map((group) => (
+                <OverviewActivityGroup key={group.key} icon={group.icon} title={group.title}>
+                  {group.tiles.map((tile, i) => (
+                    <OverviewActivityTile key={i} {...tile} />
+                  ))}
+                </OverviewActivityGroup>
+              ))}
+        </OverviewActivitySection>
+      )}
     </div>
   );
 }

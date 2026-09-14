@@ -3,8 +3,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "@/components/ui/toast";
 import { ApiErrorResponse } from "@/module/auth/types";
-import { listReps, getRep, createRep, updateRep, deleteRep } from "../api";
-import { CreateRepPayload, UpdateRepPayload } from "../types";
+import {
+  listReps,
+  getRep,
+  createRep,
+  updateRep,
+  deleteRep,
+  getRepOverview,
+} from "../api";
+import { CreateRepPayload, UpdateRepPayload, RepOverviewParams } from "../types";
 
 const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>) => {
   toast.error(error.response?.data?.message || fallback);
@@ -54,6 +61,16 @@ export const useUpdateRepMutation = () => {
     onError: onErrorToast("تعذّر تحديث المندوب"),
   });
 };
+
+export const useRepOverviewQuery = (
+  id?: string | number,
+  params?: RepOverviewParams,
+) =>
+  useQuery({
+    queryKey: ["reps", "overview", id, params],
+    queryFn: () => getRepOverview(id as string | number, params),
+    enabled: Boolean(id),
+  });
 
 export const useDeleteRepMutation = () => {
   const queryClient = useQueryClient();

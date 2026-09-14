@@ -1,128 +1,32 @@
 "use client";
 
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { DateRange } from "react-day-picker";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorDisplay } from "@/components/ui/error-display";
+import { DateFilter } from "@/components/tredro/date-filter";
+import {
+  OverviewActivityGroup,
+  OverviewActivitySection,
+  OverviewActivityTile,
+  OverviewActivityTileSkeleton,
+  OverviewDistributionChart,
+  OverviewDistributionChartSkeleton,
+  OverviewStatCard,
+  OverviewStatCardRow,
+  OverviewStatCardSkeleton,
+  type OverviewDistributionBar,
+} from "@/components/tredro/overview-widgets";
+import { formatDateShort, formatMoneyParts } from "@/lib/format";
+import { STATUS_LABEL as REQUEST_STATUS_LABEL } from "@/module/orders/lib/format";
+import type { CustomerRequestStatus } from "@/module/orders/types";
+import { useRepOverviewQuery } from "../hooks";
+import type { RepOverview as RepOverviewData } from "../types";
 
-/* ============================================================
-   Dummy Data (بديل مؤقت لحد ما نربط الـ API)
-   ============================================================ */
+// ---- AI cards — no backend endpoint yet (dashboard_overview.md §8), kept as illustrative copy ----
 
-const REP = {
-  name: "محمد الأحمد",
-  type: "مندوب مفرّق",
-  avatarInitials: "م أ",
-};
-
-const KPIS: {
-  key: string;
-  label: string;
-  value: string | number;
-  suffix?: string;
-  change?: number | null;
-  icon: iconName;
-}[] = [
-  {
-    key: "customers",
-    label: "الزبائن المسندين",
-    value: 42,
-    change: 8,
-    icon: "users_outlined",
-  },
-  {
-    key: "orders",
-    label: "الطلبيات هالشهر",
-    value: 128,
-    change: 12,
-    icon: "cart_outlined",
-  },
-  {
-    key: "revenue",
-    label: "قيمة المبيعات",
-    value: "18,450,000",
-    suffix: "ل.س",
-    change: 5,
-    icon: "revenue_outlined",
-  },
-  {
-    key: "newCustomers",
-    label: "زبائن جدد (إحالة)",
-    value: 6,
-    change: 20,
-    icon: "add_user_outlined",
-  },
-  {
-    key: "pending",
-    label: "بانتظار التسليم",
-    value: 4,
-    change: -10,
-    icon: "clock_outlined",
-  },
-  {
-    key: "visits",
-    label: "الزيارات هالأسبوع",
-    value: 31,
-    change: 3,
-    icon: "map_outlined",
-  },
-];
-
-const ORDERS_DISTRIBUTION = [
-  { label: "مكتملة", value: 86 },
-  { label: "قيد الانتظار", value: 22 },
-  { label: "مرتجعة", value: 14 },
-  { label: "ملغية", value: 6 },
-];
-
-const ACTIVITY_GROUPS: {
-  key: string;
-  title: string;
-  icon: iconName;
-  tiles: {
-    value: string | number;
-    suffix?: string;
-    change: number | null;
-    label: string;
-    sub?: string;
-  }[];
-}[] = [
-  {
-    key: "orders",
-    title: "الطلبيات",
-    icon: "cart_outlined",
-    tiles: [
-      {
-        value: "18,450,000",
-        suffix: "ل.س",
-        change: 12,
-        label: "إجمالي المبيعات",
-        sub: "آخر 30 يوم",
-      },
-      { value: 128, change: 8, label: "عدد الطلبيات", sub: "آخر 30 يوم" },
-      { value: 4, change: -15, label: "طلبيات معلّقة", sub: "بانتظار الشركة" },
-    ],
-  },
-  {
-    key: "visits",
-    title: "الزيارات",
-    icon: "map_outlined",
-    tiles: [
-      { value: 31, change: 4, label: "زيارات هالأسبوع", sub: "آخر 7 أيام" },
-      { value: 5, change: -6, label: "محلات غير مزارة", sub: "هالأسبوع" },
-    ],
-  },
-  {
-    key: "customers",
-    title: "الزبائن",
-    icon: "users_outlined",
-    tiles: [
-      { value: 42, change: 8, label: "إجمالي الزبائن", sub: "مسندين للمندوب" },
-      { value: 6, change: 20, label: "زبائن جدد", sub: "عبر كود الإحالة" },
-    ],
-  },
-];
-
-/** بانر فوق — توقعات وتنبؤات قصيرة (rotating) */
 const FORECAST_BANNER: {
   indicator: "error" | "warning" | "success" | "info";
   label: string;
@@ -130,27 +34,26 @@ const FORECAST_BANNER: {
 }[] = [
   {
     indicator: "success",
-    label: "توقع تجاوز الهدف",
+    label: "توقع بتجاوز الهدف",
     description:
-      "بمعدلك الحالي، متوقع توصل لـ 145 طلبية نهاية الشهر — أعلى من هدفك بـ 5%.",
+      "بالمعدل الحالي، يُتوقع الوصول إلى 145 طلبًا بنهاية الشهر، بزيادة 5% عن الهدف المحدد.",
   },
   {
     indicator: "warning",
-    label: "خطر فقدان زبائن",
+    label: "خطر فقدان عملاء",
     description:
-      "إذا استمرت 5 محلات بدون زيارة لأسبوعين كمان، فيه احتمال يتوجهوا لمندوب تاني.",
+      "في حال استمرار عدم زيارة خمسة محال تجارية لأسبوعين إضافيين، يُحتمل انتقالها إلى مندوب آخر.",
   },
   {
     indicator: "info",
-    label: "تغطية الزبائن",
+    label: "تغطية العملاء",
     description:
-      "بمعدل الزيارات الحالي، رح تغطي كل زبائنك المسندين خلال 3 أسابيع.",
+      "بمعدل الزيارات الحالي، سيتم تغطية جميع العملاء المسندين خلال ثلاثة أسابيع.",
   },
 ];
 
-/** القسم تحت — تنقيب بيانات: الوضع الحالي ← التوقع لو استمر نفس المعدل */
 const ANALYSIS_INTRO =
-  "بناءً على تحليل بيانات أداء المندوب خلال الفترة الحالية، وبافتراض استمرار نفس المعدلات لنهاية الشهر:";
+  "بناءً على تحليل بيانات أداء المندوب خلال الفترة الحالية، وبافتراض استمرار المعدلات ذاتها حتى نهاية الشهر:";
 
 const PERFORMANCE_PROJECTIONS: {
   metric: string;
@@ -159,36 +62,35 @@ const PERFORMANCE_PROJECTIONS: {
   trend: "up" | "down" | "steady";
 }[] = [
   {
-    metric: "الطلبيات",
-    current: "الوضع الحالي: 128 طلبية منذ بداية الشهر",
-    projected: "التوقع: ≈ 145 طلبية نهاية الشهر (+13%)",
+    metric: "الطلبات",
+    current: "الوضع الحالي: 128 طلبًا منذ بداية الشهر",
+    projected: "التوقع: نحو 145 طلبًا بنهاية الشهر (+13%)",
     trend: "up",
   },
   {
     metric: "الزيارات",
-    current: "الوضع الحالي: 31 زيارة هالأسبوع",
-    projected: "التوقع: تغطية كامل الزبائن المسندين خلال 3 أسابيع بنفس المعدل",
+    current: "الوضع الحالي: 31 زيارة خلال هذا الأسبوع",
+    projected: "التوقع: تغطية جميع العملاء المسندين خلال ثلاثة أسابيع بالمعدل ذاته",
     trend: "up",
   },
   {
-    metric: "الزبائن غير المُزارين",
-    current: "الوضع الحالي: 5 محلات بدون زيارة من أكثر من أسبوع",
-    projected:
-      "التوقع: خطر فقدان 1-2 زبون خلال أسبوعين إذا استمر الوضع متل ما هو",
+    metric: "العملاء غير المُزارين",
+    current: "الوضع الحالي: خمسة محال دون زيارة منذ أكثر من أسبوع",
+    projected: "التوقع: خطر فقدان عميل أو عميلين خلال أسبوعين في حال استمرار الوضع",
     trend: "down",
   },
   {
     metric: "المرتجعات",
-    current: "الوضع الحالي: 11% من إجمالي الطلبيات مرتجعة",
-    projected: "التوقع: بتضل ثابتة ضمن المعدل الطبيعي (10-12%)",
+    current: "الوضع الحالي: 11% من إجمالي الطلبات مرتجعة",
+    projected: "التوقع: يُتوقع أن تبقى ضمن المعدل الطبيعي (10-12%)",
     trend: "steady",
   },
 ];
 
 const PERFORMANCE_RECOMMENDATIONS = [
-  "جدولة زيارة للزبائن الخمسة يلي ما تمت زيارتهم هالأسبوع قبل ما تفقدهم لمندوب تاني.",
-  "الحفاظ على معدل الطلبيات الحالي لتحقيق أو تجاوز هدف الشهر.",
-  "متابعة أسباب نسبة المرتجع كل فترة حتى تضل ضمن الحد الطبيعي.",
+  "جدولة زيارة للعملاء الخمسة الذين لم تتم زيارتهم هذا الأسبوع قبل أن يتحولوا إلى مندوب آخر.",
+  "الحفاظ على المعدل الحالي للطلبات من أجل تحقيق هدف الشهر أو تجاوزه.",
+  "متابعة أسباب نسبة المرتجعات بشكل دوري للإبقاء عليها ضمن الحد الطبيعي.",
 ];
 
 const TREND_ICON: Record<string, iconName> = {
@@ -201,13 +103,6 @@ const TREND_CLASS: Record<string, string> = {
   up: "text-emerald-600 bg-emerald-500/10",
   down: "text-red-500 bg-red-500/10",
   steady: "text-muted-foreground bg-muted",
-};
-
-const INDICATOR_DOT: Record<string, string> = {
-  error: "bg-red-500",
-  warning: "bg-yellow-500",
-  success: "bg-green-500",
-  info: "bg-primary",
 };
 
 const INDICATOR_ICON: Record<string, iconName> = {
@@ -223,259 +118,6 @@ const INDICATOR_ICON_CLASS: Record<string, string> = {
   success: "text-emerald-200",
   info: "text-white/80",
 };
-
-/* ============================================================
-   Skeleton
-   ============================================================ */
-
-function Skeleton({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md bg-muted ${className}`} />;
-}
-
-/* ============================================================
-   Drag scroll (helper محلي داخل نفس الملف)
-   ============================================================ */
-
-function useDragScroll() {
-  const ref = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState(false);
-  const state = useRef({ startX: 0, startLeft: 0 });
-
-  const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
-    const el = ref.current;
-    if (!el) return;
-    setDragging(true);
-    state.current.startX = e.clientX;
-    state.current.startLeft = el.scrollLeft;
-    el.setPointerCapture(e.pointerId);
-  };
-  const onPointerMove = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    const el = ref.current;
-    if (!el) return;
-    el.scrollLeft =
-      state.current.startLeft - (e.clientX - state.current.startX);
-  };
-  const endDrag = (e: PointerEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    setDragging(false);
-    ref.current?.releasePointerCapture(e.pointerId);
-  };
-
-  return {
-    ref,
-    dragging,
-    onPointerDown,
-    onPointerMove,
-    onPointerUp: endDrag,
-    onPointerCancel: endDrag,
-  };
-}
-
-/* ============================================================
-   KPI Row
-   ============================================================ */
-
-function KpiCardSkeleton() {
-  return (
-    <div className="shrink-0 w-[150px] sm:w-auto rounded-2xl border border-border bg-card p-3.5 sm:p-4 flex flex-col gap-2.5">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-8 w-8 rounded-lg" />
-        <Skeleton className="h-3 w-8" />
-      </div>
-      <Skeleton className="h-6 w-16" />
-      <Skeleton className="h-3 w-20" />
-    </div>
-  );
-}
-
-function KpiCard({ item }: { item: (typeof KPIS)[number] }) {
-  const change = item.change ?? null;
-  const isUp = (change ?? 0) >= 0;
-  return (
-    <div className="shrink-0 w-[150px] sm:w-auto rounded-2xl border border-border bg-card p-3.5 sm:p-4 flex flex-col gap-2 min-w-0">
-      <div className="flex items-center justify-between">
-        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-          <IconRenderer name={item.icon} className="size-4" />
-        </div>
-        {change != null && (
-          <span
-            className={`text-[11px] font-medium flex items-center gap-0.5 ${
-              isUp ? "text-emerald-600" : "text-red-500"
-            }`}
-          >
-            <IconRenderer
-              name={isUp ? "arrow_up_outlined" : "arrow_down_outlined"}
-              className="size-3"
-            />
-            {Math.abs(change)}%
-          </span>
-        )}
-      </div>
-      <div className="flex items-baseline gap-1 flex-wrap">
-        <span className="text-xl sm:text-2xl font-semibold text-foreground truncate">
-          {item.value}
-        </span>
-        {item.suffix && (
-          <span className="text-xs text-muted-foreground">{item.suffix}</span>
-        )}
-      </div>
-      <span className="text-xs text-muted-foreground truncate">
-        {item.label}
-      </span>
-    </div>
-  );
-}
-
-function KpiRow({ loading }: { loading: boolean }) {
-  const drag = useDragScroll();
-
-  if (loading) {
-    return (
-      <div className="flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <KpiCardSkeleton key={i} />
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div
-      ref={drag.ref}
-      onPointerDown={drag.onPointerDown}
-      onPointerMove={drag.onPointerMove}
-      onPointerUp={drag.onPointerUp}
-      onPointerCancel={drag.onPointerCancel}
-      className={`flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 lg:grid-cols-6 sm:overflow-visible ${
-        drag.dragging
-          ? "cursor-grabbing select-none"
-          : "cursor-grab sm:cursor-auto"
-      }`}
-    >
-      {KPIS.map((item) => (
-        <KpiCard key={item.key} item={item} />
-      ))}
-    </div>
-  );
-}
-
-/* ============================================================
-   Orders Distribution
-   ============================================================ */
-
-function OrdersDistributionSkeleton() {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 flex flex-col h-full">
-      <Skeleton className="h-4 w-24" />
-      <Skeleton className="h-9 w-16 mt-3" />
-      <div className="mt-6 flex-1 flex items-end gap-2 sm:gap-4">
-        {[60, 90, 40, 70].map((h, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center gap-2">
-            <div className="w-full h-28 sm:h-32 flex items-end">
-              <Skeleton
-                className="w-full"
-                style={{ height: `${h}%` } as React.CSSProperties}
-              />
-            </div>
-            <Skeleton className="h-2.5 w-10" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function OrdersDistributionCard() {
-  const [sel, setSel] = useState(0);
-  const values = ORDERS_DISTRIBUTION.map((d) => d.value);
-  const total = values.reduce((s, v) => s + v, 0);
-  const maxV = Math.max(...values, 1);
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 flex flex-col h-full">
-      <div className="flex items-start justify-between">
-        <span className="text-sm font-medium text-muted-foreground">
-          توزيع الطلبيات
-        </span>
-        <IconRenderer
-          name="arrow_up_right_outlined"
-          className="size-4 text-muted-foreground"
-        />
-      </div>
-      <div className="mt-2 flex items-baseline gap-1">
-        <span className="text-3xl sm:text-4xl font-semibold tracking-tight text-foreground">
-          {total}
-        </span>
-        <span className="text-xs text-muted-foreground">طلبية</span>
-      </div>
-
-      <div className="mt-6 flex-1 flex items-end gap-2 sm:gap-4">
-        {ORDERS_DISTRIBUTION.map((d, i) => {
-          const isSel = sel === i;
-          const h = (d.value / maxV) * 100;
-          return (
-            <button
-              key={d.label}
-              onClick={() => setSel(i)}
-              className="flex-1 flex flex-col items-center gap-2 min-w-0"
-            >
-              <div className="w-full h-28 sm:h-32 flex items-end">
-                <div
-                  className={`w-full rounded-md transition-all ${
-                    isSel ? "bg-primary" : "bg-primary/15"
-                  }`}
-                  style={{ height: `${h}%` }}
-                >
-                  {isSel && (
-                    <div className="w-full text-center pt-1">
-                      <span className="text-[11px] font-semibold text-primary-foreground">
-                        {d.value}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <span className="text-[11px] text-muted-foreground truncate w-full text-center">
-                {d.label}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-/* ============================================================
-   Insight Banner (rotating)
-   ============================================================ */
-
-function InsightBannerSkeleton() {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 h-full min-h-[220px] flex flex-col justify-between">
-      <div className="flex items-center justify-between">
-        <Skeleton className="h-5 w-24" />
-        <Skeleton className="h-5 w-14 rounded-full" />
-      </div>
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start gap-2">
-          <Skeleton className="h-4 w-4 mt-0.5 rounded-full" />
-          <div className="flex flex-col gap-2 flex-1">
-            <Skeleton className="h-3.5 w-28" />
-            <Skeleton className="h-3 w-full" />
-            <Skeleton className="h-3 w-4/5" />
-          </div>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <Skeleton className="h-1.5 w-5 rounded-full" />
-          <Skeleton className="h-1.5 w-1.5 rounded-full" />
-          <Skeleton className="h-1.5 w-1.5 rounded-full" />
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function InsightBanner() {
   const [active, setActive] = useState(0);
@@ -503,9 +145,7 @@ function InsightBanner() {
         <div className="flex items-start gap-2">
           <IconRenderer
             name={INDICATOR_ICON[current.indicator]}
-            className={`size-4 mt-0.5 shrink-0 ${
-              INDICATOR_ICON_CLASS[current.indicator]
-            }`}
+            className={`size-4 mt-0.5 shrink-0 ${INDICATOR_ICON_CLASS[current.indicator]}`}
           />
           <div className="flex flex-col gap-1">
             <span className="text-sm font-semibold">{current.label}</span>
@@ -531,46 +171,6 @@ function InsightBanner() {
   );
 }
 
-/* ============================================================
-   ملخص أداء المندوب
-   ============================================================ */
-
-function RepInsightsSkeleton() {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <div className="flex items-center gap-2 mb-4">
-        <Skeleton className="h-7 w-7 rounded-lg" />
-        <Skeleton className="h-5 w-44" />
-      </div>
-      <div className="space-y-2 mb-5">
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-11/12" />
-      </div>
-      <div className="space-y-3">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-start gap-3 rounded-xl bg-muted/40 p-3"
-          >
-            <Skeleton className="h-7 w-7 rounded-lg shrink-0" />
-            <div className="flex-1 space-y-1.5">
-              <Skeleton className="h-3.5 w-24" />
-              <Skeleton className="h-2.5 w-full" />
-              <Skeleton className="h-2.5 w-4/5" />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-6 pt-6 border-t border-border space-y-2">
-        <Skeleton className="h-3.5 w-48 mb-2" />
-        <Skeleton className="h-3 w-full" />
-        <Skeleton className="h-3 w-4/5" />
-        <Skeleton className="h-3 w-2/3" />
-      </div>
-    </div>
-  );
-}
-
 function RepInsights() {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
@@ -587,17 +187,11 @@ function RepInsights() {
         {ANALYSIS_INTRO}
       </p>
 
-      {/* الوضع الحالي ← التوقع، لكل مؤشر */}
       <ul className="space-y-3">
         {PERFORMANCE_PROJECTIONS.map((p, idx) => (
-          <li
-            key={idx}
-            className="flex items-start gap-3 rounded-xl bg-muted/40 p-3"
-          >
+          <li key={idx} className="flex items-start gap-3 rounded-xl bg-muted/40 p-3">
             <div
-              className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
-                TREND_CLASS[p.trend]
-              }`}
+              className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${TREND_CLASS[p.trend]}`}
             >
               <IconRenderer name={TREND_ICON[p.trend]} className="size-3.5" />
             </div>
@@ -618,14 +212,11 @@ function RepInsights() {
 
       <div className="mt-6 pt-6 border-t border-border">
         <h3 className="text-sm font-semibold mb-3 text-foreground">
-          شو لازم يعمل المندوب بناءً عالتوقعات
+          ما الذي يجب أن يقوم به المندوب بناءً على هذه التوقعات
         </h3>
         <ul className="list-disc ps-5 space-y-2">
           {PERFORMANCE_RECOMMENDATIONS.map((rec, idx) => (
-            <li
-              key={idx}
-              className="text-muted-foreground text-sm leading-relaxed"
-            >
+            <li key={idx} className="text-muted-foreground text-sm leading-relaxed">
               {rec}
             </li>
           ))}
@@ -635,145 +226,272 @@ function RepInsights() {
   );
 }
 
-/* ============================================================
-   Activity Section
-   ============================================================ */
+// ---- Real data: KPI row, request distribution and activity section ----
 
-function ActivityTileSkeleton() {
-  return (
-    <div className="shrink-0 w-[150px] sm:w-[164px] rounded-2xl border border-border bg-card p-4 flex flex-col justify-between h-[140px]">
-      <Skeleton className="h-6 w-16" />
-      <div className="space-y-1.5">
-        <Skeleton className="h-3 w-20" />
-        <Skeleton className="h-2.5 w-14" />
-      </div>
-    </div>
-  );
+interface Kpi {
+  key: string;
+  label: string;
+  value: string | number;
+  suffix?: string;
+  change: number | null;
+  icon: iconName;
 }
 
-function ActivityStatTile({
-  tile,
-}: {
-  tile: (typeof ACTIVITY_GROUPS)[number]["tiles"][number];
-}) {
-  const isUp = (tile.change ?? 0) >= 0;
-  return (
-    <div className="shrink-0 w-[150px] sm:w-[164px] rounded-2xl border border-border bg-card p-4 flex flex-col justify-between h-[140px]">
-      <div className="flex items-center gap-1.5">
-        <span className="text-xl font-semibold text-foreground truncate">
-          {tile.value}
-        </span>
-        {tile.suffix && (
-          <span className="text-[11px] text-muted-foreground">
-            {tile.suffix}
-          </span>
-        )}
-        {tile.change != null && (
-          <IconRenderer
-            name={isUp ? "arrow_up_outlined" : "arrow_down_outlined"}
-            className={`size-3.5 ${isUp ? "text-emerald-600" : "text-red-500"}`}
-          />
-        )}
-      </div>
-      <div>
-        <div className="text-xs font-medium text-foreground">{tile.label}</div>
-        <div className="text-[11px] text-muted-foreground">{tile.sub}</div>
-      </div>
-    </div>
-  );
+function buildKpis(overview: RepOverviewData): Kpi[] {
+  const { sales, visits, customer_requests, customers, currency } = overview;
+  const totalAmount = formatMoneyParts(sales.total_amount.value, currency.code);
+
+  return [
+    {
+      key: "assignedCustomers",
+      label: "العملاء المسندون",
+      value: customers.assigned.value,
+      change: customers.assigned.change_pct,
+      icon: "users_outlined",
+    },
+    {
+      key: "requests",
+      label: "الطلبات",
+      value: customer_requests.count.value,
+      change: customer_requests.count.change_pct,
+      icon: "cart_outlined",
+    },
+    {
+      key: "sales",
+      label: "قيمة المبيعات",
+      value: totalAmount.amount,
+      suffix: totalAmount.label,
+      change: sales.total_amount.change_pct,
+      icon: "revenue_outlined",
+    },
+    {
+      key: "newCustomers",
+      label: "عملاء جدد (عبر الإحالة)",
+      value: customers.new_via_referral.value,
+      change: customers.new_via_referral.change_pct,
+      icon: "add_user_outlined",
+    },
+    {
+      key: "awaitingDelivery",
+      // a queue — waiting on the rep to deliver, doesn't follow the date picker.
+      label: "بانتظار التسليم",
+      value: customer_requests.awaiting_delivery_count,
+      change: null,
+      icon: "clock_outlined",
+    },
+    {
+      key: "visits",
+      label: "الزيارات (آخر 7 أيام)",
+      value: visits.count.value,
+      change: visits.count.change_pct,
+      icon: "map_outlined",
+    },
+  ];
 }
 
-function ActivitySection({ loading }: { loading: boolean }) {
-  const drag = useDragScroll();
-
-  if (loading) {
-    return (
-      <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-        <div className="flex min-w-max gap-6 sm:gap-8 overflow-x-auto [&::-webkit-scrollbar]:hidden">
-          {ACTIVITY_GROUPS.map((group) => (
-            <div key={group.key} className="shrink-0">
-              <div className="mb-3 flex items-center gap-2">
-                <Skeleton className="h-4 w-4 rounded" />
-                <Skeleton className="h-3.5 w-16" />
-              </div>
-              <div className="flex gap-3">
-                {group.tiles.map((_, i) => (
-                  <ActivityTileSkeleton key={i} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
-      <div
-        ref={drag.ref}
-        onPointerDown={drag.onPointerDown}
-        onPointerMove={drag.onPointerMove}
-        onPointerUp={drag.onPointerUp}
-        onPointerCancel={drag.onPointerCancel}
-        className={`overflow-x-auto [&::-webkit-scrollbar]:hidden ${
-          drag.dragging ? "cursor-grabbing select-none" : "cursor-grab"
-        }`}
-      >
-        <div className="flex min-w-max gap-6 sm:gap-8">
-          {ACTIVITY_GROUPS.map((group) => (
-            <div key={group.key} className="shrink-0">
-              <div className="mb-3 flex items-center gap-2">
-                <IconRenderer
-                  name={group.icon}
-                  className="size-4 text-muted-foreground"
-                />
-                <h3 className="text-sm font-semibold text-foreground">
-                  {group.title}
-                </h3>
-              </div>
-              <div className="flex gap-3">
-                {group.tiles.map((tile, i) => (
-                  <ActivityStatTile key={i} tile={tile} />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+function buildRequestBars(overview: RepOverviewData): {
+  bars: OverviewDistributionBar[];
+  total: number;
+} {
+  const bars: OverviewDistributionBar[] = overview.customer_requests.by_status.map(
+    (s) => ({
+      key: s.status,
+      label: REQUEST_STATUS_LABEL[s.status as CustomerRequestStatus] ?? s.label,
+      value: s.count,
+    }),
   );
+  const total = bars.reduce((sum, b) => sum + b.value, 0);
+  return { bars, total };
 }
 
-/* ============================================================
-   Page
-   ============================================================ */
+interface ActivityTileData {
+  value: string | number;
+  suffix?: string;
+  change: number | null;
+  label: string;
+  sub: string;
+}
+
+interface ActivityGroupData {
+  key: string;
+  title: string;
+  icon: iconName;
+  tiles: ActivityTileData[];
+}
+
+function buildActivityGroups(overview: RepOverviewData): ActivityGroupData[] {
+  const { sales, visits, customer_requests, customers, currency } = overview;
+  const periodLabel = `${formatDateShort(overview.period.date_from)} - ${formatDateShort(
+    overview.period.date_to,
+  )}`;
+  const visitsWindowLabel = `${formatDateShort(visits.window.date_from)} - ${formatDateShort(
+    visits.window.date_to,
+  )}`;
+  const totalAmount = formatMoneyParts(sales.total_amount.value, currency.code);
+
+  return [
+    {
+      key: "requests",
+      title: "الطلبات",
+      icon: "cart_outlined",
+      tiles: [
+        {
+          value: totalAmount.amount,
+          suffix: totalAmount.label,
+          change: sales.total_amount.change_pct,
+          label: "إجمالي المبيعات",
+          sub: periodLabel,
+        },
+        {
+          value: customer_requests.count.value,
+          change: customer_requests.count.change_pct,
+          label: "عدد الطلبات",
+          sub: periodLabel,
+        },
+        {
+          value: customer_requests.pending_count,
+          change: null,
+          label: "طلبات قيد الانتظار",
+          sub: "بانتظار رد المندوب",
+        },
+      ],
+    },
+    {
+      key: "visits",
+      title: "الزيارات",
+      icon: "map_outlined",
+      tiles: [
+        {
+          value: visits.count.value,
+          change: visits.count.change_pct,
+          label: "الزيارات",
+          sub: visitsWindowLabel,
+        },
+        {
+          value: visits.unvisited_customer_count,
+          change: null,
+          label: "محال لم تُزَر",
+          sub: "خلال هذا الأسبوع",
+        },
+        {
+          value: visits.days_since_last_visit ?? "—",
+          change: null,
+          label: "أيام منذ آخر زيارة",
+          sub: visits.last_visit_at ? "آخر نشاط مسجَّل" : "لم تتم زيارته بعد",
+        },
+      ],
+    },
+    {
+      key: "customers",
+      title: "العملاء",
+      icon: "users_outlined",
+      tiles: [
+        {
+          value: customers.assigned.value,
+          change: customers.assigned.change_pct,
+          label: "إجمالي العملاء",
+          sub: "مسندون للمندوب",
+        },
+        {
+          value: customers.new_via_referral.value,
+          change: customers.new_via_referral.change_pct,
+          label: "عملاء جدد",
+          sub: "عبر كود الإحالة",
+        },
+      ],
+    },
+  ];
+}
+
+const ACTIVITY_SKELETON_GROUP_SIZES = [3, 3, 2];
 
 interface RepOverviewProps {
-  isLoading?: boolean;
+  repId: string | number;
 }
 
-export default function RepOverview({ isLoading = false }: RepOverviewProps) {
-  // Note: The internal loading state is kept for demo purposes
+export default function RepOverview({ repId }: RepOverviewProps) {
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
+
+  const { data, isLoading, isError, refetch } = useRepOverviewQuery(repId, {
+    date_from: dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : undefined,
+    date_to: dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : undefined,
+  });
+  const overview = data?.data;
+
+  const kpis = useMemo(() => (overview ? buildKpis(overview) : []), [overview]);
+  const requestDistribution = useMemo(
+    () => (overview ? buildRequestBars(overview) : null),
+    [overview],
+  );
+  const activityGroups = useMemo(
+    () => (overview ? buildActivityGroups(overview) : []),
+    [overview],
+  );
 
   return (
-    <div
-      dir="rtl"
-      className="w-full bg-background p-4 sm:p-6 lg:p-8"
-    >
+    <div dir="rtl" className="w-full bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-        <KpiRow />
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
-       
-            <OrdersDistributionCard />
-        
-         <InsightBanner />
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <DateFilter mode="range" value={dateRange} onChange={setDateRange} />
+          {overview?.fx.stale && (
+            <span className="flex items-center gap-1.5 text-xs text-amber-600">
+              <IconRenderer name="warning_outlined" className="size-3.5" />
+              أسعار الصرف قد تكون غير محدّثة
+            </span>
+          )}
         </div>
 
-       <RepInsights />
+        {isError ? (
+          <ErrorDisplay onRetry={() => refetch()} />
+        ) : (
+          <OverviewStatCardRow>
+            {isLoading
+              ? Array.from({ length: 6 }).map((_, i) => <OverviewStatCardSkeleton key={i} />)
+              : kpis.map(({ key, ...item }) => <OverviewStatCard key={key} {...item} />)}
+          </OverviewStatCardRow>
+        )}
 
-        <ActivitySection  />
+        <div
+          className={`grid grid-cols-1 gap-4 sm:gap-5 ${isError ? "" : "lg:grid-cols-2"}`}
+        >
+          {!isError &&
+            (isLoading || !requestDistribution ? (
+              <OverviewDistributionChartSkeleton />
+            ) : (
+              <OverviewDistributionChart
+                title="توزيع الطلبات"
+                total={requestDistribution.total}
+                totalSuffix="طلب"
+                bars={requestDistribution.bars}
+              />
+            ))}
+          <InsightBanner />
+        </div>
+
+        <RepInsights />
+
+        {!isError && (
+          <OverviewActivitySection>
+            {isLoading
+              ? ACTIVITY_SKELETON_GROUP_SIZES.map((count, gi) => (
+                  <div key={gi} className="shrink-0">
+                    <Skeleton className="h-4 w-20 mb-3" />
+                    <div className="flex gap-3">
+                      {Array.from({ length: count }).map((_, i) => (
+                        <OverviewActivityTileSkeleton key={i} />
+                      ))}
+                    </div>
+                  </div>
+                ))
+              : activityGroups.map((group) => (
+                  <OverviewActivityGroup key={group.key} icon={group.icon} title={group.title}>
+                    {group.tiles.map((tile, i) => (
+                      <OverviewActivityTile key={i} {...tile} />
+                    ))}
+                  </OverviewActivityGroup>
+                ))}
+          </OverviewActivitySection>
+        )}
       </div>
     </div>
   );

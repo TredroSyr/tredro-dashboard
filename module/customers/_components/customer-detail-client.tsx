@@ -75,7 +75,7 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
       )}
 
       <div className="px-6 pb-6">
-        {activeTab === "overview" && <CustomerOverview isLoading={isLoading} />}
+        {activeTab === "overview" && <CustomerOverview customerId={customerId} />}
         {activeTab === "invoices" && <InvoicesView customerId={customerId} />}
         {activeTab === "orders" && (
           <OrdersView

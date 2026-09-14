@@ -56,7 +56,11 @@ const applyWithViewTransition = (theme: Theme, apply: () => void) => {
     return;
   }
 
-  document.startViewTransition(apply);
+  try {
+    document.startViewTransition(apply);
+  } catch {
+    apply();
+  }
 };
 
 export const useThemeStore = create<ThemeStore>()(

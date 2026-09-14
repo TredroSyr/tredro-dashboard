@@ -10,6 +10,8 @@ import {
   BulkActionResponse,
   ImportExcelResponse,
   ApiEnvelope,
+  CustomerOverviewParams,
+  CustomerOverviewResponse,
 } from "../types";
 
 export const listCustomers = async (repId?: string | number): Promise<CustomersListResponse> => {
@@ -22,6 +24,17 @@ export const getCustomer = async (
   id: number | string,
 ): Promise<CustomerResponse> => {
   const response = await api.get<CustomerResponse>(`companies/customers/${id}`);
+  return response.data;
+};
+
+export const getCustomerOverview = async (
+  id: number | string,
+  params?: CustomerOverviewParams,
+): Promise<CustomerOverviewResponse> => {
+  const response = await api.get<CustomerOverviewResponse>(
+    `companies/customers/${id}/overview/`,
+    { params },
+  );
   return response.data;
 };
 

@@ -26,6 +26,8 @@ import {
   UpdateInvoiceSettingsPayload,
   HistoryResponse,
   CreateSalesInvoicePayload,
+  InvoicesOverviewParams,
+  InvoicesOverviewResponse,
 } from "../types";
 
 // ---- Sales invoices ----
@@ -127,6 +129,12 @@ export const listPayments = async (
   params?: ListPaymentsParams,
 ): Promise<PaymentsListResponse> =>
   (await api.get("companies/payment-collections/", { params })).data;
+
+// ---- Overview ----
+export const getInvoicesOverview = async (
+  params?: InvoicesOverviewParams,
+): Promise<InvoicesOverviewResponse> =>
+  (await api.get("companies/invoices/overview/", { params })).data;
 
 // ---- Reports ----
 export const getOverdueReport = async (

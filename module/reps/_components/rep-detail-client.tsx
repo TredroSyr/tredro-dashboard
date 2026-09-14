@@ -86,7 +86,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
 
       {/* Only show content areas when not loading OR show skeletons */}
       <div className="px-6 pb-6">
-        {activeTab === "overview" && <RepOverview isLoading={isLoading} />}
+        {activeTab === "overview" && <RepOverview repId={repId} />}
         {activeTab === "invoices" && <InvoicesView repId={repId} />}
 
         {activeTab === "customers" && <CustomersView repId={repId} />}

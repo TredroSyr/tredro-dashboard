@@ -6,6 +6,7 @@ import { ApiErrorResponse } from "@/module/auth/types";
 import {
   listCustomers,
   getCustomer,
+  getCustomerOverview,
   createCustomer,
   updateCustomer,
   deactivateCustomer,
@@ -20,6 +21,7 @@ import {
   AssignRepsPayload,
   RemoveRepsPayload,
   BulkActionPayload,
+  CustomerOverviewParams,
 } from "../types";
 
 const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>) => {
@@ -43,6 +45,16 @@ export const useCustomerQuery = (
       return getCustomer(id);
     },
     enabled: (options?.enabled ?? true) && Boolean(id),
+  });
+
+export const useCustomerOverviewQuery = (
+  id?: string | number,
+  params?: CustomerOverviewParams,
+) =>
+  useQuery({
+    queryKey: ["customers", "overview", id, params],
+    queryFn: () => getCustomerOverview(id as string | number, params),
+    enabled: Boolean(id),
   });
 
 export const useCreateCustomerMutation = () => {

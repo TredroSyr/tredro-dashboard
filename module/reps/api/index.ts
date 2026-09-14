@@ -5,6 +5,8 @@ import {
   CreateRepPayload,
   UpdateRepPayload,
   ApiEnvelope,
+  RepOverviewParams,
+  RepOverviewResponse,
 } from "../types";
 
 export const listReps = async (customerId?: string | number): Promise<RepsListResponse> => {
@@ -35,5 +37,16 @@ export const updateRep = async (
 
 export const deleteRep = async (id: number): Promise<ApiEnvelope<null>> => {
   const response = await api.delete<ApiEnvelope<null>>(`companies/reps/${id}/`);
+  return response.data;
+};
+
+export const getRepOverview = async (
+  id: number | string,
+  params?: RepOverviewParams,
+): Promise<RepOverviewResponse> => {
+  const response = await api.get<RepOverviewResponse>(
+    `companies/reps/${id}/overview/`,
+    { params },
+  );
   return response.data;
 };

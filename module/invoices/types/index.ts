@@ -420,6 +420,86 @@ export interface UpdateInvoiceSettingsPayload {
   overdue_threshold_days?: number;
 }
 
+// ---- Overview (dashboard_overview.md §4 — the invoicing screen) ----
+/** Every "figure with a trend arrow" on an overview screen. `change_pct` is null whenever `previous` is zero/absent. */
+export interface OverviewCard<T = string> {
+  value: T;
+  previous: T;
+  change_pct: number | null;
+}
+
+export interface OverviewPeriod {
+  date_from: string;
+  date_to: string;
+  previous_date_from: string;
+  previous_date_to: string;
+}
+
+export interface OverviewCurrency {
+  code: string;
+  name: string;
+  symbol: string;
+}
+
+export interface OverviewFx {
+  target: string;
+  as_of: string | null;
+  /** true when the rate provider was unreachable and slightly old rates were used. */
+  stale: boolean;
+  rates: Record<string, string>;
+}
+
+/** A status breakdown always lists every status, including zeros — use `status` as the key, `label` as an English fallback. */
+export interface OverviewStatusCount {
+  status: string;
+  label: string;
+  count: number;
+}
+
+export interface InvoicesOverview {
+  company: { id: number; name: string };
+  period: OverviewPeriod;
+  currency: OverviewCurrency;
+  fx: OverviewFx;
+  sales: {
+    invoice_count: OverviewCard<number>;
+    total_amount: OverviewCard<string>;
+    paid_amount: OverviewCard<string>;
+    balance_due: OverviewCard<string>;
+    returned_amount: OverviewCard<string>;
+    average_amount: OverviewCard<string>;
+  };
+  collections: {
+    count: OverviewCard<number>;
+    total_amount: OverviewCard<string>;
+    cash_amount: OverviewCard<string>;
+    credit_amount: OverviewCard<string>;
+  };
+  /** Not dated at all — ignores the selected period, unlike `sales`/`collections` above. */
+  debts: {
+    threshold_days: number;
+    outstanding: { invoice_count: number; balance_due: string };
+    overdue: { invoice_count: number; balance_due: string };
+  };
+  returns: {
+    count: OverviewCard<number>;
+    total_amount: OverviewCard<string>;
+    /** already a percentage (e.g. 1.8 means "1.8%") */
+    rate_pct: OverviewCard<number>;
+  };
+  /** A true partition of `sales.invoice_count` — "overdue" is not one of these statuses, see `debts.overdue`. */
+  by_status: OverviewStatusCount[];
+}
+
+export interface InvoicesOverviewParams {
+  date?: string;
+  date_from?: string;
+  date_to?: string;
+  currency?: string;
+}
+
+export type InvoicesOverviewResponse = ApiEnvelope<InvoicesOverview>;
+
 // ---- Audit history (shared shape, §8) ----
 export interface HistoryEntry {
   id: number;
