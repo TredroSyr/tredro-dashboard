@@ -70,6 +70,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
           isOnline={rep?.is_active}
           customersCount={customersCount}
           isLoading={isLoading || isCountsLoading}
+          rep={rep}
         />
 
         <RepDetailTabs

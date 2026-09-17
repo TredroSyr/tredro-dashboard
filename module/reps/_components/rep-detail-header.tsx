@@ -10,6 +10,8 @@ import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { DateFilter } from "@/components/tredro/date-filter";
 import { Skeleton } from "@/components/ui/skeleton";
+import type { Rep } from "../types";
+import { RepPdfDownloadButton } from "./rep-pdf-download-button";
 
 interface RepDetailHeaderProps {
   name?: string;
@@ -19,6 +21,7 @@ interface RepDetailHeaderProps {
   dateRange?: DateRange;
   onDateRangeChange?: (range: DateRange | undefined) => void;
   isLoading?: boolean;
+  rep?: Rep;
 }
 
 export function RepDetailHeader({
@@ -28,6 +31,7 @@ export function RepDetailHeader({
   dateRange,
   onDateRangeChange,
   isLoading = false,
+  rep,
 }: RepDetailHeaderProps) {
   const router = useRouter();
 
@@ -80,6 +84,7 @@ export function RepDetailHeader({
             onChange={onDateRangeChange}
             className="w-full sm:w-auto"
           />
+          {!isLoading && rep && <RepPdfDownloadButton rep={rep} />}
         </div>
       </div>
     </div>
