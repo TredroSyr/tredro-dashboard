@@ -9,6 +9,7 @@ import { Toaster } from "@/components/ui/toast";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
 
 import HardwareBackButton from "@/components/tredro/HardwareBackButton";
+import DeepLinkHandler from "@/components/tredro/DeepLinkHandler";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -106,6 +107,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <Suspense fallback={null}>
             <HardwareBackButton />
           </Suspense>
+          <DeepLinkHandler />
         </QueryProvider>
       </body>
     </html>
