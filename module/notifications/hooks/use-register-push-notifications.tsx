@@ -15,6 +15,7 @@ import {
 } from "../lib/push-notifications";
 import { playNotificationSound } from "../lib/notification-sound";
 import { DevicePlatform } from "../types";
+import { useNavAlertsStore } from "@/store/use-nav-alerts-store";
 
 export const FCM_TOKEN_STORAGE_KEY = "fcm_token";
 
@@ -107,6 +108,8 @@ export const useRegisterPushNotifications = (enabled: boolean) => {
       onForegroundNotification: (payload) => {
         console.log("📩 [push] foreground notification:", payload);
         showNotificationToast(payload);
+        // Animate the matching sidebar items until the user visits them.
+        payload.navKeys.forEach((key) => useNavAlertsStore.getState().flag(key));
         // A new notification landed — refresh the bell badge/list rather than
         // guessing at the new unread count client-side.
         queryClient.invalidateQueries({ queryKey: ["notifications"] });

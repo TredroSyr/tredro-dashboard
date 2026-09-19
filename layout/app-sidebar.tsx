@@ -45,7 +45,8 @@ import {
   useUnregisterNotificationDeviceMutation,
 } from "@/module/notifications/hooks";
 import { FCM_TOKEN_STORAGE_KEY } from "@/module/notifications/hooks/use-register-push-notifications";
-import { useState } from "react";
+import { useNavAlertsStore } from "@/store/use-nav-alerts-store";
+import { useEffect, useRef, useState } from "react";
 
 // ==========================================
 // Nav Config - Dynamic Icon Rendering
@@ -348,30 +349,31 @@ function NotificationsUnreadBadge() {
 }
 
 /**
- * Bell icon for the notifications nav item.
- * When there are unread notifications it turns red, shakes to draw
- * attention, and gets a small pulsing red dot — visible even when the
- * sidebar is collapsed to icon-only mode (unlike the count badge above).
+ * Nav icon that draws attention when its page just received a new
+ * notification: it turns red, shakes, and gets a small pulsing red dot —
+ * visible even when the sidebar is collapsed to icon-only mode (unlike the
+ * count badges above). The alert is cleared once the user visits the page.
  */
-function NotificationsNavIcon({
+function NavAlertIcon({
+  navKey,
   iconName,
   className,
 }: {
+  navKey: string;
   iconName: iconName;
   className: string;
 }) {
-  const { data } = useUnreadNotificationsCountQuery();
-  const hasUnread = (data?.data?.unread_count ?? 0) > 0;
+  const hasAlert = useNavAlertsStore((state) => !!state.alerts[navKey]);
 
   return (
     <span className="relative flex h-4 w-4 shrink-0">
       <IconRenderer
         name={iconName}
         className={`${className} ${
-          hasUnread ? "animate-bell-shake text-destructive" : ""
+          hasAlert ? "animate-bell-shake text-destructive" : ""
         }`}
       />
-      {hasUnread && (
+      {hasAlert && (
         <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
           <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
@@ -409,25 +411,15 @@ function NavItem({ item, isActive, onClick }: NavItemProps) {
             onClick={onClick}
             className="flex w-full flex-nowrap items-center gap-2 overflow-hidden"
           >
-            {item.key === "notifications" ? (
-              <NotificationsNavIcon
-                iconName={iconName}
-                className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                  isActive
-                    ? "scale-110 text-primary"
-                    : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
-                }`}
-              />
-            ) : (
-              <IconRenderer
-                name={iconName}
-                className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                  isActive
-                    ? "scale-110 text-primary"
-                    : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
-                }`}
-              />
-            )}
+            <NavAlertIcon
+              navKey={item.key}
+              iconName={iconName}
+              className={`h-4 w-4 shrink-0 transition-all duration-200 ${
+                isActive
+                  ? "scale-110 text-primary"
+                  : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
+              }`}
+            />
             <span className="flex flex-1 items-center justify-between gap-2 overflow-hidden group-data-[collapsible=icon]:hidden">
               <span className="truncate">{item.label}</span>
               {item.key === "orders" && <OrdersPendingBadge />}
@@ -486,6 +478,35 @@ const AppSidebarContent = ({
   const { isMobile, setOpenMobile } = useSidebar();
   const user = useAuthStore((state) => state.user);
   const router = useRouter();
+  const alerts = useNavAlertsStore((state) => state.alerts);
+  const flagAlert = useNavAlertsStore((state) => state.flag);
+  const clearAlert = useNavAlertsStore((state) => state.clear);
+  const { data: unreadData } = useUnreadNotificationsCountQuery();
+  const unreadCount = unreadData?.data?.unread_count;
+  const prevUnreadCount = useRef<number | undefined>(undefined);
+
+  // The unread count going up (push or the 60s poll) means a new notification
+  // arrived — light the bell. The first value loaded on mount is not "new".
+  useEffect(() => {
+    if (unreadCount === undefined) return;
+    if (
+      prevUnreadCount.current !== undefined &&
+      unreadCount > prevUnreadCount.current
+    ) {
+      flagAlert("notifications");
+    }
+    prevUnreadCount.current = unreadCount;
+  }, [unreadCount, flagAlert]);
+
+  // Visiting a page dismisses its alert — including one that arrives while
+  // the user is already on it.
+  useEffect(() => {
+    navConfig.forEach((item) => {
+      if (alerts[item.key] && pathname.startsWith(item.href)) {
+        clearAlert(item.key);
+      }
+    });
+  }, [pathname, alerts, clearAlert]);
 
   const companyName = user?.company?.name || "Tredro";
   const companyLogo = user?.company?.logo;

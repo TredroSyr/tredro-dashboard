@@ -1,3 +1,16 @@
+/** Sidebar nav keys (see navConfig) that should light up for a given notification — always the bell, plus the page it belongs to. */
+export const resolveNotificationNavKeys = (
+  eventKey: string | undefined,
+): string[] => {
+  if (eventKey?.startsWith("stock_transfer.")) {
+    return ["stock-transfers", "notifications"];
+  }
+  if (eventKey?.startsWith("customer_request.")) {
+    return ["orders", "notifications"];
+  }
+  return ["notifications"];
+};
+
 /** Maps a notification's event_key + payload/data ids to the screen it should open (backend §7). */
 export const resolveNotificationUrl = (
   eventKey: string | undefined,

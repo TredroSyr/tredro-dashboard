@@ -5,7 +5,10 @@ import {
   listenForegroundFcmMessages,
   requestFcmToken,
 } from "@/lib/firebase";
-import { resolveNotificationUrl } from "./notification-routing";
+import {
+  resolveNotificationNavKeys,
+  resolveNotificationUrl,
+} from "./notification-routing";
 
 /** Normalized shape both the native and web paths reduce down to, so the rest of the app handles push in one standard way. */
 export interface PushPayload {
@@ -14,6 +17,8 @@ export interface PushPayload {
   /** The inbox row id (backend §5 `data.notification_id`) — needed to mark it read on tap. */
   notificationId?: string;
   url: string;
+  /** Sidebar items to animate until the user visits their page. */
+  navKeys: string[];
 }
 
 /** Every value in FCM's `data` block is a string (backend §5). */
@@ -26,6 +31,7 @@ const buildPayload = (
   body,
   notificationId: data?.notification_id ? String(data.notification_id) : undefined,
   url: resolveNotificationUrl(data?.event_key as string | undefined, data),
+  navKeys: resolveNotificationNavKeys(data?.event_key as string | undefined),
 });
 
 export interface PushHandlers {

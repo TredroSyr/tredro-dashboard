@@ -1,12 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { DateRange } from "react-day-picker";
-import { IconRenderer } from "@/assets/icons/iconRenderer";
+import { useMemo } from "react";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorDisplay } from "@/components/ui/error-display";
-import { DateFilter } from "@/components/tredro/date-filter";
+import { OverviewToolbar, useOverviewFilters } from "@/components/tredro/overview-toolbar";
 import {
   InsightBanner,
   shouldShowInsights,
@@ -213,13 +211,9 @@ interface RepOverviewProps {
 }
 
 export default function RepOverview({ repId }: RepOverviewProps) {
-  const [dateRange, setDateRange] = useState<DateRange | undefined>();
-
-  // Overview and insights get the exact same params so the sentence and the cards describe the same period.
-  const params = {
-    date_from: dateRange?.from ? dateRange.from.toISOString().slice(0, 10) : undefined,
-    date_to: dateRange?.to ? dateRange.to.toISOString().slice(0, 10) : undefined,
-  };
+  const filters = useOverviewFilters();
+  // Overview and insights get the exact same params so the sentence and the cards describe the same period and currency.
+  const { params } = filters;
   const { data, isLoading, isError, refetch } = useRepOverviewQuery(repId, params);
   const overview = data?.data;
   const insightsQuery = useRepInsightsQuery(repId, params);
@@ -239,15 +233,12 @@ export default function RepOverview({ repId }: RepOverviewProps) {
   return (
     <div dir="rtl" className="w-full bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <DateFilter mode="range" value={dateRange} onChange={setDateRange} />
-          {overview?.fx.stale && (
-            <span className="flex items-center gap-1.5 text-xs text-amber-600">
-              <IconRenderer name="warning_outlined" className="size-3.5" />
-              أسعار الصرف قد تكون غير محدّثة
-            </span>
-          )}
-        </div>
+        <OverviewToolbar
+          className="lg:-mx-8 lg:px-8"
+          filters={filters}
+          serverCurrency={overview?.currency.code}
+          fxStale={overview?.fx.stale}
+        />
 
         {isError ? (
           <ErrorDisplay onRetry={() => refetch()} />
