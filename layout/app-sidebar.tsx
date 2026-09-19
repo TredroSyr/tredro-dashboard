@@ -611,7 +611,7 @@ const AppSidebarContent = ({
         </SidebarFooter>
       </Sidebar>
 
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <MobileTopBar onRefresh={onRefresh} />
         <div className="flex h-full flex-col pt-12  lg:pt-0">
           {banner}
