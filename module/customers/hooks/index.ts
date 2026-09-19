@@ -3,10 +3,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "@/components/ui/toast";
 import { ApiErrorResponse } from "@/module/auth/types";
+import type { InsightsParams } from "@/module/dashboard/types";
 import {
   listCustomers,
   getCustomer,
   getCustomerOverview,
+  getCustomerInsights,
   createCustomer,
   updateCustomer,
   deactivateCustomer,
@@ -55,6 +57,17 @@ export const useCustomerOverviewQuery = (
     queryKey: ["customers", "overview", id, params],
     queryFn: () => getCustomerOverview(id as string | number, params),
     enabled: Boolean(id),
+  });
+
+export const useCustomerInsightsQuery = (
+  id?: string | number,
+  params?: InsightsParams,
+) =>
+  useQuery({
+    queryKey: ["customers", "insights", id, params],
+    queryFn: () => getCustomerInsights(id as string | number, params),
+    enabled: Boolean(id),
+    retry: false,
   });
 
 export const useCreateCustomerMutation = () => {

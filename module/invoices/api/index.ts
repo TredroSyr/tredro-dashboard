@@ -1,4 +1,6 @@
 import api from "@/lib/axios";
+import { getInsights } from "@/module/dashboard/api";
+import type { InsightsParams } from "@/module/dashboard/types";
 import {
   ListSalesInvoicesParams,
   SalesInvoicesListResponse,
@@ -135,6 +137,9 @@ export const getInvoicesOverview = async (
   params?: InvoicesOverviewParams,
 ): Promise<InvoicesOverviewResponse> =>
   (await api.get("companies/invoices/overview/", { params })).data;
+
+export const getInvoicesInsights = (params?: InsightsParams) =>
+  getInsights("companies/invoices/overview/", params);
 
 // ---- Reports ----
 export const getOverdueReport = async (

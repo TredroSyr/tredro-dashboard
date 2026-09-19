@@ -1,4 +1,6 @@
 import api from "@/lib/axios";
+import { getInsights } from "@/module/dashboard/api";
+import type { InsightsParams } from "@/module/dashboard/types";
 import {
   RepsListResponse,
   RepResponse,
@@ -50,3 +52,6 @@ export const getRepOverview = async (
   );
   return response.data;
 };
+
+export const getRepInsights = (id: number | string, params?: InsightsParams) =>
+  getInsights(`companies/reps/${id}/overview/`, params);

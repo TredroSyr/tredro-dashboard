@@ -116,3 +116,49 @@ export interface CompanyOverviewParams {
 }
 
 export type CompanyOverviewResponse = ApiEnvelope<{ overview: CompanyOverview }>;
+
+// ---- Insights (Insights.md — the AI card on every overview screen) ----
+export type InsightSeverity = "warning" | "positive" | "neutral";
+
+export type InsightKind =
+  | "orders_forecast"
+  | "sales_forecast"
+  | "collection_rate"
+  | "overdue_pressure"
+  | "returns_rate"
+  | "coverage"
+  | "request_backlog"
+  | "top_performer"
+  | "customer_activity"
+  | "customer_dormant";
+
+export interface Insight {
+  /** Closed set today, but the server may add more — map unknown kinds to a generic icon. */
+  kind: InsightKind | (string & {});
+  severity: InsightSeverity;
+  /** Plain text, ≤ 60 chars. */
+  title: string;
+  /** Plain text, ≤ 180 chars. */
+  body: string;
+  /** The numbers the sentence is built from — read figures here, never parse `body`. */
+  facts: Record<string, unknown>;
+  source: "rules" | "model";
+}
+
+export interface InsightsData {
+  screen: "company" | "invoices" | "rep" | "customer";
+  generated_at: string;
+  model: string | null;
+  /** 0–3 items, already in display order. Empty is a normal answer. */
+  insights: Insight[];
+}
+
+/** Same `date`/`date_from`/`date_to`/`currency` as the overview it sits beside. */
+export interface InsightsParams {
+  date?: string;
+  date_from?: string;
+  date_to?: string;
+  currency?: string;
+}
+
+export type InsightsResponse = ApiEnvelope<InsightsData>;

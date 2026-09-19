@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AxiosError } from "axios";
 import { toast } from "@/components/ui/toast";
 import { ApiErrorResponse } from "@/module/auth/types";
+import type { InsightsParams } from "@/module/dashboard/types";
 import {
   listSalesInvoices,
   getSalesInvoice,
@@ -23,6 +24,7 @@ import {
   cancelCustomerCredit,
   listPayments,
   getInvoicesOverview,
+  getInvoicesInsights,
   getOverdueReport,
   getInvoiceSettings,
   updateInvoiceSettings,
@@ -357,6 +359,13 @@ export const useInvoicesOverviewQuery = (params?: InvoicesOverviewParams) =>
   useQuery({
     queryKey: ["invoices", "overview", params],
     queryFn: () => getInvoicesOverview(params),
+  });
+
+export const useInvoicesInsightsQuery = (params?: InsightsParams) =>
+  useQuery({
+    queryKey: ["invoices", "insights", params],
+    queryFn: () => getInvoicesInsights(params),
+    retry: false,
   });
 
 // ---- Reports ----

@@ -10,7 +10,9 @@ import {
   updateRep,
   deleteRep,
   getRepOverview,
+  getRepInsights,
 } from "../api";
+import type { InsightsParams } from "@/module/dashboard/types";
 import { CreateRepPayload, UpdateRepPayload, RepOverviewParams } from "../types";
 
 const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>) => {
@@ -70,6 +72,14 @@ export const useRepOverviewQuery = (
     queryKey: ["reps", "overview", id, params],
     queryFn: () => getRepOverview(id as string | number, params),
     enabled: Boolean(id),
+  });
+
+export const useRepInsightsQuery = (id?: string | number, params?: InsightsParams) =>
+  useQuery({
+    queryKey: ["reps", "insights", id, params],
+    queryFn: () => getRepInsights(id as string | number, params),
+    enabled: Boolean(id),
+    retry: false,
   });
 
 export const useDeleteRepMutation = () => {
