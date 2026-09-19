@@ -17,6 +17,15 @@ type TabValue = "overview" | "invoices" | "customers" | "warehouse";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
+  // The overview's own pinned filter bar has to sit right under this pinned header, whatever its height.
+  const [stickyEl, setStickyEl] = React.useState<HTMLDivElement | null>(null);
+  const [stickyHeight, setStickyHeight] = React.useState(0);
+  React.useEffect(() => {
+    if (!stickyEl) return;
+    const observer = new ResizeObserver(() => setStickyHeight(stickyEl.offsetHeight));
+    observer.observe(stickyEl);
+    return () => observer.disconnect();
+  }, [stickyEl]);
   const { data: repData, isLoading, isError, refetch } = useRepQuery(repId);
   const rep = repData?.data?.rep;
 
@@ -61,8 +70,8 @@ export function RepDetailClient({ repId }: { repId: string }) {
   }
 
   return (
-    <div>
-      <div className="sticky top-0 z-20 bg-card">
+    <div style={{ ["--overview-sticky-top" as string]: `${stickyHeight}px` }}>
+      <div ref={setStickyEl} className="sticky top-0 z-20 bg-card">
         {/* Pass isLoading to all components to show skeletons */}
         <RepDetailHeader
           name={rep?.name}

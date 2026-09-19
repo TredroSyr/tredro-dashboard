@@ -445,21 +445,21 @@ export default function PlatformOverview() {
 
   return (
     <div className="flex flex-col gap-5 sm:gap-6 p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-lg sm:text-xl font-semibold text-foreground">
-            نظرة عامة على المنصة
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
-            ملخص شامل للمناديب، الزبائن، الطلبات، الفواتير والمنتجات
-          </p>
-        </div>
-        <OverviewToolbar
-          filters={filters}
-          serverCurrency={overview?.currency.code}
-          fxStale={overview?.fx.stale}
-        />
-      </div>
+      <OverviewToolbar
+        filters={filters}
+        serverCurrency={overview?.currency.code}
+        fxStale={overview?.fx.stale}
+        heading={
+          <div>
+            <h1 className="text-lg sm:text-xl font-semibold text-foreground">
+              نظرة عامة على المنصة
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              ملخص شامل للمناديب، الزبائن، الطلبات، الفواتير والمنتجات
+            </p>
+          </div>
+        }
+      />
 
       {isError ? (
         <ErrorDisplay onRetry={() => refetch()} />

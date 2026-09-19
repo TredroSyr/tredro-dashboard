@@ -10,8 +10,8 @@ const CURRENCY_LABEL: Record<string, string> = {
 
 /**
  * Formats an API decimal string ("1690.00") as an Arabic-locale number with a
- * currency label. Pass the owning record's own `currency` — money is pinned
- * per document/overview response, not read from company settings.
+ * currency label. Whole amounts drop the decimals ("100.00" → "100"). Pass the owning
+ * record's own `currency` — money is pinned per document/overview response.
  */
 export function formatMoney(
   value: string | number | null | undefined,
@@ -19,7 +19,7 @@ export function formatMoney(
 ) {
   const n = Number(value ?? 0);
   const formatted = n.toLocaleString("ar", {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
   const label = currency ? (CURRENCY_LABEL[currency] ?? currency) : "ل.س";
@@ -33,7 +33,7 @@ export function formatMoneyParts(
 ) {
   const n = Number(value ?? 0);
   const amount = n.toLocaleString("ar", {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
   const label = currency ? (CURRENCY_LABEL[currency] ?? currency) : "ل.س";
@@ -44,7 +44,7 @@ export function formatMoneyParts(
 export function formatMoneyPlain(value: string | number | null | undefined) {
   const n = Number(value ?? 0);
   return n.toLocaleString("ar", {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
 }
