@@ -71,8 +71,14 @@ export const ProductPricingTab = ({
     if (checked) setDraftCustomerCategory("");
   };
 
+  // A non-default price must target a customer category.
+  const canAdd =
+    Boolean(draftCurrency) &&
+    Boolean(draftPrice) &&
+    (draftIsDefault || Boolean(draftCustomerCategory));
+
   const addPrice = () => {
-    if (!draftCurrency || !draftPrice) return;
+    if (!canAdd) return;
     const currency = currencies.find((c) => String(c.id) === draftCurrency);
     const customerCategory = customerCategories.find(
       (c) => String(c.id) === draftCustomerCategory,
@@ -164,7 +170,10 @@ export const ProductPricingTab = ({
         </div>
 
         <div className="flex flex-col gap-2">
-          <Label className="text-right block">فئة العميل (اختياري)</Label>
+          <Label className="text-right block">
+            فئة العميل
+            {!draftIsDefault && <span className="text-destructive"> *</span>}
+          </Label>
           <SearchableSelect
             options={customerCategoryOptions}
             value={draftCustomerCategory}
@@ -172,11 +181,11 @@ export const ProductPricingTab = ({
             placeholder="اختر فئة العميل"
             disabled={draftIsDefault}
           />
-          {draftIsDefault && (
-            <p className="text-xs text-muted-foreground text-right">
-              لا يمكن تحديد فئة عميل للسعر الافتراضي
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground text-right">
+            {draftIsDefault
+              ? "لا يمكن تحديد فئة عميل للسعر الافتراضي"
+              : "اختر فئة العميل لتطبيق هذا السعر على عملاء هذه الفئة فقط. عند إنشاء المندوب فاتورة لعميل ليس له فئة (أو لا يوجد سعر لفئته) سيُستخدم السعر الافتراضي."}
+          </p>
         </div>
 
         <div className="flex items-center justify-between rounded-md border border-border p-3">
@@ -190,7 +199,7 @@ export const ProductPricingTab = ({
         <Button
           type="button"
           onClick={addPrice}
-          disabled={!draftCurrency || !draftPrice}
+          disabled={!canAdd}
         >
           <Plus className="size-4" />
           إضافة السعر

@@ -43,7 +43,8 @@ import {
 } from "../hooks";
 import { PhoneInput } from "@/components/tredro/phone-input";
 
-const APP_URL = "https://tredro-mandoub.vercel.app/";
+const APP_URL = "https://mandoub.tredro.online/";
+const ANDROID_APP_URL = "https://mandoub.tredro.online/download/tredro-mandoub.apk";
 const CREDENTIALS_AUTO_CLOSE_MS = 5000;
 
 function useIsMobile(breakpoint = 768) {
@@ -105,6 +106,7 @@ function buildCredentialsMessage(
       `أهلاً بك ${name} في منصة tredro `,
       "تم إنشاء حسابك كمندوب بنجاح، وفيما يلي بيانات الدخول الخاصة بك:",
       `رابط الدخول: ${APP_URL}`,
+      `تحميل التطبيق للأندرويد: ${ANDROID_APP_URL}`,
       `رقم الهاتف: ${phone}`,
       `كلمة المرور: ${password}`,
     ].join("\n");
@@ -114,6 +116,7 @@ function buildCredentialsMessage(
     `مرحباً ${name}،`,
     "تم تحديث كلمة المرور الخاصة بحسابك على منصة tredro وفيما يلي بياناتك المحدثة:",
     `رابط الدخول: ${APP_URL}`,
+    `تحميل التطبيق للأندرويد: ${ANDROID_APP_URL}`,
     `رقم الهاتف: ${phone}`,
     `كلمة المرور الجديدة: ${password}`,
   ].join("\n");
@@ -213,6 +216,17 @@ function CredentialsDialog({
                 className="font-medium break-all text-primary underline underline-offset-2 hover:opacity-80"
               >
                 {APP_URL}
+              </a>
+            </div>
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-muted-foreground">تطبيق الأندرويد</span>
+              <a
+                href={ANDROID_APP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium break-all text-primary underline underline-offset-2 hover:opacity-80"
+              >
+                تحميل التطبيق
               </a>
             </div>
             <div className="flex items-center justify-between gap-2">

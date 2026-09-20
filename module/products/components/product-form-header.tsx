@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ImageIcon } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowRight, ImageIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -48,34 +49,20 @@ export const ProductFormHeader = ({
     { label: "المنتجات", href: "/products" },
   ],
 }: ProductFormHeaderProps) => {
+  const router = useRouter();
+
   return (
     <div className="flex  flex-col gap-4 border-b px-4 py-4 border-border sm:px-6 sm:py-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          {breadcrumbItems.map((item) => (
-            <React.Fragment key={item.label}>
-              <BreadcrumbItem>
-                {item.href ? (
-                  <BreadcrumbLink href={item.href}>{item.label}</BreadcrumbLink>
-                ) : (
-                  <BreadcrumbPage>{item.label}</BreadcrumbPage>
-                )}
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-            </React.Fragment>
-          ))}
-          <BreadcrumbItem>
-            {isLoading ? (
-              <Skeleton className="h-4 w-24" />
-            ) : (
-              <BreadcrumbPage>{title}</BreadcrumbPage>
-            )}
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-      <Separator />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            className="shrink-0"
+            onClick={() => router.back()}
+          >
+            <ArrowRight className="h-4 w-4" />
+          </Button>
           {isLoading ? (
             <Skeleton className="size-14 rounded-lg shrink-0" />
           ) : (

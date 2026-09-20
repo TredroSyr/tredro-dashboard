@@ -90,7 +90,7 @@ export default function ProductsView() {
         <Card
           key={product.id}
           onClick={() => handleOpenProduct(product)}
-          className="relative w-full h-full flex flex-col pt-0 cursor-pointer transition-shadow hover:shadow-md"
+          className="relative w-full self-stretch flex flex-col pt-0 cursor-pointer transition-shadow hover:shadow-md"
         >
           <div className="relative aspect-video w-full overflow-hidden rounded-t-xl">
             <ImageWithFallback
@@ -113,7 +113,7 @@ export default function ProductsView() {
             )}
           </div>
 
-          <CardHeader>
+          <CardHeader className="flex-1">
             <CardTitle className="flex items-center justify-between gap-2">
               <span className="truncate">{product.name}</span>
               <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -136,7 +136,10 @@ export default function ProductsView() {
             </CardTitle>
             <CardDescription>
               <Tooltip>
-                <TooltipTrigger onClick={(e) => e.stopPropagation()}>
+                <TooltipTrigger
+                  className="block w-full"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <p className="line-clamp-2 text-start">
                     {product.description || "لا يوجد وصف"}
                   </p>
@@ -150,7 +153,7 @@ export default function ProductsView() {
             </CardDescription>
           </CardHeader>
 
-          <CardFooter className="justify-between gap-2">
+          <CardFooter className="mt-auto justify-between gap-2">
             <div>
               <div className="flex flex-wrap gap-1 mt-1">
                 {product.brand && (
