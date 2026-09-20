@@ -289,7 +289,7 @@ function KpiCard({ item }: { item: (typeof KPIS)[number] }) {
         )}
       </div>
       <div className="flex items-baseline gap-1 flex-wrap">
-        <span className="text-xl sm:text-2xl font-semibold text-foreground truncate">
+        <span className="text-xl sm:text-2xl font-semibold text-foreground break-all">
           {item.value}
         </span>
         {item.suffix && (
@@ -618,8 +618,8 @@ function ActivityStatTile({
   const isUp = (tile.change ?? 0) >= 0;
   return (
     <div className="shrink-0 w-[150px] sm:w-[164px] rounded-2xl border border-border bg-card p-4 flex flex-col justify-between h-[140px]">
-      <div className="flex items-center gap-1.5">
-        <span className="text-xl font-semibold text-foreground truncate">
+      <div className="flex flex-wrap items-baseline gap-x-1.5">
+        <span className="text-xl font-semibold text-foreground break-all">
           {tile.value}
         </span>
         {tile.suffix && (

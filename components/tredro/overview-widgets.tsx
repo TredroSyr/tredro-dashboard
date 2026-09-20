@@ -87,7 +87,7 @@ export function OverviewStatCard({
         )}
       </div>
       <div className="flex items-baseline gap-1 flex-wrap">
-        <span className="text-xl sm:text-2xl font-semibold text-foreground truncate">
+        <span className="text-xl sm:text-2xl font-semibold text-foreground break-all">
           {value}
         </span>
         {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
@@ -251,8 +251,8 @@ export function OverviewActivityTile({
   const isUp = (change ?? 0) >= 0;
   return (
     <div className="shrink-0 w-[150px] sm:w-[164px] rounded-2xl border border-border bg-card p-4 flex flex-col justify-between h-[140px]">
-      <div className="flex items-center gap-1.5">
-        <span className="text-xl font-semibold text-foreground truncate">{value}</span>
+      <div className="flex flex-wrap items-baseline gap-x-1.5">
+        <span className="text-xl font-semibold text-foreground break-all">{value}</span>
         {suffix && <span className="text-[11px] text-muted-foreground">{suffix}</span>}
         {hasChange && (
           <IconRenderer

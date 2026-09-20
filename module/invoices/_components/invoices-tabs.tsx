@@ -138,16 +138,16 @@ function TabTile({
       >
         <IconRenderer name={icon} className="size-4.5" />
       </div>
-      <div className="min-w-0">
+      <div>
         {value !== undefined &&
           (isLoading ? (
             <Skeleton className="h-5 w-14" />
           ) : (
-            <div className="truncate text-base font-semibold tabular-nums text-foreground sm:text-lg">
+            <div className="whitespace-nowrap text-base font-semibold tabular-nums text-foreground sm:whitespace-normal sm:text-lg">
               {value}
             </div>
           ))}
-        <div className="truncate text-xs text-muted-foreground">{label}</div>
+        <div className="whitespace-nowrap text-xs text-muted-foreground sm:whitespace-normal">{label}</div>
       </div>
     </button>
   );
