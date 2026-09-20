@@ -8,7 +8,8 @@ import CustomersView from "@/module/customers/_components/customers-view";
 import { RepWarehouseTab } from "@/module/warehouses/_components/rep-warehouse-tab";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
-import { useRepQuery } from "../hooks";
+import { useOverviewFilters } from "@/components/tredro/overview-toolbar";
+import { useRepOverviewQuery, useRepQuery } from "../hooks";
 import { useCustomersQuery } from "@/module/customers/hooks";
 import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
@@ -17,15 +18,10 @@ type TabValue = "overview" | "invoices" | "customers" | "warehouse";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
-  // The overview's own pinned filter bar has to sit right under this pinned header, whatever its height.
-  const [stickyEl, setStickyEl] = React.useState<HTMLDivElement | null>(null);
-  const [stickyHeight, setStickyHeight] = React.useState(0);
-  React.useEffect(() => {
-    if (!stickyEl) return;
-    const observer = new ResizeObserver(() => setStickyHeight(stickyEl.offsetHeight));
-    observer.observe(stickyEl);
-    return () => observer.disconnect();
-  }, [stickyEl]);
+  // Period + currency live in the header (overview tab only); the overview reads the same filters.
+  const overviewFilters = useOverviewFilters();
+  // Same key as the query inside RepOverview, so this is one shared request — it only tells the header which currency the server answered in.
+  const { data: overviewData } = useRepOverviewQuery(repId, overviewFilters.params);
   const { data: repData, isLoading, isError, refetch } = useRepQuery(repId);
   const rep = repData?.data?.rep;
 
@@ -70,8 +66,8 @@ export function RepDetailClient({ repId }: { repId: string }) {
   }
 
   return (
-    <div style={{ ["--overview-sticky-top" as string]: `${stickyHeight}px` }}>
-      <div ref={setStickyEl} className="sticky top-0 z-20 bg-card">
+    <div>
+      <div className="sticky top-0 z-20 bg-card">
         {/* Pass isLoading to all components to show skeletons */}
         <RepDetailHeader
           name={rep?.name}
@@ -80,6 +76,9 @@ export function RepDetailClient({ repId }: { repId: string }) {
           customersCount={customersCount}
           isLoading={isLoading || isCountsLoading}
           rep={rep}
+          filters={activeTab === "overview" ? overviewFilters : undefined}
+          serverCurrency={overviewData?.data?.overview?.currency?.code}
+          exportParams={overviewFilters.params}
         />
 
         <RepDetailTabs
@@ -96,7 +95,7 @@ export function RepDetailClient({ repId }: { repId: string }) {
 
       {/* Only show content areas when not loading OR show skeletons */}
       <div className="px-6 pb-6">
-        {activeTab === "overview" && <RepOverview repId={repId} />}
+        {activeTab === "overview" && <RepOverview repId={repId} filters={overviewFilters} />}
         {activeTab === "invoices" && <InvoicesView repId={repId} />}
 
         {activeTab === "customers" && <CustomersView repId={repId} />}

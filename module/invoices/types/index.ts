@@ -498,7 +498,7 @@ export interface InvoicesOverviewParams {
   currency?: string;
 }
 
-export type InvoicesOverviewResponse = ApiEnvelope<InvoicesOverview>;
+export type InvoicesOverviewResponse = ApiEnvelope<{ overview: InvoicesOverview }>;
 
 // ---- Audit history (shared shape, §8) ----
 export interface HistoryEntry {

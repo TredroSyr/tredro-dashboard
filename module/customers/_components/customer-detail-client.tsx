@@ -1,7 +1,8 @@
 "use client";
 import * as React from "react";
 import { ErrorDisplay } from "@/components/ui/error-display";
-import { useCustomerQuery } from "../hooks";
+import { useOverviewFilters } from "@/components/tredro/overview-toolbar";
+import { useCustomerOverviewQuery, useCustomerQuery } from "../hooks";
 import { CustomerDetailTabs } from "./customer-detail-tabs";
 import { CustomerDetailHeader } from "./customer-detail-header";
 import CustomerOverview from "./customer-overview";
@@ -15,6 +16,10 @@ type TabValue = "overview" | "invoices" | "orders";
 
 export function CustomerDetailClient({ customerId }: { customerId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
+  // Period + currency live in the header (overview tab only); the overview reads the same filters.
+  const overviewFilters = useOverviewFilters();
+  // Same key as the query inside CustomerOverview, so this is one shared request — it only tells the header which currency the server answered in.
+  const { data: overviewData } = useCustomerOverviewQuery(customerId, overviewFilters.params);
   const { data: customerData, isLoading, isError, refetch } =
     useCustomerQuery(customerId);
   const customer = customerData?.data?.customer;
@@ -58,6 +63,9 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
         email={customer?.email ?? undefined}
         isActive={customer?.is_active}
         customer={customer}
+        filters={activeTab === "overview" ? overviewFilters : undefined}
+        serverCurrency={overviewData?.data?.overview?.currency?.code}
+        exportParams={overviewFilters.params}
         isLoading={isLoading}
       />
 
@@ -75,7 +83,7 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
       )}
 
       <div className="px-6 pb-6">
-        {activeTab === "overview" && <CustomerOverview customerId={customerId} />}
+        {activeTab === "overview" && <CustomerOverview customerId={customerId} filters={overviewFilters} />}
         {activeTab === "invoices" && <InvoicesView customerId={customerId} />}
         {activeTab === "orders" && (
           <OrdersView

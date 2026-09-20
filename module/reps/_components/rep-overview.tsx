@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorDisplay } from "@/components/ui/error-display";
-import { OverviewToolbar, useOverviewFilters } from "@/components/tredro/overview-toolbar";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
+import type { useOverviewFilters } from "@/components/tredro/overview-toolbar";
 import {
   InsightBanner,
   shouldShowInsights,
@@ -40,7 +41,8 @@ interface Kpi {
 
 function buildKpis(overview: RepOverviewData): Kpi[] {
   const { sales, visits, customer_requests, customers, currency } = overview;
-  const totalAmount = formatMoneyParts(sales.total_amount.value, currency.code);
+  // `sales` can be absent from the rep overview response, so read it defensively.
+  const totalAmount = formatMoneyParts(sales?.total_amount?.value, currency.code);
 
   return [
     {
@@ -62,7 +64,7 @@ function buildKpis(overview: RepOverviewData): Kpi[] {
       label: "قيمة المبيعات",
       value: totalAmount.amount,
       suffix: totalAmount.label,
-      change: sales.total_amount.change_pct,
+      change: sales?.total_amount?.change_pct ?? null,
       icon: "revenue_outlined",
     },
     {
@@ -128,7 +130,7 @@ function buildActivityGroups(overview: RepOverviewData): ActivityGroupData[] {
   const visitsWindowLabel = `${formatDateShort(visits.window.date_from)} - ${formatDateShort(
     visits.window.date_to,
   )}`;
-  const totalAmount = formatMoneyParts(sales.total_amount.value, currency.code);
+  const totalAmount = formatMoneyParts(sales?.total_amount?.value, currency.code);
 
   return [
     {
@@ -139,7 +141,7 @@ function buildActivityGroups(overview: RepOverviewData): ActivityGroupData[] {
         {
           value: totalAmount.amount,
           suffix: totalAmount.label,
-          change: sales.total_amount.change_pct,
+          change: sales?.total_amount?.change_pct ?? null,
           label: "إجمالي المبيعات",
           sub: periodLabel,
         },
@@ -204,18 +206,35 @@ function buildActivityGroups(overview: RepOverviewData): ActivityGroupData[] {
   ];
 }
 
+function hasOverviewShape(value: unknown): value is RepOverviewData {
+  if (!value || typeof value !== "object") return false;
+  const o = value as Partial<RepOverviewData>;
+  return Boolean(
+    o.currency && o.period && o.sales && o.visits && o.customer_requests && o.customers,
+  );
+}
+
 const ACTIVITY_SKELETON_GROUP_SIZES = [3, 3, 2];
 
 interface RepOverviewProps {
   repId: string | number;
+  /** Owned by the page header, which renders the period + currency controls. */
+  filters: ReturnType<typeof useOverviewFilters>;
 }
 
-export default function RepOverview({ repId }: RepOverviewProps) {
-  const filters = useOverviewFilters();
+export default function RepOverview({ repId, filters }: RepOverviewProps) {
   // Overview and insights get the exact same params so the sentence and the cards describe the same period and currency.
   const { params } = filters;
   const { data, isLoading, isError, refetch } = useRepOverviewQuery(repId, params);
-  const overview = data?.data;
+  const rawOverview = data?.data?.overview;
+  // Everything below reads these sections unguarded, so a response that doesn't match `RepOverview` is treated as an error instead of crashing render.
+  const isValidOverview = hasOverviewShape(rawOverview);
+  const overview = isValidOverview ? rawOverview : undefined;
+  const isShapeError = !isLoading && !isError && data !== undefined && !isValidOverview;
+  if (isShapeError) {
+    console.error("[RepOverview] unexpected overview response shape:", data);
+  }
+  const hasError = isError || isShapeError;
   const insightsQuery = useRepInsightsQuery(repId, params);
   const insights = insightsQuery.data?.data?.insights ?? [];
   const showInsights = shouldShowInsights(insightsQuery.isLoading, insights);
@@ -233,14 +252,14 @@ export default function RepOverview({ repId }: RepOverviewProps) {
   return (
     <div dir="rtl" className="w-full bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-        <OverviewToolbar
-          className="lg:-mx-8 lg:px-8"
-          filters={filters}
-          serverCurrency={overview?.currency.code}
-          fxStale={overview?.fx.stale}
-        />
+        {overview?.fx.stale && (
+          <span className="flex items-center gap-1.5 text-xs text-amber-600">
+            <IconRenderer name="warning_outlined" className="size-3.5" />
+            أسعار الصرف قد تكون غير محدّثة
+          </span>
+        )}
 
-        {isError ? (
+        {hasError ? (
           <ErrorDisplay onRetry={() => refetch()} />
         ) : (
           <OverviewStatCardRow>
@@ -252,10 +271,10 @@ export default function RepOverview({ repId }: RepOverviewProps) {
 
         <div
           className={`grid grid-cols-1 gap-4 sm:gap-5 ${
-          isError || !showInsights ? "" : "lg:grid-cols-2"
+          hasError || !showInsights ? "" : "lg:grid-cols-2"
         }`}
         >
-          {!isError &&
+          {!hasError &&
             (isLoading || !requestDistribution ? (
               <OverviewDistributionChartSkeleton />
             ) : (
@@ -269,7 +288,7 @@ export default function RepOverview({ repId }: RepOverviewProps) {
           <InsightBanner insights={insights} isLoading={insightsQuery.isLoading} />
         </div>
 
-        {!isError && (
+        {!hasError && (
           <OverviewActivitySection>
             {isLoading
               ? ACTIVITY_SKELETON_GROUP_SIZES.map((count, gi) => (

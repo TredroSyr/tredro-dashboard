@@ -226,7 +226,7 @@ export function InvoicesOverview() {
   // Overview and insights get the exact same params so the sentence and the cards describe the same period and currency.
   const { params } = filters;
   const { data, isLoading, isError, refetch } = useInvoicesOverviewQuery(params);
-  const overview = data?.data;
+  const overview = data?.data?.overview;
   const insightsQuery = useInvoicesInsightsQuery(params);
   const insights = insightsQuery.data?.data?.insights ?? [];
   const showInsights = shouldShowInsights(insightsQuery.isLoading, insights);

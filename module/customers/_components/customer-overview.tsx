@@ -4,7 +4,8 @@ import { useMemo } from "react";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorDisplay } from "@/components/ui/error-display";
-import { OverviewToolbar, useOverviewFilters } from "@/components/tredro/overview-toolbar";
+import { IconRenderer } from "@/assets/icons/iconRenderer";
+import type { useOverviewFilters } from "@/components/tredro/overview-toolbar";
 import {
   InsightBanner,
   shouldShowInsights,
@@ -206,18 +207,35 @@ function buildActivityGroups(overview: CustomerOverviewData): ActivityGroupData[
   ];
 }
 
+function hasOverviewShape(value: unknown): value is CustomerOverviewData {
+  if (!value || typeof value !== "object") return false;
+  const o = value as Partial<CustomerOverviewData>;
+  return Boolean(
+    o.currency && o.period && o.purchases && o.payments && o.visits && o.customer_requests && o.reps,
+  );
+}
+
 const ACTIVITY_SKELETON_GROUP_SIZES = [3, 2, 2];
 
 interface CustomerOverviewProps {
   customerId: string | number;
+  /** Owned by the page header, which renders the period + currency controls. */
+  filters: ReturnType<typeof useOverviewFilters>;
 }
 
-export default function CustomerOverview({ customerId }: CustomerOverviewProps) {
-  const filters = useOverviewFilters();
+export default function CustomerOverview({ customerId, filters }: CustomerOverviewProps) {
   // Overview and insights get the exact same params so the sentence and the cards describe the same period and currency.
   const { params } = filters;
   const { data, isLoading, isError, refetch } = useCustomerOverviewQuery(customerId, params);
-  const overview = data?.data;
+  const rawOverview = data?.data?.overview;
+  // Everything below reads these sections unguarded, so a response that doesn't match `CustomerOverview` is treated as an error instead of crashing render.
+  const isValidOverview = hasOverviewShape(rawOverview);
+  const overview = isValidOverview ? rawOverview : undefined;
+  const isShapeError = !isLoading && !isError && data !== undefined && !isValidOverview;
+  if (isShapeError) {
+    console.error("[CustomerOverview] unexpected overview response shape:", data);
+  }
+  const hasError = isError || isShapeError;
   const insightsQuery = useCustomerInsightsQuery(customerId, params);
   const insights = insightsQuery.data?.data?.insights ?? [];
   const showInsights = shouldShowInsights(insightsQuery.isLoading, insights);
@@ -235,14 +253,14 @@ export default function CustomerOverview({ customerId }: CustomerOverviewProps) 
   return (
     <div dir="rtl" className="w-full bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-6xl mx-auto flex flex-col gap-5 sm:gap-6">
-        <OverviewToolbar
-          className="lg:-mx-8 lg:px-8"
-          filters={filters}
-          serverCurrency={overview?.currency.code}
-          fxStale={overview?.fx.stale}
-        />
+        {overview?.fx.stale && (
+          <span className="flex items-center gap-1.5 text-xs text-amber-600">
+            <IconRenderer name="warning_outlined" className="size-3.5" />
+            أسعار الصرف قد تكون غير محدّثة
+          </span>
+        )}
 
-        {isError ? (
+        {hasError ? (
           <ErrorDisplay onRetry={() => refetch()} />
         ) : (
           <OverviewStatCardRow>
@@ -254,10 +272,10 @@ export default function CustomerOverview({ customerId }: CustomerOverviewProps) 
 
         <div
           className={`grid grid-cols-1 gap-4 sm:gap-5 ${
-          isError || !showInsights ? "" : "lg:grid-cols-2"
+          hasError || !showInsights ? "" : "lg:grid-cols-2"
         }`}
         >
-          {!isError &&
+          {!hasError &&
             (isLoading || !requestDistribution ? (
               <OverviewDistributionChartSkeleton />
             ) : (
@@ -271,7 +289,7 @@ export default function CustomerOverview({ customerId }: CustomerOverviewProps) 
           <InsightBanner insights={insights} isLoading={insightsQuery.isLoading} />
         </div>
 
-        {!isError && (
+        {!hasError && (
           <OverviewActivitySection>
             {isLoading
               ? ACTIVITY_SKELETON_GROUP_SIZES.map((count, gi) => (

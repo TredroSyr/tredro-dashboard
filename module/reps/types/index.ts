@@ -129,4 +129,4 @@ export interface RepOverviewParams {
   currency?: string;
 }
 
-export type RepOverviewResponse = ApiEnvelope<RepOverview>;
+export type RepOverviewResponse = ApiEnvelope<{ overview: RepOverview }>;

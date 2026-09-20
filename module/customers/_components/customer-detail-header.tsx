@@ -1,16 +1,20 @@
 "use client";
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import type { DateRange } from "react-day-picker";
 import { ArrowRight } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { PhoneInput } from "@/components/tredro/phone-input";
 import { DateFilter } from "@/components/tredro/date-filter";
+import {
+  CurrencyFilter,
+  type useOverviewFilters,
+} from "@/components/tredro/overview-toolbar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CustomerRepControl } from "./customer-rep-control";
-import { Customer } from "../types";
+import { CustomerPdfDownloadButton } from "./customer-pdf-download-button";
+import type { Customer, CustomerOverviewParams } from "../types";
 
 interface CustomerDetailHeaderProps {
   name?: string;
@@ -18,8 +22,12 @@ interface CustomerDetailHeaderProps {
   email?: string;
   isActive?: boolean;
   customer?: Customer;
-  dateRange?: DateRange;
-  onDateRangeChange?: (range: DateRange | undefined) => void;
+  /** Period + currency filters; only passed while the overview tab is active. */
+  filters?: ReturnType<typeof useOverviewFilters>;
+  /** The currency the server actually used — highlighted until the user picks one. */
+  serverCurrency?: string;
+  /** Period + currency the PDF export should use — the current filter selection, whichever tab is open. */
+  exportParams: CustomerOverviewParams;
   isLoading?: boolean;
 }
 
@@ -29,8 +37,9 @@ export function CustomerDetailHeader({
   email,
   isActive,
   customer,
-  dateRange,
-  onDateRangeChange,
+  filters,
+  serverCurrency,
+  exportParams,
   isLoading = false,
 }: CustomerDetailHeaderProps) {
   const router = useRouter();
@@ -39,7 +48,15 @@ export function CustomerDetailHeader({
     <div className="flex flex-col gap-4 border-b px-4 py-4 border-border sm:px-6 sm:py-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center  sm:justify-between">
         <div className="flex min-w-0 flex-col gap-2">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0 gap-1.5 sm:w-auto sm:px-3"
+              onClick={() => router.back()}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
             {isLoading ? (
               <Skeleton className="h-6 w-32" />
             ) : (
@@ -57,14 +74,18 @@ export function CustomerDetailHeader({
                 {isActive ? "مفعّل" : "موقوف"}
               </Badge>
             )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             {isLoading ? (
               <Skeleton className="h-10 w-48" />
             ) : (
-              <PhoneInput value={phone ?? ""} readOnly className="w-full sm:w-auto" />
+              <PhoneInput
+                value={phone ?? ""}
+                readOnly
+                className="w-full sm:w-auto text-sm text-muted-foreground"
+              />
             )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             {!isLoading && email && (
               <span className="text-sm text-muted-foreground">{email}</span>
             )}
@@ -76,22 +97,26 @@ export function CustomerDetailHeader({
           </div>
         </div>
 
-        <div className="flex w-full items-center gap-2 sm:w-auto">
-          <Button
-            variant="outline"
-            size="icon"
-            className="shrink-0 gap-1.5 sm:w-auto sm:px-3"
-            onClick={() => router.back()}
-          >
-            <ArrowRight className="h-4 w-4" />
-            <span className="hidden sm:inline">رجوع</span>
-          </Button>
-          <DateFilter
-            mode="range"
-            value={dateRange}
-            onChange={onDateRangeChange}
-            className="w-full sm:w-auto"
-          />
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          {filters && (
+            <>
+              <DateFilter
+                mode="range"
+                value={filters.dateRange}
+                onChange={filters.setDateRange}
+                className="w-full sm:w-auto"
+              />
+              <CurrencyFilter
+                value={filters.currency ?? serverCurrency}
+                onChange={filters.setCurrency}
+              />
+            </>
+          )}
+          {isLoading ? (
+            <Skeleton className="size-8 shrink-0 rounded-lg sm:w-28" />
+          ) : (
+            customer && <CustomerPdfDownloadButton customer={customer} params={exportParams} />
+          )}
         </div>
       </div>
     </div>

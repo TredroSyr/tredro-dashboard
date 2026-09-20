@@ -12,34 +12,39 @@ import {
   TableNote,
   pdfStyles,
 } from "@/components/tredro/pdf/pdf-parts";
-import { buildPeriodLabel, formatPdfAmount, toISODate } from "@/components/tredro/pdf/pdf-utils";
-import type { Rep } from "../types";
 import {
   INVOICE_STATUS_LABEL,
   INVOICE_STATUS_BADGE_VARIANT,
   ORDER_STATUS_LABEL,
   ORDER_STATUS_BADGE_VARIANT,
 } from "@/components/tredro/pdf/pdf-status";
-import { buildPdfKpis, type RepPdfData } from "../lib/rep-pdf-data";
+import { buildPeriodLabel, formatPdfAmount, toISODate } from "@/components/tredro/pdf/pdf-utils";
+import type { Customer } from "../types";
+import { buildPdfKpis, type CustomerPdfData } from "../lib/customer-pdf-data";
 
-interface RepProfilePdfDocumentProps {
-  rep: Rep;
-  data: RepPdfData;
+interface CustomerProfilePdfDocumentProps {
+  customer: Customer;
+  data: CustomerPdfData;
   company?: Company | null;
 }
 
-export function RepProfilePdfDocument({ rep, data, company }: RepProfilePdfDocumentProps) {
-  const { overview, invoices, customers, orders } = data;
+export function CustomerProfilePdfDocument({
+  customer,
+  data,
+  company,
+}: CustomerProfilePdfDocumentProps) {
+  const { overview, invoices, orders } = data;
   const periodLabel = buildPeriodLabel(overview.period);
+  const reps = customer.assigned_reps_details;
 
   return (
-    <Document title={`الملف التعريفي - ${rep.name}`}>
+    <Document title={`الملف التعريفي - ${customer.name}`}>
       <Page size="A4" style={pdfStyles.page}>
         <PdfHeader
           company={company}
-          name={rep.name}
-          phone={rep.phone}
-          isActive={rep.is_active}
+          name={customer.name}
+          phone={customer.phone}
+          isActive={customer.is_active}
           periodLabel={periodLabel}
         />
 
@@ -51,11 +56,11 @@ export function RepProfilePdfDocument({ rep, data, company }: RepProfilePdfDocum
           <Text style={pdfStyles.sectionTitle}>الفواتير</Text>
           <Text style={pdfStyles.sectionPeriod}>الفترة: {periodLabel}</Text>
           <Table
-            headers={["رقم الفاتورة", "التاريخ", "الزبون", "الإجمالي", "الحالة", "المتبقي"]}
+            headers={["رقم الفاتورة", "التاريخ", "المندوب", "الإجمالي", "الحالة", "المتبقي"]}
             rows={invoices.rows.map((inv) => [
               inv.number,
               toISODate(inv.date),
-              inv.customer_name,
+              inv.rep_name ?? "—",
               `${formatPdfAmount(inv.total_amount)} ${inv.currency}`,
               <StatusBadge
                 key="status"
@@ -70,32 +75,11 @@ export function RepProfilePdfDocument({ rep, data, company }: RepProfilePdfDocum
 
         <PdfDivider />
 
-        <View id="customers-table" style={pdfStyles.section} minPresenceAhead={160}>
-          <Text style={pdfStyles.sectionTitle}>العملاء المسندون</Text>
-          <Table
-            headers={["الاسم", "رقم الهاتف", "التصنيف", "الحالة"]}
-            rows={customers.rows.map((c) => [
-              c.name,
-              c.phone,
-              c.category_details?.name ?? "—",
-              <StatusBadge
-                key="status"
-                label={c.is_active ? "مفعّل" : "موقوف"}
-                variant={c.is_active ? "success" : "secondary"}
-              />,
-            ])}
-          />
-          <TableNote table={customers} />
-        </View>
-
-        <PdfDivider />
-
         <View id="orders-table" style={pdfStyles.section} minPresenceAhead={160}>
           <Text style={pdfStyles.sectionTitle}>أحدث الطلبات</Text>
           <Table
-            headers={["الزبون", "الحالة", "عدد الأصناف", "تاريخ الطلب"]}
+            headers={["الحالة", "عدد الأصناف", "تاريخ الطلب", "الفاتورة"]}
             rows={orders.rows.map((o) => [
-              o.customer_name,
               <StatusBadge
                 key="status"
                 label={ORDER_STATUS_LABEL[o.status]}
@@ -103,9 +87,20 @@ export function RepProfilePdfDocument({ rep, data, company }: RepProfilePdfDocum
               />,
               String(o.line_count),
               toISODate(o.created_at),
+              o.fulfilled_by_invoice_number ?? "—",
             ])}
           />
           <TableNote table={orders} />
+        </View>
+
+        <PdfDivider />
+
+        <View id="reps-table" style={pdfStyles.section} minPresenceAhead={100}>
+          <Text style={pdfStyles.sectionTitle}>المندوبون المسندون</Text>
+          <Table
+            headers={["الاسم", "رقم الهاتف"]}
+            rows={reps.map((r) => [r.name, r.phone])}
+          />
         </View>
 
         <PdfFooter company={company} />

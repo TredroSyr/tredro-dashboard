@@ -210,4 +210,4 @@ export interface CustomerOverviewParams {
   currency?: string;
 }
 
-export type CustomerOverviewResponse = ApiEnvelope<CustomerOverview>;
+export type CustomerOverviewResponse = ApiEnvelope<{ overview: CustomerOverview }>;
