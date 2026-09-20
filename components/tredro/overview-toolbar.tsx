@@ -5,7 +5,8 @@ import type { DateRange } from "react-day-picker";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { DateFilter } from "@/components/tredro/date-filter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useCurrenciesQuery } from "@/module/products/hook";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useCurrenciesQuery, useFxRatesQuery } from "@/module/products/hook";
 import { cn } from "@/lib/utils";
 
 export interface OverviewFilterParams {
@@ -44,7 +45,36 @@ interface CurrencyFilterProps {
   className?: string;
 }
 
-/** Segmented control over the active currencies from `GET /api/currencies/`. */
+const formatRate = (rate: string) =>
+  Number(rate).toLocaleString("en-US", { maximumFractionDigits: 4 });
+
+/** Tells the user the figures are converted, and shows the rates used (`GET /api/fx/latest/{base}`). */
+function FxRatesHint({ base, codes }: { base?: string; codes: string[] }) {
+  const { data } = useFxRatesQuery(base);
+  const rates = data?.rates;
+  const others = codes.filter((code) => code !== base && rates?.[code]);
+
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        aria-label="أسعار الصرف المستخدمة"
+        className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <IconRenderer name="info_outlined" className="size-4" />
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="flex-col items-start gap-1">
+        <span>يتم تحويل المبالغ إلى العملة المختارة بأحدث أسعار الصرف.</span>
+        {others.map((code) => (
+          <span key={code} dir="ltr" className="tabular-nums">
+            1 {base} = {formatRate(rates![code])} {code}
+          </span>
+        ))}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Segmented control over the active currencies from `GET /api/currencies/`, with a hint about the rates used. */
 export function CurrencyFilter({ value, onChange, className }: CurrencyFilterProps) {
   const { data, isLoading } = useCurrenciesQuery();
   const currencies = (data?.data?.currencies ?? []).filter((c) => c.is_active);
@@ -54,34 +84,37 @@ export function CurrencyFilter({ value, onChange, className }: CurrencyFilterPro
   if (currencies.length === 0) return null;
 
   return (
-    <div
-      role="group"
-      aria-label="العملة"
-      className={cn(
-        "inline-flex max-w-full items-center overflow-x-auto rounded-lg border border-border bg-card p-0.5 [&::-webkit-scrollbar]:hidden",
-        className,
-      )}
-    >
-      {currencies.map(({ id, code, name }) => {
-        const active = value === code;
-        return (
-          <button
-            key={id}
-            type="button"
-            title={name}
-            aria-pressed={active}
-            onClick={() => onChange(code)}
-            className={cn(
-              "h-7 shrink-0 rounded-md px-2.5 text-xs font-medium transition-colors",
-              active
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            {code}
-          </button>
-        );
-      })}
+    <div className="inline-flex max-w-full items-center gap-1">
+      <div
+        role="group"
+        aria-label="العملة"
+        className={cn(
+          "inline-flex max-w-full items-center overflow-x-auto rounded-lg border border-border bg-card p-0.5 [&::-webkit-scrollbar]:hidden",
+          className,
+        )}
+      >
+        {currencies.map(({ id, code, name }) => {
+          const active = value === code;
+          return (
+            <button
+              key={id}
+              type="button"
+              title={name}
+              aria-pressed={active}
+              onClick={() => onChange(code)}
+              className={cn(
+                "h-7 shrink-0 rounded-md px-2.5 text-xs font-medium transition-colors",
+                active
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              {code}
+            </button>
+          );
+        })}
+      </div>
+      <FxRatesHint base={value} codes={currencies.map((c) => c.code)} />
     </div>
   );
 }

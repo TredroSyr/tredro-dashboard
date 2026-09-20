@@ -18,6 +18,7 @@ import {
   createCategory,
   listUnits,
   listCurrencies,
+  getLatestFxRates,
   listCustomFieldDefinitions,
   createCustomFieldDefinition,
 } from "../api";
@@ -72,6 +73,15 @@ export const useUnitsQuery = () =>
 
 export const useCurrenciesQuery = () =>
   useQuery({ queryKey: ["currencies"], queryFn: listCurrencies });
+
+/** Latest exchange rates with `base` as the unit (`1 base = rates[code]`). Idle until a base is known. */
+export const useFxRatesQuery = (base?: string) =>
+  useQuery({
+    queryKey: ["fx-rates", base],
+    queryFn: () => getLatestFxRates(base as string),
+    enabled: Boolean(base),
+    staleTime: 5 * 60 * 1000,
+  });
 
 export const useCustomFieldDefinitionsQuery = () =>
   useQuery({

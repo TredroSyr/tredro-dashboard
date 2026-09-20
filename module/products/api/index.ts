@@ -5,6 +5,7 @@ import {
   CategoriesResponse,
   UnitsResponse,
   CurrenciesResponse,
+  FxRatesResponse,
   CustomFieldDefinitionsResponse,
   CreateProductPayload,
   UpdateProductPayload,
@@ -32,6 +33,10 @@ export const listUnits = async (): Promise<UnitsResponse> =>
 
 export const listCurrencies = async (): Promise<CurrenciesResponse> =>
   (await api.get("currencies/")).data;
+
+export const getLatestFxRates = async (
+  base: string,
+): Promise<FxRatesResponse> => (await api.get(`fx/latest/${base}`)).data;
 
 export const listCustomFieldDefinitions =
   async (): Promise<CustomFieldDefinitionsResponse> =>

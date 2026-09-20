@@ -127,6 +127,11 @@ export type ProductResponse = ApiEnvelope<{ product: ProductDetail }>;
 export type CategoriesResponse = ApiEnvelope<{ categories: ProductCategory[] }>;
 export type UnitsResponse = ApiEnvelope<{ units: UnitOfMeasure[] }>;
 export type CurrenciesResponse = ApiEnvelope<{ currencies: Currency[] }>;
+/** `GET /api/fx/latest/{base}` — rates are decimal strings, `1 base = rates[code] code`. */
+export interface FxRatesResponse {
+  base: string;
+  rates: Record<string, string>;
+}
 export type ProductImagesResponse = ApiEnvelope<{ images: ProductImage[] }>;
 export type CustomFieldDefinitionsResponse = ApiEnvelope<{
   definitions: CustomFieldDefinition[];
