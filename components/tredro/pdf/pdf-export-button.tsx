@@ -2,6 +2,9 @@
 import * as React from "react";
 import { Download } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
+import { Capacitor } from "@capacitor/core";
+import { Filesystem, Directory } from "@capacitor/filesystem";
+import { Share } from "@capacitor/share";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -16,7 +19,33 @@ interface PdfExportButtonProps<T> {
   renderDocument: (data: T, company: Company | null | undefined) => React.ReactElement;
 }
 
-function downloadBlob(blob: Blob, filename: string) {
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(",")[1] ?? "");
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function downloadBlob(blob: Blob, filename: string) {
+  // `<a download>` on a blob URL is ignored by the Android/iOS WebView, so inside the app
+  // write the file to the app cache (no storage permission needed) and hand it to the
+  // system share sheet, where the user can save it to Files/Drive or open it in a PDF viewer.
+  if (Capacitor.isNativePlatform()) {
+    const { uri } = await Filesystem.writeFile({
+      path: filename,
+      data: await blobToBase64(blob),
+      directory: Directory.Cache,
+    });
+    try {
+      await Share.share({ title: filename, url: uri, dialogTitle: filename });
+    } catch {
+      // Dismissing the share sheet rejects — that's not a failure.
+    }
+    return;
+  }
+
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -42,12 +71,12 @@ export function PdfExportButton<T>({
       const data = await fetchData();
       try {
         const blob = await pdf(renderDocument(data, company)).toBlob();
-        downloadBlob(blob, filename);
+        await downloadBlob(blob, filename);
       } catch (err) {
         // Broken/unreachable logo shouldn't block the whole export — retry without it.
         if (!company?.logo) throw err;
         const blob = await pdf(renderDocument(data, { ...company, logo: null })).toBlob();
-        downloadBlob(blob, filename);
+        await downloadBlob(blob, filename);
       }
     } catch {
       toast.error("تعذّر إنشاء ملف PDF، يرجى المحاولة مرة أخرى");
