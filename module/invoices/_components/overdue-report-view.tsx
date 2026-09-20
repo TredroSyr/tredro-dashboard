@@ -78,7 +78,7 @@ export function OverdueReportView({ customerId, repId }: OverdueReportViewProps 
           الديون المتأخرة
           {report && <Badge className="font-normal">{report.totals.invoice_count} فاتورة</Badge>}
         </h2>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
           {!hideRepFilter && (
             <SearchableSelect
               options={repOptions}
@@ -86,7 +86,7 @@ export function OverdueReportView({ customerId, repId }: OverdueReportViewProps 
               onChange={setRep}
               placeholder="كل المناديب"
               searchPlaceholder="ابحث عن مندوب..."
-              className="h-8 w-[160px] rounded-lg"
+              className="h-8 w-full rounded-lg sm:w-[160px]"
             />
           )}
           <div className="flex items-center gap-2">
@@ -105,7 +105,7 @@ export function OverdueReportView({ customerId, repId }: OverdueReportViewProps 
         </div>
       </div>
 
-      <div className="flex gap-2" dir="rtl">
+      <div className="grid grid-cols-2 gap-2 sm:flex" dir="rtl">
         {SUB_TABS.map((tab) => {
           const isActive = subTab === tab.value;
           return (
@@ -114,7 +114,7 @@ export function OverdueReportView({ customerId, repId }: OverdueReportViewProps 
               type="button"
               onClick={() => setSubTab(tab.value)}
               className={cn(
-                "flex items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors",
+                "flex items-center justify-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-medium transition-colors sm:justify-start",
                 isActive
                   ? "border-primary bg-primary/5 text-primary"
                   : "border-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -153,17 +153,17 @@ export function OverdueReportView({ customerId, repId }: OverdueReportViewProps 
                   key={r.rep_id ?? "direct"}
                   className="rounded-xl border border-border bg-card p-3.5"
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-3">
                     <span
                       className={
                         r.rep_name
-                          ? "font-medium text-foreground"
-                          : "font-medium text-muted-foreground italic"
+                          ? "min-w-0 truncate font-medium text-foreground"
+                          : "min-w-0 truncate font-medium text-muted-foreground italic"
                       }
                     >
                       {formatRepName(r.rep_name)}
                     </span>
-                    <span className="tabular-nums font-semibold text-destructive">
+                    <span className="shrink-0 tabular-nums font-semibold text-destructive">
                       {formatMoney(r.total_balance_due)}
                     </span>
                   </div>
@@ -194,36 +194,38 @@ export function OverdueReportView({ customerId, repId }: OverdueReportViewProps 
                     <button
                       type="button"
                       onClick={() => toggle(c.customer_id)}
-                      className="flex w-full items-center justify-between gap-3 px-4 py-3 text-right hover:bg-muted/40"
+                      className="flex w-full items-center justify-between gap-3 px-3 py-3 text-right hover:bg-muted/40 sm:px-4"
                     >
-                      <div className="flex items-center gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
                         <IconRenderer
                           name="chevron_down_outlined"
                           className={cn(
-                            "size-4 text-muted-foreground transition-transform motion-safe:duration-200",
+                            "size-4 shrink-0 text-muted-foreground transition-transform motion-safe:duration-200",
                             isOpen && "rotate-180",
                           )}
                         />
-                        <span className="font-medium text-foreground">
+                        <span className="min-w-0 truncate font-medium text-foreground">
                           {c.customer_name}
                         </span>
-                        <Badge variant="outline">{c.invoice_count}</Badge>
+                        <Badge variant="outline" className="shrink-0">
+                          {c.invoice_count}
+                        </Badge>
                       </div>
-                      <span className="tabular-nums font-semibold text-destructive">
+                      <span className="shrink-0 tabular-nums font-semibold text-destructive">
                         {formatMoney(c.total_balance_due)}
                       </span>
                     </button>
                     {isOpen && (
-                      <div className="flex flex-col gap-1.5 bg-muted/20 px-4 py-3">
+                      <div className="flex flex-col gap-2.5 bg-muted/20 px-3 py-3 sm:gap-1.5 sm:px-4">
                         {c.invoices.map((inv) => (
                           <div
                             key={inv.id}
-                            className="flex items-center justify-between text-sm"
+                            className="flex flex-col gap-0.5 text-sm sm:flex-row sm:items-center sm:justify-between"
                           >
                             <span className="text-foreground">
                               {inv.number} · {formatDate(inv.date)}
                             </span>
-                            <span className="flex items-center gap-2">
+                            <span className="flex items-center justify-between gap-2 sm:justify-start">
                               <span className="tabular-nums text-muted-foreground">
                                 متأخرة {inv.days_overdue} يوم
                               </span>

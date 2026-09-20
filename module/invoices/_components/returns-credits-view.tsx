@@ -197,14 +197,14 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
           تبويب فواتير البيع لتسجيل إرجاع جديد.
         </p>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
           <SearchableSelect
             hideSearch
             options={RETURN_STATUS_OPTIONS}
             value={returnsStatus}
             onChange={(v) => setReturnsStatus(v as ReturnInvoiceStatus | "all")}
             placeholder="كل الحالات"
-            className="h-8 w-[150px] rounded-lg"
+            className="h-8 w-full rounded-lg sm:w-[150px]"
           />
 
           {!hideCustomerFilter && (
@@ -214,7 +214,7 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
               onChange={setReturnsCustomer}
               placeholder="كل الزبائن"
               searchPlaceholder="ابحث عن زبون..."
-              className="h-8 w-[170px] rounded-lg"
+              className="h-8 w-full rounded-lg sm:w-[170px]"
             />
           )}
 
@@ -225,7 +225,7 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
               onChange={setReturnsRep}
               placeholder="كل المناديب"
               searchPlaceholder="ابحث عن مندوب..."
-              className="h-8 w-[160px] rounded-lg"
+              className="h-8 w-full rounded-lg sm:w-[160px]"
             />
           )}
 
@@ -238,7 +238,7 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
                 setReturnsCustomer("");
                 setReturnsRep("");
               }}
-              className="gap-1 text-muted-foreground"
+              className="col-span-2 gap-1 text-muted-foreground sm:col-auto"
             >
               <IconRenderer name="close_outlined" className="size-4" />
               مسح الفلاتر
@@ -259,9 +259,9 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
           }
           renderMobileCard={(r: ReturnInvoice) => (
             <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-foreground">{r.number}</span>
-                <span className="tabular-nums text-foreground">
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate font-medium text-foreground">{r.number}</span>
+                <span className="shrink-0 tabular-nums text-foreground">
                   {formatMoney(r.amount, r.currency)}
                 </span>
               </div>
@@ -326,14 +326,14 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
           يُطبَّق يدوياً على فاتورة بيع قادمة، ولا يُخصم تلقائياً.
         </p>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
           <SearchableSelect
             hideSearch
             options={CREDIT_STATUS_OPTIONS}
             value={creditsStatus}
             onChange={(v) => setCreditsStatus(v as CustomerCreditStatus | "all")}
             placeholder="كل الحالات"
-            className="h-8 w-[150px] rounded-lg"
+            className="h-8 w-full rounded-lg sm:w-[150px]"
           />
 
           {!hideCustomerFilter && (
@@ -343,7 +343,7 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
               onChange={setCreditsCustomer}
               placeholder="كل الزبائن"
               searchPlaceholder="ابحث عن زبون..."
-              className="h-8 w-[170px] rounded-lg"
+              className="h-8 w-full rounded-lg sm:w-[170px]"
             />
           )}
 
@@ -354,7 +354,7 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
               onChange={setCreditsRep}
               placeholder="مندوب المرتجع (كل المناديب)"
               searchPlaceholder="ابحث عن مندوب..."
-              className="h-8 w-[190px] rounded-lg"
+              className="h-8 w-full rounded-lg sm:w-[190px]"
             />
           )}
 
@@ -367,7 +367,7 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
                 setCreditsCustomer("");
                 setCreditsRep("");
               }}
-              className="gap-1 text-muted-foreground"
+              className="col-span-2 gap-1 text-muted-foreground sm:col-auto"
             >
               <IconRenderer name="close_outlined" className="size-4" />
               مسح الفلاتر
@@ -385,11 +385,11 @@ export function ReturnsCreditsView({ customerId, repId }: ReturnsCreditsViewProp
           onRetry={() => refetchCredits()}
           renderMobileCard={(c: PendingCustomerCredit) => (
             <div className="flex flex-col gap-1">
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-foreground">
+              <div className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate font-medium text-foreground">
                   {hideCustomerFilter ? c.source_return_invoice_number : c.customer_name}
                 </span>
-                <span className="tabular-nums text-foreground">
+                <span className="shrink-0 tabular-nums text-foreground">
                   {formatMoney(c.amount)}
                 </span>
               </div>

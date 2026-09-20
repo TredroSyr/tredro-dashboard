@@ -100,18 +100,22 @@ export function InvoiceDetailHeader({
 
         <PermissionGate module="invoices" requireAction fallback={null}>
           {!isLoading && invoice && (
-            <div className="flex shrink-0 gap-2">
+            <div className="flex w-full shrink-0 gap-2 sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5"
+                className="flex-1 gap-1.5 sm:flex-none"
                 onClick={onCreateReturn}
               >
                 <IconRenderer name="undo_outlined" className="size-4" />
                 تسجيل مرتجع
               </Button>
               {hasBalance && (
-                <Button size="sm" className="gap-1.5" onClick={onRecordPayment}>
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1.5 sm:flex-none"
+                  onClick={onRecordPayment}
+                >
                   <IconRenderer name="paid_outlined" className="size-4" />
                   تسجيل دفعة
                 </Button>

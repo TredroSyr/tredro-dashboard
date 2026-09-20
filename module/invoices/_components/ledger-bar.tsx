@@ -88,7 +88,7 @@ export function LedgerBar({
 
       {size === "lg" && (
         <div
-          className="flex items-center gap-2 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden text-xs text-muted-foreground sm:flex-wrap sm:overflow-visible"
+          className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
           dir="rtl"
         >
           <LegendDot
@@ -109,7 +109,7 @@ export function LedgerBar({
             value={<AmountBadge amount={balanceDue} currency={currency} />}
           />
           {overage > 0 && (
-            <span className="flex shrink-0 snap-start items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 font-medium text-warning">
+            <span className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2 font-medium text-warning">
               زيادة مستحقة للزبون:
               <AmountBadge amount={overageAmount} currency={currency} />
             </span>
@@ -132,7 +132,7 @@ function LegendDot({
   value: ReactNode;
 }) {
   return (
-    <span className="flex shrink-0 snap-start items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2">
+    <span className="flex items-center gap-1.5 rounded-xl border border-border bg-background px-3 py-2">
       <span
         className={cn("size-2 shrink-0 rounded-full", colorClass)}
         style={

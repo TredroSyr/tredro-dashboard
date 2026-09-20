@@ -87,11 +87,11 @@ export function IncomingInvoiceDetailHeader({
 
         <PermissionGate module="invoices" requireAction fallback={null}>
           {!isLoading && invoice?.status === "draft" && (
-            <div className="flex shrink-0 gap-2">
+            <div className="flex w-full shrink-0 gap-2 sm:w-auto">
               <Button
                 variant="outline"
                 size="sm"
-                className="gap-1.5"
+                className="flex-1 gap-1.5 sm:flex-none"
                 disabled={isCancelling}
                 onClick={onCancel}
               >
@@ -100,7 +100,7 @@ export function IncomingInvoiceDetailHeader({
               </Button>
               <Button
                 size="sm"
-                className="gap-1.5"
+                className="flex-1 gap-1.5 sm:flex-none"
                 disabled={isIssuing}
                 onClick={onIssue}
               >

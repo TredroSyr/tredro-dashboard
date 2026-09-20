@@ -124,8 +124,8 @@ export function IncomingInvoicesView() {
         </PermissionGate>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full xs:w-[220px] sm:w-[260px]">
+      <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
+        <div className="relative col-span-2 sm:w-[260px]">
           <IconRenderer name="search_outlined" className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="ابحث برقم الفاتورة..."
@@ -147,7 +147,7 @@ export function IncomingInvoicesView() {
             setPage(1);
           }}
           placeholder="كل الحالات"
-          className="h-8 w-[150px] rounded-lg"
+          className="h-8 w-full rounded-lg sm:w-[150px]"
         />
 
         {hasActiveFilters && (
@@ -182,19 +182,19 @@ export function IncomingInvoicesView() {
         renderMobileCard={(invoice: IncomingInvoice) => (
           <div className="flex flex-col gap-2">
             <div className="flex items-start justify-between gap-2">
-              <div>
+              <div className="min-w-0">
                 <p className="font-medium text-foreground">{invoice.number}</p>
-                <p className="text-xs text-muted-foreground">
+                <p className="truncate text-xs text-muted-foreground">
                   {invoice.warehouse_name} · {formatDate(invoice.date)}
                 </p>
               </div>
               <DocumentStatusBadge status={invoice.status} />
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="min-w-0 truncate text-muted-foreground">
                 {invoice.supplier_ref || "—"}
               </span>
-              <span className="font-medium tabular-nums text-foreground">
+              <span className="shrink-0 font-medium tabular-nums text-foreground">
                 {formatMoney(invoice.total_amount, invoice.currency)}
               </span>
             </div>
@@ -213,9 +213,13 @@ export function IncomingInvoicesView() {
                         إجراءات
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-72">
+                    <DropdownMenuContent
+                      align="end"
+                      className="w-72 max-w-[calc(100vw-2rem)]"
+                    >
                       <DropdownMenuItem
                         disabled={isIssuing}
+                        className="whitespace-normal"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleIssue(invoice.id);

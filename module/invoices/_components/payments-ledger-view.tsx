@@ -157,7 +157,7 @@ export function PaymentsLedgerView({ customerId, repId }: PaymentsLedgerViewProp
           سجل التحصيلات
           <Badge className="font-normal">{totalCount}</Badge>
         </h2>
-        <span className="text-sm text-muted-foreground">
+        <span className="text-xs text-muted-foreground sm:text-sm">
           إجمالي المحصّل ضمن هذه الفلاتر:{" "}
           <span className="font-semibold tabular-nums text-foreground">
             {formatMoney(totalAmount ?? "0")}
@@ -165,14 +165,14 @@ export function PaymentsLedgerView({ customerId, repId }: PaymentsLedgerViewProp
         </span>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="grid grid-cols-2 items-center gap-2 sm:flex sm:flex-wrap">
         <SearchableSelect
           hideSearch
           options={SOURCE_OPTIONS}
           value={source}
           onChange={(v) => setSource(v as PaymentSource | "all")}
           placeholder="كل المصادر"
-          className="h-8 w-[150px] rounded-lg"
+          className="h-8 w-full rounded-lg sm:w-[150px]"
         />
 
         {!hideCustomerFilter && (
@@ -182,7 +182,7 @@ export function PaymentsLedgerView({ customerId, repId }: PaymentsLedgerViewProp
             onChange={setCustomer}
             placeholder="كل الزبائن"
             searchPlaceholder="ابحث عن زبون..."
-            className="h-8 w-[170px] rounded-lg"
+            className="h-8 w-full rounded-lg sm:w-[170px]"
           />
         )}
 
@@ -193,11 +193,16 @@ export function PaymentsLedgerView({ customerId, repId }: PaymentsLedgerViewProp
             onChange={setRep}
             placeholder="من حصّلها (كل المناديب)"
             searchPlaceholder="ابحث عن مندوب..."
-            className="h-8 w-[190px] rounded-lg"
+            className="h-8 w-full rounded-lg sm:w-[190px]"
           />
         )}
 
-        <DateFilter mode="range" value={dateRange} onChange={setDateRange} />
+        <DateFilter
+          mode="range"
+          value={dateRange}
+          onChange={setDateRange}
+          className="w-full sm:w-auto"
+        />
 
         {hasActiveFilters && (
           <Button
@@ -209,7 +214,7 @@ export function PaymentsLedgerView({ customerId, repId }: PaymentsLedgerViewProp
               setCustomer("");
               setDateRange(undefined);
             }}
-            className="gap-1 text-muted-foreground"
+            className="col-span-2 gap-1 text-muted-foreground sm:col-auto"
           >
             <IconRenderer name="close_outlined" className="size-4" />
             مسح الفلاتر
@@ -230,11 +235,11 @@ export function PaymentsLedgerView({ customerId, repId }: PaymentsLedgerViewProp
         onRetry={() => refetch()}
         renderMobileCard={(payment: PaymentCollection) => (
           <div className="flex flex-col gap-1">
-            <div className="flex items-center justify-between">
-              <span className="font-medium text-foreground">
+            <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0 truncate font-medium text-foreground">
                 {payment.sales_invoice_number}
               </span>
-              <span className="tabular-nums text-foreground">
+              <span className="shrink-0 tabular-nums text-foreground">
                 {formatMoney(payment.amount)}
               </span>
             </div>

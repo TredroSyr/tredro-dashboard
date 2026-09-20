@@ -2,9 +2,7 @@
 import * as React from "react";
 import { Download } from "lucide-react";
 import { pdf } from "@react-pdf/renderer";
-import { Capacitor } from "@capacitor/core";
-import { Filesystem, Directory } from "@capacitor/filesystem";
-import { Share } from "@capacitor/share";
+import { Capacitor, registerPlugin } from "@capacitor/core";
 
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
@@ -28,21 +26,27 @@ function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+interface FileSaverPlugin {
+  saveToDownloads(options: {
+    fileName: string;
+    data: string;
+    mimeType: string;
+  }): Promise<{ fileName: string }>;
+}
+
+// Local Android plugin (android/.../FileSaverPlugin.java).
+const FileSaver = registerPlugin<FileSaverPlugin>("FileSaver");
+
 async function downloadBlob(blob: Blob, filename: string) {
-  // `<a download>` on a blob URL is ignored by the Android/iOS WebView, so inside the app
-  // write the file to the app cache (no storage permission needed) and hand it to the
-  // system share sheet, where the user can save it to Files/Drive or open it in a PDF viewer.
+  // `<a download>` on a blob URL is ignored by the Android WebView, so inside the app the
+  // file is written straight into the device's Downloads folder by the native plugin.
   if (Capacitor.isNativePlatform()) {
-    const { uri } = await Filesystem.writeFile({
-      path: filename,
+    const { fileName } = await FileSaver.saveToDownloads({
+      fileName: filename,
       data: await blobToBase64(blob),
-      directory: Directory.Cache,
+      mimeType: blob.type || "application/pdf",
     });
-    try {
-      await Share.share({ title: filename, url: uri, dialogTitle: filename });
-    } catch {
-      // Dismissing the share sheet rejects — that's not a failure.
-    }
+    toast.success(`تم حفظ الملف في مجلد التنزيلات: ${fileName}`);
     return;
   }
 

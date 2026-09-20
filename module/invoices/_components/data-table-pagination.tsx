@@ -18,9 +18,9 @@ export function DataTablePagination({
 }: DataTablePaginationProps) {
   if (isLoading) {
     return (
-      <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+      <div className="flex items-center justify-between px-4 py-3 sm:px-6 sm:py-4 border-t border-border">
         <Skeleton className="h-8 w-20" />
-        <div className="flex items-center gap-1">
+        <div className="hidden items-center gap-1 sm:flex">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-8 w-8" />
           ))}
@@ -117,7 +117,7 @@ export function DataTablePagination({
   };
 
   return (
-    <div className="flex items-center justify-between px-6 py-4 border-t border-border">
+    <div className="flex items-center justify-between gap-2 px-4 py-3 sm:px-6 sm:py-4 border-t border-border">
       <Button
         variant="outline"
         size="sm"
@@ -128,7 +128,11 @@ export function DataTablePagination({
         السابق
       </Button>
 
-      <div className="flex items-center gap-1">{renderPageButtons()}</div>
+      {/* The full page-button row doesn't fit a phone width — show a compact counter instead. */}
+      <span className="text-sm tabular-nums text-muted-foreground sm:hidden">
+        {currentPage} / {Math.max(totalPages, 1)}
+      </span>
+      <div className="hidden items-center gap-1 sm:flex">{renderPageButtons()}</div>
 
       <Button
         variant="outline"

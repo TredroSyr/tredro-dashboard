@@ -82,7 +82,7 @@ export function InvoiceSettingsView() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex flex-col gap-4"
         >
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="text-sm font-semibold text-foreground sm:text-base">
                 إعدادات الفواتير
@@ -92,7 +92,7 @@ export function InvoiceSettingsView() {
                 تعديلها لا يغيّر الفواتير المُصدرة سابقاً.
               </p>
             </div>
-            <Button type="submit" disabled={isPending || isLoading} className="shrink-0">
+            <Button type="submit" disabled={isPending || isLoading} className="w-full shrink-0 sm:w-auto">
               {isPending ? "جارٍ الحفظ..." : "حفظ الإعدادات"}
             </Button>
           </div>
