@@ -24,7 +24,6 @@ import { ProductCustomFieldsTab } from "./product-custom-fields-tab";
 import { ProductPricingTab } from "./product-pricing-tab";
 import { ProductImagesTab } from "./product-images-tab";
 import { ProductReviewTab } from "./product-review-tab";
-import ProductOverview from "./product-overview";
 
 interface ProductFormClientProps {
   mode: "create" | "edit";
@@ -238,7 +237,6 @@ export const ProductFormClient = ({
           )}
 
           <div className="rounded-md border border-border p-4 sm:p-6">
-            {activeTab === "overview" && mode === "edit" && <ProductOverview />}
             {activeTab === "basic" && (
               <ProductBasicInfoTab isLoading={isLoading} />
             )}
