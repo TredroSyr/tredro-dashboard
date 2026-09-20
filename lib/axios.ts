@@ -80,7 +80,8 @@ const DEFAULT_TIMEOUT = 15000; // 15 seconds
 
 // Extended timeout for requests that upload files (FormData),
 // since file uploads generally take longer than normal JSON requests.
-const UPLOAD_TIMEOUT = 60000; // 60 seconds
+// Logo + cover images can be several MB, so allow slow connections plenty of time.
+const UPLOAD_TIMEOUT = 180000; // 3 minutes
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BASE_URL,

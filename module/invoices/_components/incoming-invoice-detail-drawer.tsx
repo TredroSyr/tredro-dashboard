@@ -38,8 +38,8 @@ function useIsMobile(breakpoint = 768) {
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3 text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-foreground">{value}</span>
+      <span className="shrink-0 text-muted-foreground">{label}</span>
+      <span className="min-w-0 truncate font-medium text-foreground">{value}</span>
     </div>
   );
 }
@@ -89,7 +89,7 @@ export function IncomingInvoiceDetailSheet({
     >
       <DrawerContent className="flex flex-col w-full h-[92dvh] max-h-[92dvh] rounded-t-2xl sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none md:max-w-xl">
         <DrawerHeader className="flex-row items-center justify-between gap-3 px-4 pt-6 pb-3 sm:px-6 sm:pt-4 sticky top-0 z-10 bg-background border-b border-border">
-          <DrawerTitle className="text-right text-base sm:text-lg">
+          <DrawerTitle className="min-w-0 truncate text-right text-base sm:text-lg">
             {invoice?.number ?? "فاتورة إدخال"}
           </DrawerTitle>
           <div className="flex items-center gap-2 shrink-0">
@@ -192,7 +192,58 @@ export function IncomingInvoiceDetailSheet({
               {/* Lines */}
               <div className="flex flex-col gap-2">
                 <h3 className="text-sm font-medium text-muted-foreground">الأصناف</h3>
-                <div className="overflow-hidden rounded-xl border border-border">
+                {/* Phones: one card per line instead of a cramped 5-column table. */}
+                <div className="flex flex-col gap-2 sm:hidden">
+                  {invoice.lines?.map((line) => (
+                    <div
+                      key={line.id}
+                      className="flex flex-col gap-2 rounded-xl border border-border p-3 text-sm"
+                    >
+                      <div className="min-w-0 text-foreground">
+                        <EntityLink href={`/products/detail?id=${line.product}`}>
+                          {line.product_name}
+                        </EntityLink>
+                        {line.product_sku && (
+                          <span className="ms-1.5 text-xs text-muted-foreground">
+                            ({line.product_sku})
+                          </span>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                        <span>
+                          الكمية:{" "}
+                          <span className="tabular-nums text-foreground">
+                            {formatQuantity(line.quantity)} {line.unit_name}
+                          </span>
+                        </span>
+                        <span>
+                          السعر:{" "}
+                          <span className="tabular-nums text-foreground">
+                            {formatMoney(line.unit_price, invoice.currency)}
+                          </span>
+                        </span>
+                        {num(line.tax_rate) > 0 && (
+                          <span>
+                            الضريبة:{" "}
+                            <span className="tabular-nums text-foreground">
+                              {formatQuantity(line.tax_rate)}%
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between border-t border-border pt-2 font-medium text-foreground">
+                        <span className="text-xs font-normal text-muted-foreground">
+                          الإجمالي
+                        </span>
+                        <span className="tabular-nums">
+                          {formatMoney(line.subtotal, invoice.currency)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="hidden overflow-hidden rounded-xl border border-border sm:block">
                   <table className="w-full text-sm">
                     <thead>
                       <tr className="border-b border-border bg-muted/30 text-right text-xs text-muted-foreground">
@@ -236,16 +287,16 @@ export function IncomingInvoiceDetailSheet({
               </div>
 
               {/* Totals */}
-              <div className="flex flex-col items-end gap-1.5 self-end text-sm">
+              <div className="flex w-full flex-col items-end gap-1.5 self-end text-sm sm:w-auto">
                 {taxTotal > 0 && (
-                  <div className="flex w-56 justify-between text-muted-foreground">
+                  <div className="flex w-full justify-between text-muted-foreground sm:w-56">
                     <span>إجمالي الضريبة</span>
                     <span className="tabular-nums text-foreground">
                       {formatMoney(taxTotal, invoice.currency)}
                     </span>
                   </div>
                 )}
-                <div className="flex w-56 justify-between border-t border-border pt-1.5 font-semibold text-foreground">
+                <div className="flex w-full justify-between border-t border-border pt-1.5 font-semibold text-foreground sm:w-56">
                   <span>الإجمالي</span>
                   <span className="tabular-nums">{formatMoney(invoice.total_amount, invoice.currency)}</span>
                 </div>

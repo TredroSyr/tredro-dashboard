@@ -89,24 +89,15 @@ export function IncomingInvoiceDetailClient({
         isCancelling={isCancelling}
       />
 
-      <div className="px-6 py-4">
+      <div className="px-4 py-4 sm:px-6">
         {isLoading ? (
-          <div
-            className="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible"
-            dir="rtl"
-          >
+          <div className="grid grid-cols-2 gap-2 sm:gap-3" dir="rtl">
             {TABS.map((_, i) => (
-              <Skeleton
-                key={i}
-                className={cn("h-14 rounded-xl border", "w-[65%] xs:w-[45%] sm:w-full")}
-              />
+              <Skeleton key={i} className="h-12 rounded-xl border sm:h-14" />
             ))}
           </div>
         ) : (
-          <div
-            className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-2 sm:overflow-visible"
-            dir="rtl"
-          >
+          <div className="grid grid-cols-2 gap-2 sm:gap-3" dir="rtl">
             {TABS.map((tab) => {
               const isActive = activeTab === tab.value;
               return (
@@ -115,8 +106,7 @@ export function IncomingInvoiceDetailClient({
                   type="button"
                   onClick={() => setActiveTab(tab.value)}
                   className={cn(
-                    "flex shrink-0 cursor-pointer snap-start items-center gap-2 rounded-xl border px-4 py-3 text-right transition-colors",
-                    "w-[65%] xs:w-[45%] sm:w-auto",
+                    "flex min-w-0 cursor-pointer items-center gap-2 rounded-xl border px-3 py-3 text-right transition-colors sm:px-4",
                     isActive
                       ? "border-primary bg-primary/5 text-primary"
                       : "border-border bg-background text-muted-foreground hover:bg-muted/50",
@@ -164,7 +154,56 @@ function OverviewTab({ invoice }: { invoice: IncomingInvoice }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="overflow-hidden rounded-xl border border-border">
+      {/* Phones: one card per line — a 5-column table is unreadable at this width. */}
+      <div className="flex flex-col gap-2 sm:hidden">
+        {invoice.lines?.map((line) => (
+          <div
+            key={line.id}
+            className="flex flex-col gap-2 rounded-xl border border-border p-3 text-sm"
+          >
+            <div className="min-w-0 text-foreground">
+              <EntityLink href={`/products/detail?id=${line.product}`}>
+                {line.product_name}
+              </EntityLink>
+              {line.product_sku && (
+                <span className="ms-1.5 text-xs text-muted-foreground">
+                  ({line.product_sku})
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span>
+                الكمية:{" "}
+                <span className="tabular-nums text-foreground">
+                  {formatQuantity(line.quantity)} {line.unit_name}
+                </span>
+              </span>
+              <span>
+                السعر:{" "}
+                <span className="tabular-nums text-foreground">
+                  {formatMoney(line.unit_price, invoice.currency)}
+                </span>
+              </span>
+              {num(line.tax_rate) > 0 && (
+                <span>
+                  الضريبة:{" "}
+                  <span className="tabular-nums text-foreground">
+                    {formatQuantity(line.tax_rate)}%
+                  </span>
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between border-t border-border pt-2 font-medium text-foreground">
+              <span className="text-xs font-normal text-muted-foreground">الإجمالي</span>
+              <span className="tabular-nums">
+                {formatMoney(line.subtotal, invoice.currency)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="hidden overflow-hidden rounded-xl border border-border sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-muted/30 text-right text-xs text-muted-foreground">
@@ -206,16 +245,16 @@ function OverviewTab({ invoice }: { invoice: IncomingInvoice }) {
         </table>
       </div>
 
-      <div className="flex flex-col items-end gap-1.5 self-end text-sm">
+      <div className="flex w-full flex-col items-end gap-1.5 self-end text-sm sm:w-auto">
         {taxTotal > 0 && (
-          <div className="flex w-56 justify-between text-muted-foreground">
+          <div className="flex w-full justify-between text-muted-foreground sm:w-56">
             <span>إجمالي الضريبة</span>
             <span className="tabular-nums text-foreground">
               {formatMoney(taxTotal, invoice.currency)}
             </span>
           </div>
         )}
-        <div className="flex w-56 justify-between border-t border-border pt-1.5 font-semibold text-foreground">
+        <div className="flex w-full justify-between border-t border-border pt-1.5 font-semibold text-foreground sm:w-56">
           <span>الإجمالي</span>
           <span className="tabular-nums">
             {formatMoney(invoice.total_amount, invoice.currency)}

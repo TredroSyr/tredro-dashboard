@@ -152,7 +152,7 @@ export function IncomingInvoiceDrawer({
               className="flex flex-col flex-1 min-h-0"
             >
               <DrawerHeader className="flex-row items-center justify-between gap-3 px-4 pt-6 pb-3 sm:px-6 sm:pt-4 sticky top-0 z-10 bg-background border-b border-border">
-                <DrawerTitle className="text-right text-base sm:text-lg">
+                <DrawerTitle className="min-w-0 truncate text-right text-base sm:text-lg">
                   فاتورة إدخال جديدة
                 </DrawerTitle>
                 <div className="flex items-center gap-2 shrink-0">
@@ -249,7 +249,7 @@ export function IncomingInvoiceDrawer({
                 />
 
                 <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <FormLabel>الأصناف</FormLabel>
                     <Button
                       type="button"

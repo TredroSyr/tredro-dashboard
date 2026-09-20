@@ -121,7 +121,7 @@ export function CreateReturnDrawer({
             className="flex flex-col flex-1 min-h-0"
           >
             <DrawerHeader className="flex-row items-center justify-between gap-3 px-4 pt-6 pb-3 sm:px-6 sm:pt-4 sticky top-0 z-10 bg-background border-b border-border">
-              <DrawerTitle className="text-right text-base sm:text-lg">
+              <DrawerTitle className="min-w-0 truncate text-right text-base sm:text-lg">
                 تسجيل مرتجع — {invoice.number}
               </DrawerTitle>
               <div className="flex items-center gap-2 shrink-0">
@@ -157,9 +157,9 @@ export function CreateReturnDrawer({
                   {fields.map((field, index) => (
                     <div
                       key={field.id}
-                      className="flex items-center gap-3 rounded-xl border border-border p-3"
+                      className="flex flex-col gap-2 rounded-xl border border-border p-3 min-[420px]:flex-row min-[420px]:items-center min-[420px]:gap-3"
                     >
-                      <div className="flex-1">
+                      <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground">
                           {field.product_name}
                         </p>
@@ -174,7 +174,7 @@ export function CreateReturnDrawer({
                         control={form.control}
                         name={`lines.${index}.quantity`}
                         render={({ field: qtyField }) => (
-                          <FormItem className="w-28">
+                          <FormItem className="w-full min-[420px]:w-28">
                             <FormControl>
                               <Input
                                 {...qtyField}

@@ -328,7 +328,7 @@ export function CreateSalesInvoiceDrawer({
             className="flex flex-col flex-1 min-h-0"
           >
             <DrawerHeader className="flex-row items-center justify-between gap-3 px-4 pt-6 pb-3 sm:px-6 sm:pt-4 sticky top-0 z-10 bg-background border-b border-border">
-              <DrawerTitle className="text-right text-base sm:text-lg">
+              <DrawerTitle className="min-w-0 truncate text-right text-base sm:text-lg">
                 فاتورة بيع جديدة
               </DrawerTitle>
               <div className="flex items-center gap-2 shrink-0">
@@ -412,7 +412,7 @@ export function CreateSalesInvoiceDrawer({
                         key={credit.id}
                         className="flex cursor-pointer items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 py-2 text-sm"
                       >
-                        <span className="flex items-center gap-2">
+                        <span className="flex min-w-0 items-center gap-2">
                           <input
                             type="checkbox"
                             className="accent-primary"
@@ -498,8 +498,8 @@ export function CreateSalesInvoiceDrawer({
               )}
 
               <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <FormLabel>الأصناف</FormLabel>
                     {invoiceCurrency && (
                       <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
