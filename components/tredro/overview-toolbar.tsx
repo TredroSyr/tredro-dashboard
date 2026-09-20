@@ -45,38 +45,97 @@ interface CurrencyFilterProps {
   className?: string;
 }
 
-/** The only foreign currencies whose rate is shown in the hint. */
-const HINT_CODES = ["USD", "TRY"];
+/** The only currencies whose rate is shown in the hint. */
+const HINT_CODES = ["USD", "TRY", "SYP"];
 
-/** `rate` is `1 base = rate × code`, so the readable direction is `1 code = 1 / rate × base`. */
-const formatUnitPrice = (rate: string) => {
-  const price = 1 / Number(rate);
-  return price.toLocaleString("en-US", {
-    maximumFractionDigits: price >= 100 ? 0 : price >= 1 ? 2 : 4,
-  });
-};
+const formatAmount = (n: number) =>
+  n.toLocaleString("en-US", { maximumFractionDigits: n >= 100 ? 0 : n >= 1 ? 2 : 4 });
 
-/** Tells the user the figures are converted, and shows the USD / TRY rates used (`GET /api/fx/latest/{base}`). Opens on click. */
+/**
+ * `rate` is `1 base = rate × code`. Rows read as "1 stronger = N weaker" so N is always ≥ 1:
+ * a rate above 1 means the base is the stronger one, below 1 the other currency is.
+ */
+function describeRate(base: string, code: string, rate: number) {
+  return rate >= 1
+    ? { unit: base, per: formatAmount(rate), quote: code }
+    : { unit: code, per: formatAmount(1 / rate), quote: base };
+}
+
+function FxRow({ unit, per, quote, index }: { unit: string; per: string; quote: string; index: number }) {
+  return (
+    <div
+      dir="ltr"
+      style={{ animationDelay: `${index * 60}ms`, animationFillMode: "backwards" }}
+      className="flex items-center justify-between gap-6 rounded-lg bg-muted/60 px-3 py-2 duration-300 animate-in fade-in-0 slide-in-from-bottom-1"
+    >
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        1
+        <span className="rounded-md bg-background px-1.5 py-0.5 text-[11px] font-semibold text-foreground ring-1 ring-border">
+          {unit}
+        </span>
+      </span>
+      <span className="text-sm font-semibold tabular-nums text-foreground">
+        {per} <span className="text-xs font-medium text-muted-foreground">{quote}</span>
+      </span>
+    </div>
+  );
+}
+
+/** Tells the user the figures are converted, and shows the USD / TRY / SYP rates used (`GET /api/fx/latest/{base}`). Opens on click. */
 function FxRatesHint({ base }: { base?: string }) {
-  const { data } = useFxRatesQuery(base);
+  const { data, isLoading, isError } = useFxRatesQuery(base);
   const rates = data?.rates;
-  const shown = HINT_CODES.filter((code) => code !== base && Number(rates?.[code]) > 0);
+  const rows = base
+    ? HINT_CODES.filter((code) => code !== base && Number(rates?.[code]) > 0).map((code) =>
+        describeRate(base, code, Number(rates![code])),
+      )
+    : [];
 
   return (
     <Popover>
       <PopoverTrigger
         aria-label="أسعار الصرف المستخدمة"
-        className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
+        className="group flex size-7 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-all duration-200 hover:bg-muted hover:text-foreground active:scale-90 data-popup-open:bg-primary/10 data-popup-open:text-primary"
       >
-        <IconRenderer name="info_outlined" className="size-4" />
+        <IconRenderer
+          name="info_outlined"
+          className="size-4 transition-transform duration-200 group-data-popup-open:rotate-12 group-data-popup-open:scale-110"
+        />
       </PopoverTrigger>
-      <PopoverContent side="bottom" className="w-auto max-w-xs gap-1.5 text-xs">
-        <span>يتم تحويل المبالغ إلى العملة المختارة بأحدث أسعار الصرف.</span>
-        {shown.map((code) => (
-          <span key={code} dir="ltr" className="font-medium tabular-nums">
-            1 {code} = {formatUnitPrice(rates![code])} {base}
+      <PopoverContent
+        side="bottom"
+        align="end"
+        sideOffset={8}
+        className="w-72 gap-3 p-3.5 duration-200"
+      >
+        <div className="flex items-start gap-2.5">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <IconRenderer name="info_outlined" className="size-4" />
           </span>
-        ))}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-semibold">أسعار الصرف</span>
+            <span className="text-xs leading-relaxed text-muted-foreground">
+              يتم تحويل المبالغ إلى العملة المختارة بأحدث أسعار الصرف.
+            </span>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-1.5" aria-live="polite" aria-busy={isLoading}>
+          {isLoading ? (
+            <>
+              <Skeleton className="h-9 rounded-lg" />
+              <Skeleton className="h-9 rounded-lg" />
+              <Skeleton className="h-9 rounded-lg" />
+            </>
+          ) : isError ? (
+            <span className="flex items-center gap-1.5 rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive animate-in fade-in-0">
+              <IconRenderer name="warning_outlined" className="size-3.5" />
+              تعذّر تحميل أسعار الصرف
+            </span>
+          ) : (
+            rows.map((row, i) => <FxRow key={`${base}-${row.unit}-${row.quote}`} index={i} {...row} />)
+          )}
+        </div>
       </PopoverContent>
     </Popover>
   );
