@@ -5,7 +5,7 @@ import type { DateRange } from "react-day-picker";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { DateFilter } from "@/components/tredro/date-filter";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCurrenciesQuery, useFxRatesQuery } from "@/module/products/hook";
 import { cn } from "@/lib/utils";
 
@@ -45,32 +45,40 @@ interface CurrencyFilterProps {
   className?: string;
 }
 
-const formatRate = (rate: string) =>
-  Number(rate).toLocaleString("en-US", { maximumFractionDigits: 4 });
+/** The only foreign currencies whose rate is shown in the hint. */
+const HINT_CODES = ["USD", "TRY"];
 
-/** Tells the user the figures are converted, and shows the rates used (`GET /api/fx/latest/{base}`). */
-function FxRatesHint({ base, codes }: { base?: string; codes: string[] }) {
+/** `rate` is `1 base = rate × code`, so the readable direction is `1 code = 1 / rate × base`. */
+const formatUnitPrice = (rate: string) => {
+  const price = 1 / Number(rate);
+  return price.toLocaleString("en-US", {
+    maximumFractionDigits: price >= 100 ? 0 : price >= 1 ? 2 : 4,
+  });
+};
+
+/** Tells the user the figures are converted, and shows the USD / TRY rates used (`GET /api/fx/latest/{base}`). Opens on click. */
+function FxRatesHint({ base }: { base?: string }) {
   const { data } = useFxRatesQuery(base);
   const rates = data?.rates;
-  const others = codes.filter((code) => code !== base && rates?.[code]);
+  const shown = HINT_CODES.filter((code) => code !== base && Number(rates?.[code]) > 0);
 
   return (
-    <Tooltip>
-      <TooltipTrigger
+    <Popover>
+      <PopoverTrigger
         aria-label="أسعار الصرف المستخدمة"
         className="flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
       >
         <IconRenderer name="info_outlined" className="size-4" />
-      </TooltipTrigger>
-      <TooltipContent side="bottom" className="flex-col items-start gap-1">
+      </PopoverTrigger>
+      <PopoverContent side="bottom" className="w-auto max-w-xs gap-1.5 text-xs">
         <span>يتم تحويل المبالغ إلى العملة المختارة بأحدث أسعار الصرف.</span>
-        {others.map((code) => (
-          <span key={code} dir="ltr" className="tabular-nums">
-            1 {base} = {formatRate(rates![code])} {code}
+        {shown.map((code) => (
+          <span key={code} dir="ltr" className="font-medium tabular-nums">
+            1 {code} = {formatUnitPrice(rates![code])} {base}
           </span>
         ))}
-      </TooltipContent>
-    </Tooltip>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -114,7 +122,7 @@ export function CurrencyFilter({ value, onChange, className }: CurrencyFilterPro
           );
         })}
       </div>
-      <FxRatesHint base={value} codes={currencies.map((c) => c.code)} />
+      <FxRatesHint base={value} />
     </div>
   );
 }
