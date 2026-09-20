@@ -6,6 +6,7 @@ import AppDownloadDrawer from "@/layout/app-download-drawer";
 import { thmanyahSans } from "@/lib/fonts";
 
 import { Toaster } from "@/components/ui/toast";
+import { Toaster as SonnerToaster } from "sonner";
 import { QueryProvider } from "@/components/provider/QueryClientProvider";
 
 import HardwareBackButton from "@/components/tredro/HardwareBackButton";
@@ -103,6 +104,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
           <AppDownloadDrawer />
           <Toaster />
+          <SonnerToaster position="top-center" richColors />
           {/*  <ErudaLoader />*/}
           <Suspense fallback={null}>
             <HardwareBackButton />

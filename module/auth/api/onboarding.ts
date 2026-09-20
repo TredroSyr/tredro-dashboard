@@ -1,5 +1,9 @@
 import api from "@/lib/axios";
 import {
+  playErrorSound,
+  playSuccessSound,
+} from "@/module/notifications/lib/notification-sound";
+import {
   ApiSuccessResponse,
   BusinessType,
   GovernorateLocation,
@@ -34,10 +38,17 @@ export const submitOnboarding = async (
   if (payload.business_type)
     formData.append("business_type", payload.business_type);
 
-  const response = await api.post("/companies/onboarding", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
-  return response.data;
+  try {
+    const response = await api.post("/companies/onboarding", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    if (response.data?.success) playSuccessSound();
+    else playErrorSound();
+    return response.data;
+  } catch (error) {
+    playErrorSound();
+    throw error;
+  }
 };
