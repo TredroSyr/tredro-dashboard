@@ -24,6 +24,25 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="https" android:host="dashboard.tredro.online" />
+                <!-- List app routes explicitly instead of claiming the whole host: intent
+                     filters can't exclude paths, and an unrestricted filter makes
+                     https://dashboard.tredro.online/download/tredro-dashboard.apk open back
+                     inside the app (so the update button downloads nothing) rather than
+                     in the browser. Add a pathPrefix here when adding a top-level route. -->
+                <data android:path="/" />
+                <data android:pathPrefix="/customers" />
+                <data android:pathPrefix="/home" />
+                <data android:pathPrefix="/invoices" />
+                <data android:pathPrefix="/notifications" />
+                <data android:pathPrefix="/orders" />
+                <data android:pathPrefix="/products" />
+                <data android:pathPrefix="/profile" />
+                <data android:pathPrefix="/reps" />
+                <data android:pathPrefix="/roles" />
+                <data android:pathPrefix="/settings" />
+                <data android:pathPrefix="/stock-transfers" />
+                <data android:pathPrefix="/warehouses" />
+                <data android:pathPrefix="/auth" />
             </intent-filter>
         </activity>
 
