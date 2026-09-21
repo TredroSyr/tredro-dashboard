@@ -44,7 +44,8 @@ import {
 import { PhoneInput } from "@/components/tredro/phone-input";
 
 const APP_URL = "https://mandoub.tredro.online/";
-const ANDROID_APP_URL = "https://mandoub.tredro.online/download/tredro-mandoub.apk";
+const ANDROID_APP_URL =
+  "https://zyvf1dlacznk9vlz.public.blob.vercel-storage.com/tredro-mandoub.apk";
 const CREDENTIALS_AUTO_CLOSE_MS = 5000;
 
 function useIsMobile(breakpoint = 768) {
