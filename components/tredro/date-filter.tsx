@@ -33,6 +33,50 @@ function useIsMobile(breakpoint = 640) {
   return isMobile;
 }
 
+interface FilterTriggerProps {
+  label: string;
+  hasValue: boolean;
+  onClear: () => void;
+  className?: string;
+}
+
+function FilterTrigger({
+  label,
+  hasValue,
+  onClear,
+  className,
+}: FilterTriggerProps) {
+  return (
+    <div className={cn("relative inline-flex", className)}>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "flex w-full items-center gap-2 overflow-hidden",
+              hasValue && "pe-8"
+            )}
+          />
+        }
+      >
+        <IconRenderer name="calendar_outlined" className="size-4 shrink-0" />
+        <span className="truncate">{label}</span>
+      </PopoverTrigger>
+      {hasValue && (
+        <button
+          type="button"
+          aria-label="مسح"
+          onClick={onClear}
+          className="absolute end-1.5 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <IconRenderer name="close_outlined" className="size-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface DateFilterBaseProps {
   className?: string;
   align?: "start" | "center" | "end";
@@ -115,16 +159,12 @@ function SingleDateFilter({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("flex items-center gap-2 overflow-hidden", className)}
-        >
-          <IconRenderer name="calendar_outlined" className="size-4 shrink-0" />
-          <span className="truncate">{label}</span>
-        </Button>
-      </PopoverTrigger>
+      <FilterTrigger
+        label={label}
+        hasValue={!!selected}
+        onClear={() => handleSelect(undefined)}
+        className={className}
+      />
       <PopoverContent
         className="w-[calc(100vw-1.5rem)] max-w-[20rem] overflow-hidden rounded-xl p-0 shadow-lg md:w-auto md:max-w-none"
         align={isMobile ? "center" : align}
@@ -188,22 +228,18 @@ function RangeDateFilter({
     if (!range?.from) return "تحديد الفترة";
     if (!range.to) return formatArabicDate(range.from);
     return `${formatArabicDate(range.from, false)} - ${formatArabicDate(
-      range.to,
+      range.to
     )}`;
   }, [range]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("flex items-center gap-2 overflow-hidden", className)}
-        >
-          <IconRenderer name="calendar_outlined" className="size-4 shrink-0" />
-          <span className="truncate">{label}</span>
-        </Button>
-      </PopoverTrigger>
+      <FilterTrigger
+        label={label}
+        hasValue={!!range?.from}
+        onClear={() => handleSelect(undefined)}
+        className={className}
+      />
       <PopoverContent
         className="w-[calc(100vw-1.5rem)] max-w-[24rem] overflow-hidden rounded-xl p-0 shadow-lg md:w-auto md:max-w-none"
         align={isMobile ? "center" : align}
