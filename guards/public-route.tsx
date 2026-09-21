@@ -10,31 +10,35 @@ interface PublicRouteProps {
 
 export const PublicRoute = ({ children }: PublicRouteProps) => {
   const router = useRouter();
-  const user = useAuthStore();
-  console.log({ user });
   const isAuthenticated = useAuthStore((state) => !!state.accessToken);
-  const isProfileCompleted = useAuthStore(
-    (state) => !!state.user?.company.onboarding_completed,
+  // Onboarding is the owner's job. Staff never need the auth screens once
+  // signed in, whether or not the company profile is finished.
+  const shouldLeaveAuthPages = useAuthStore(
+    (state) =>
+      !!state.user &&
+      (!state.user.is_owner || !!state.user.company?.onboarding_completed),
   );
   const [isMounted, setIsMounted] = useState<boolean>(false);
-  console.log({ isProfileCompleted });
+
   useEffect(() => {
     setIsMounted(true);
 
     return () => setIsMounted(false);
   }, []);
 
+  const shouldRedirect = isAuthenticated && shouldLeaveAuthPages;
+
   useEffect(() => {
-    if (isAuthenticated && isProfileCompleted && isMounted) {
+    if (shouldRedirect && isMounted) {
       router.push("/");
     }
-  }, [isAuthenticated, isMounted, router, isProfileCompleted]);
+  }, [shouldRedirect, isMounted, router]);
 
   if (!isMounted) {
     return null;
   }
 
-  if (isAuthenticated && isProfileCompleted) {
+  if (shouldRedirect) {
     return null;
   }
 

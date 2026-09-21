@@ -1,6 +1,11 @@
 export type ModuleName =
+  | "overview"
+  | "warehouses"
+  | "users"
+  | "profile"
   | "customers"
   | "invoices"
+  /** Legacy key — the server expands it to stock_transfers + customer_requests. Never create new grants with it. */
   | "orders"
   | "products"
   | "reps"
@@ -15,6 +20,8 @@ export interface ModuleOption {
   value: ModuleName;
   label: string;
   label_en: string;
+  /** No write endpoints — render the action toggle as absent; the server rejects can_action: true. */
+  view_only?: boolean;
 }
 
 export interface Permission {

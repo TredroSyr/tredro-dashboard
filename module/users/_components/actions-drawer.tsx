@@ -47,11 +47,29 @@ import { PhoneInput } from "@/components/tredro/phone-input";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { ApiErrorResponse } from "@/module/auth/types";
 
-const APP_URL = "https://tredro-dashboard.vercel.app/";
+const APP_URL = "https://dashboard.tredro.online";
 const CREDENTIALS_AUTO_CLOSE_MS = 5000;
 
 const PERMISSION_LEVELS = ["none", "read", "read_write"] as const;
 type PermissionLevel = (typeof PERMISSION_LEVELS)[number];
+
+// Validation errors are a flat list for most fields, but the permissions editor
+// can also return them per entry (`{ "0": { module: ["..."] } }`) — dig out
+// the first human-readable message from either shape.
+function firstErrorMessage(messages: unknown): string | undefined {
+  if (typeof messages === "string") return messages;
+  if (Array.isArray(messages)) {
+    for (const item of messages) {
+      const found = firstErrorMessage(item);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (messages && typeof messages === "object") {
+    return firstErrorMessage(Object.values(messages));
+  }
+  return undefined;
+}
 
 interface Credentials {
   mode: "create" | "edit";
@@ -253,7 +271,11 @@ function buildSchema(mode: "create" | "edit") {
         ? passwordSchema
         : z.union([passwordSchema, z.literal("")]).optional(),
     is_active: z.boolean(),
-    permissions: z.record(z.enum(PERMISSION_LEVELS)),
+    permissions: z
+      .record(z.enum(PERMISSION_LEVELS))
+      .refine((p) => Object.values(p).some((level) => level !== "none"), {
+        message: "يجب تحديد صلاحية واحدة على الأقل",
+      }),
   });
 }
 
@@ -307,6 +329,9 @@ export function SubUserFormDrawer({
       permissions: {},
     },
   });
+  const permissionsError = form.formState.errors.permissions?.message as
+    | string
+    | undefined;
 
   React.useEffect(() => {
     if (!open) return;
@@ -370,12 +395,18 @@ export function SubUserFormDrawer({
   const onSubmit = (values: SubUserFormValues) => {
     const trimmedName = values.name.trim();
     const trimmedPhone = values.phone.trim();
+    // View-only modules have no write endpoints — the server rejects
+    // can_action: true for them, so never send it.
+    const viewOnlyModules = new Set(
+      modules.filter((m) => m.view_only).map((m) => m.value),
+    );
     const permissions: Permission[] = Object.entries(values.permissions)
       .filter(([, level]) => level !== "none")
       .map(([module, level]) => ({
         module: module as ModuleName,
         can_view: true,
-        can_action: level === "read_write",
+        can_action:
+          level === "read_write" && !viewOnlyModules.has(module as ModuleName),
       }));
 
     const handleApiError = (error: AxiosError<ApiErrorResponse>) => {
@@ -387,12 +418,14 @@ export function SubUserFormDrawer({
             phone: "phone",
             email: "email",
             password: "password",
+            permissions: "permissions",
           };
           const mapped = fieldMap[field];
+          const message = firstErrorMessage(messages);
           if (mapped) {
-            form.setError(mapped, { message: messages[0] });
-          } else {
-            toast.error(messages[0]);
+            form.setError(mapped, { message });
+          } else if (message) {
+            toast.error(message);
           }
         });
       } else {
@@ -651,23 +684,25 @@ export function SubUserFormDrawer({
                                   />
                                   منح الوصول لهذا القسم
                                 </label>
-                                <label
-                                  className={`flex items-center gap-2 text-sm pr-6 ${
-                                    enabled ? "" : "opacity-50"
-                                  }`}
-                                >
-                                  <Checkbox
-                                    disabled={!enabled}
-                                    checked={canEdit}
-                                    onCheckedChange={(checked) =>
-                                      field.onChange(
-                                        checked ? "read_write" : "read",
-                                      )
-                                    }
-                                  />
-                                  السماح بالإضافة والتعديل والحذف (وليس فقط
-                                  العرض)
-                                </label>
+                                {!m.view_only && (
+                                  <label
+                                    className={`flex items-center gap-2 text-sm pr-6 ${
+                                      enabled ? "" : "opacity-50"
+                                    }`}
+                                  >
+                                    <Checkbox
+                                      disabled={!enabled}
+                                      checked={canEdit}
+                                      onCheckedChange={(checked) =>
+                                        field.onChange(
+                                          checked ? "read_write" : "read",
+                                        )
+                                      }
+                                    />
+                                    السماح بالإضافة والتعديل والحذف (وليس فقط
+                                    العرض)
+                                  </label>
+                                )}
                               </div>
                             );
                           }}
@@ -675,6 +710,11 @@ export function SubUserFormDrawer({
                       </div>
                     ))}
                   </div>
+                  {permissionsError && (
+                    <p className="text-sm text-destructive text-right">
+                      {permissionsError}
+                    </p>
+                  )}
                 </div>
               </div>
             </form>

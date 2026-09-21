@@ -22,9 +22,11 @@ export const useLoginMutation = (options?: {
     onSuccess: (response) => {
       if (response?.success && response.data?.tokens) {
         setAuth(response.data.user, response.data.tokens);
-        console.log({ response });
-        if (!response.data.user.company.onboarding_completed) {
-          console.log("SAFWAT");
+        const { user } = response.data;
+        // Only the owner completes the company profile. A staff member signing
+        // in to an unfinished company goes straight to the app ("/" → /home →
+        // their first permitted route) instead of being trapped in onboarding.
+        if (user.is_owner && !user.company.onboarding_completed) {
           router.push("/auth/onboarding");
         } else {
           router.push("/");

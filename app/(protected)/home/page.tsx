@@ -32,6 +32,8 @@ import {
   useCompanyOverviewQuery,
 } from "@/module/dashboard/hooks";
 import type { CompanyOverview } from "@/module/dashboard/types";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
+import { DefaultRouteRedirect } from "@/components/tredro/default-route-redirect";
 
 // ---- Real data: KPI row, request distribution, leaderboards and activity section ----
 
@@ -420,7 +422,7 @@ function TopProductsSection({
   );
 }
 
-export default function PlatformOverview() {
+function PlatformOverview() {
   const filters = useOverviewFilters();
   // Overview and insights get the exact same params so the sentence and the cards describe the same period and currency.
   const { params } = filters;
@@ -537,5 +539,18 @@ export default function PlatformOverview() {
         </OverviewActivitySection>
       )}
     </div>
+  );
+}
+
+
+/**
+ * `/home` is the landing route after login. Staff whose role can't open the
+ * overview are forwarded to the first nav route they can view instead.
+ */
+export default function HomePage() {
+  return (
+    <PermissionGate module="overview" fallback={<DefaultRouteRedirect />}>
+      <PlatformOverview />
+    </PermissionGate>
   );
 }

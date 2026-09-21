@@ -5,7 +5,7 @@ import WarehousesView from "@/module/warehouses/_components/warehouses-view";
 
 export default function WarehousesPage() {
   return (
-    <PermissionGate module="invoices">
+    <PermissionGate module="warehouses">
       <WarehousesView />
     </PermissionGate>
   );

@@ -75,7 +75,7 @@ export function createWarehouseColumns({
             >
               <IconRenderer name="eye_visible_outlined" className="size-4" />
             </Button>
-            <PermissionGate module="invoices" requireAction fallback={null}>
+            <PermissionGate module="warehouses" requireAction fallback={null}>
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <Button

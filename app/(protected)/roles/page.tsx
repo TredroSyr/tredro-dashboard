@@ -78,7 +78,7 @@ function SubUsersPageContent() {
 
 export default function SubUsersPage() {
   return (
-    <PermissionGate ownerOnly>
+    <PermissionGate module="users">
       <SubUsersPageContent />
     </PermissionGate>
   );

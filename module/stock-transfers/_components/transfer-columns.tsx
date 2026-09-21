@@ -126,7 +126,7 @@ export function createTransferColumns({
         return (
           <div className="flex items-center justify-end gap-1">
             {canAct && (
-              <PermissionGate module="invoices" requireAction fallback={null}>
+              <PermissionGate module="stock_transfers" requireAction fallback={null}>
                 <DropdownMenu>
                   <DropdownMenuTrigger>
                     <Button

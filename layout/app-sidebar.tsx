@@ -33,12 +33,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { iconName } from "@/assets/icons/iconRenderer/types";
+import { navConfig, type NavItemConfig } from "@/layout/nav-config";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { useThemeStore } from "@/store/use-theme-store";
 import { useAuthStore } from "@/module/auth/store/auth-store";
 
 import { PermissionGate } from "@/components/tredro/PermissionGate";
-import { ModuleName } from "@/module/users/types";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 import {
   useUnreadNotificationsCountQuery,
@@ -47,109 +47,6 @@ import {
 import { FCM_TOKEN_STORAGE_KEY } from "@/module/notifications/hooks/use-register-push-notifications";
 import { useNavAlertsStore } from "@/store/use-nav-alerts-store";
 import { useEffect, useRef, useState } from "react";
-
-// ==========================================
-// Nav Config - Dynamic Icon Rendering
-// ==========================================
-
-/**
- * Single source of truth for navigation items.
- * Uses dynamic icon rendering via IconRenderer with icon names as strings.
- */
-interface NavItemConfig {
-  key: string;
-  label: string;
-  href: string;
-  icon: iconName;
-  activeIcon: iconName;
-  /** Module required for can_view permission (uses PermissionGate) */
-  requiredModule?: ModuleName;
-  /** Owner-only access (uses isOwner from permissions context) */
-  ownerOnly?: boolean;
-}
-
-const navConfig: NavItemConfig[] = [
-  {
-    key: "home",
-    label: "الرئيسية",
-    href: "/home",
-    icon: "home_outlined",
-    activeIcon: "home_filled",
-    // No restriction - everyone can see home
-  },
-  {
-    key: "reps",
-    label: "المناديب",
-    href: "/reps",
-    icon: "apps_outlined",
-    activeIcon: "apps_filled",
-    requiredModule: "reps",
-  },
-  {
-    key: "customers",
-    label: "الزبائن",
-    href: "/customers",
-    icon: "users_outlined",
-    activeIcon: "users_filled",
-    requiredModule: "customers",
-  },
-  {
-    key: "products",
-    label: "المنتجات",
-    href: "/products",
-    icon: "bundle_outlined",
-    activeIcon: "bundle_filled",
-    requiredModule: "products",
-  },
-  {
-    key: "orders",
-    label: "طلبات العملاء",
-    href: "/orders",
-    icon: "list_outlined",
-    activeIcon: "list_filled",
-    requiredModule: "customer_requests",
-  },
-  {
-    key: "invoices",
-    label: "الفواتير",
-    href: "/invoices",
-    icon: "payment_outlined",
-    activeIcon: "payment_filled",
-    requiredModule: "invoices",
-  },
-  {
-    key: "warehouses",
-    label: "المستودعات",
-    href: "/warehouses",
-    icon: "folder_outlined",
-    activeIcon: "folder_filled",
-    requiredModule: "invoices",
-  },
-  {
-    key: "stock-transfers",
-    label: "طلبات المندوب",
-    href: "/stock-transfers",
-    icon: "list_outlined",
-    activeIcon: "list_filled",
-    requiredModule: "stock_transfers",
-  },
-  {
-    key: "roles",
-    label: "المستخدمون والصلاحيات",
-    href: "/roles",
-    icon: "authorities_outlined",
-    activeIcon: "authorities_filled",
-    ownerOnly: true,
-  },
-  {
-    key: "notifications",
-    label: "الإشعارات",
-    href: "/notifications",
-    icon: "notification_outlined",
-    activeIcon: "notification_filled",
-    // No restriction - everyone can see their own notifications
-  },
-];
 
 // ==========================================
 // Sub Components
@@ -439,14 +336,6 @@ function NavItem({ item, isActive, onClick }: NavItemProps) {
   );
 
   // Wrap with PermissionGate based on item config
-  if (item.ownerOnly) {
-    return (
-      <PermissionGate ownerOnly _isSidebarItem>
-        {content}
-      </PermissionGate>
-    );
-  }
-
   if (item.requiredModule) {
     return (
       <PermissionGate module={item.requiredModule} _isSidebarItem>

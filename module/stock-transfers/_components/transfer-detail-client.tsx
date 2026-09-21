@@ -255,7 +255,7 @@ export function TransferDetailClient({ transferId }: { transferId: string }) {
 
           {!isLoading && transfer && canAct && (
             <div className="flex flex-wrap gap-2">
-              <PermissionGate module="invoices" requireAction fallback={null}>
+              <PermissionGate module="stock_transfers" requireAction fallback={null}>
                 {transfer.status === "pending" && (
                   <>
                     <Button

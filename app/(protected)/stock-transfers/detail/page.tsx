@@ -11,7 +11,7 @@ export default function StockTransferDetailPage() {
   if (!id) return null;
 
   return (
-    <PermissionGate module="invoices">
+    <PermissionGate module="stock_transfers">
       <TransferDetailClient transferId={id} />
     </PermissionGate>
   );

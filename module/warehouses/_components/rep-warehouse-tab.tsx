@@ -33,7 +33,7 @@ export function RepWarehouseTab({ repId }: { repId: string | number }) {
         <p className="text-sm text-muted-foreground">
           لا يوجد فان مرتبط بهذا المندوب بعد
         </p>
-        <PermissionGate module="invoices" requireAction fallback={null}>
+        <PermissionGate module="warehouses" requireAction fallback={null}>
           <Button size="sm" className="gap-1.5" onClick={() => setAddOpen(true)}>
             <IconRenderer name="plus_outlined" className="size-4" />
             إضافة فان

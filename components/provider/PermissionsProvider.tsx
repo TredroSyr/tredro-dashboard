@@ -3,9 +3,8 @@
 import React, {
   createContext,
   useContext,
-  useEffect,
-  useState,
   useCallback,
+  useMemo,
   ReactNode,
 } from "react";
 import { useAuthStore } from "@/module/auth/store/auth-store";
@@ -14,7 +13,7 @@ import { ModuleName, Permission, SubUserResponse } from "@/module/users/types";
 import {
   PermissionsMap,
   buildFullAccessMap,
-  permissionsArrayToMap,
+  normalizePermissions,
 } from "@/module/users/lib/permissions-map";
 import { usePermissionsQuery } from "@/module/users/hooks/permssions";
 
@@ -36,36 +35,33 @@ interface PermissionsProviderProps {
 
 export function PermissionsProvider({ children }: PermissionsProviderProps) {
   const userId = useAuthStore((state) => state.user?.id);
-  const userIsOwner = useAuthStore((state) => state.user?.is_owner);
-
-  const [permissionsMap, setPermissionsMap] = useState<PermissionsMap>({});
-  const [isOwner, setIsOwner] = useState(false);
-  const [rawPermissions, setRawPermissions] = useState<Permission[]>([]);
+  const userIsOwner = useAuthStore((state) => !!state.user?.is_owner);
+  // Grants carried on the login payload. Fallback for staff whose role lacks
+  // `users` — GET /companies/subusers/{id} answers 403 for them, so their own
+  // permissions can't always be read from that endpoint.
+  const loginPermissions = useAuthStore((state) => state.user?.permissions);
 
   const {
     data: subUserData,
     isLoading: queryLoading,
     refetch,
-  } = usePermissionsQuery(userId);
+  } = usePermissionsQuery(userIsOwner ? undefined : userId);
 
-  useEffect(() => {
-    if (userIsOwner) {
-      setPermissionsMap(buildFullAccessMap());
-      setIsOwner(true);
-      setRawPermissions([]);
-      return;
-    }
+  const subUser = (subUserData as SubUserResponse | undefined)?.data?.subuser;
+  const isOwner = userIsOwner || !!subUser?.is_owner;
 
-    if (subUserData) {
-      const subUser = (subUserData as SubUserResponse)?.data?.subuser;
+  // Derived, not stored: an effect-fed state leaves one render where loading
+  // has finished but the map is still empty, which reads as "no access".
+  const permissionsMap = useMemo<PermissionsMap>(() => {
+    if (isOwner) return buildFullAccessMap();
+    if (subUser) return normalizePermissions(subUser.permissions);
+    return normalizePermissions(loginPermissions as PermissionsMap | undefined);
+  }, [isOwner, subUser, loginPermissions]);
 
-      if (subUser) {
-        setPermissionsMap(permissionsArrayToMap(subUser.permissions));
-        setIsOwner(subUser.is_owner);
-        setRawPermissions(subUser.permissions);
-      }
-    }
-  }, [subUserData, userIsOwner]);
+  const rawPermissions = useMemo<Permission[]>(
+    () => (isOwner ? [] : (subUser?.permissions ?? [])),
+    [isOwner, subUser],
+  );
 
   const canView = useCallback(
     (module: ModuleName): boolean => {
@@ -86,7 +82,7 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
 
   const contextValue: PermissionsContextValue = {
     permissions: permissionsMap,
-    isLoading: queryLoading,
+    isLoading: !userIsOwner && queryLoading,
     isOwner,
     rawPermissions,
     canView,

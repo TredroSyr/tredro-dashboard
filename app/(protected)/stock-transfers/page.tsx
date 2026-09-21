@@ -5,7 +5,7 @@ import StockTransfersView from "@/module/stock-transfers/_components/stock-trans
 
 export default function StockTransfersPage() {
   return (
-    <PermissionGate module="invoices">
+    <PermissionGate module="stock_transfers">
       <StockTransfersView />
     </PermissionGate>
   );

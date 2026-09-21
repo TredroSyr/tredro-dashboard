@@ -30,6 +30,10 @@ export interface Company {
 }
 
 export interface Permissions {
+  overview?: { can_view: boolean; can_action: boolean };
+  warehouses?: { can_view: boolean; can_action: boolean };
+  users?: { can_view: boolean; can_action: boolean };
+  profile?: { can_view: boolean; can_action: boolean };
   products: { can_view: boolean; can_action: boolean };
   /** legacy key — kept alive for older dashboards, expands to stock_transfers + customer_requests */
   orders?: { can_view: boolean; can_action: boolean };

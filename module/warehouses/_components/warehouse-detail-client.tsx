@@ -183,7 +183,7 @@ export function WarehouseDetailClient({
               )}
             </div>
 
-            <PermissionGate module="invoices" requireAction fallback={null}>
+            <PermissionGate module="warehouses" requireAction fallback={null}>
               {!isLoading && warehouse && (
                 <div className="flex shrink-0 gap-2">
                   <Button

@@ -141,7 +141,7 @@ export default function WarehousesView() {
                     مسح الفلاتر
                   </Button>
                 )}
-                <PermissionGate module="invoices" requireAction fallback={null}>
+                <PermissionGate module="warehouses" requireAction fallback={null}>
                   <Button size="sm" className="gap-1.5" onClick={() => setFormTarget(null)}>
                     <IconRenderer name="plus_outlined" className="size-4" />
                     مستودع جديد
@@ -174,7 +174,7 @@ export default function WarehousesView() {
               >
                 عرض المخزون
               </Button>
-              <PermissionGate module="invoices" requireAction fallback={null}>
+              <PermissionGate module="warehouses" requireAction fallback={null}>
                 <Button
                   variant="outline"
                   size="sm"

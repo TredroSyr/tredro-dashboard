@@ -175,7 +175,7 @@ export default function StockTransfersView() {
             طلبات المناديب لتحميل الفان، من الموافقة حتى الاستلام
           </p>
         </div>
-        <PermissionGate module="invoices" requireAction fallback={null}>
+        <PermissionGate module="stock_transfers" requireAction fallback={null}>
           <Button size="sm" className="gap-1.5" onClick={() => setDispatchOpen(true)}>
             <IconRenderer name="plus_outlined" className="size-3.5" />
             إرسال بضاعة لمندوب

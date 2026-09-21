@@ -8,15 +8,19 @@ export type PermissionsMap = {
 };
 
 export const ALL_MODULES: ModuleName[] = [
+  "overview",
+  "products",
+  "warehouses",
   "customers",
+  "reps",
   "invoices",
   "orders",
-  "products",
-  "reps",
   "stock_transfers",
   "customer_requests",
   "notifications",
   "reports",
+  "users",
+  "profile",
   "billing",
   "settings",
 ];
@@ -46,6 +50,31 @@ export function permissionsArrayToMap(
       can_view: perm.can_view,
       can_action: perm.can_action,
     };
+  });
+  return map;
+}
+
+/**
+ * Normalises the two shapes a user's grants can arrive in — the array returned
+ * by the sub-user endpoints and the `{ [module]: { can_view, can_action } }`
+ * object carried on the login payload — into one map. A missing key means
+ * "closed".
+ */
+export function normalizePermissions(
+  source: Permission[] | PermissionsMap | null | undefined,
+): PermissionsMap {
+  if (!source) return buildEmptyPermissionsMap();
+  if (Array.isArray(source)) return permissionsArrayToMap(source);
+
+  const map = buildEmptyPermissionsMap();
+  (Object.keys(source) as ModuleName[]).forEach((module) => {
+    const grant = source[module];
+    if (grant) {
+      map[module] = {
+        can_view: !!grant.can_view,
+        can_action: !!grant.can_action,
+      };
+    }
   });
   return map;
 }

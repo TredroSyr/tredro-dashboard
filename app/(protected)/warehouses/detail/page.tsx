@@ -11,7 +11,7 @@ export default function WarehouseDetailPage() {
   if (!id) return null;
 
   return (
-    <PermissionGate module="invoices">
+    <PermissionGate module="warehouses">
       <WarehouseDetailClient warehouseId={id} />
     </PermissionGate>
   );

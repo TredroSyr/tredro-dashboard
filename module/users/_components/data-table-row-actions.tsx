@@ -13,6 +13,7 @@ import {
 import { SubUser } from "../types";
 import { useDeleteSubUserMutation } from "../hooks";
 import { SubUserFormDrawer } from "./actions-drawer";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -34,7 +35,7 @@ export function DataTableRowActions<TData>({
   }
 
   return (
-    <>
+    <PermissionGate module="users" requireAction fallback={null}>
       <div className="flex items-center">
         <Button
           variant="ghost"
@@ -90,6 +91,6 @@ export function DataTableRowActions<TData>({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </>
+    </PermissionGate>
   );
 }
