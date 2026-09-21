@@ -1,4 +1,10 @@
 {
+  "rewrites": [
+    {
+      "source": "/download/tredro-dashboard.apk",
+      "destination": "https://q5xg2qnuesi8g3st.public.blob.vercel-storage.com/tredro-dashboard.apk"
+    }
+  ],
   "headers": [
     {
       "source": "/.well-known/assetlinks.json",
