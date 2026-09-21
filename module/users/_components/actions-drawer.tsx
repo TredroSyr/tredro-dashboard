@@ -333,6 +333,40 @@ export function SubUserFormDrawer({
     | string
     | undefined;
 
+  const watchedPermissions = form.watch("permissions");
+  const actionModules = modules.filter((m) => !m.view_only);
+  const hasActionModules = actionModules.length > 0;
+  const allViewSelected =
+    modules.length > 0 &&
+    modules.every((m) => (watchedPermissions?.[m.value] ?? "none") !== "none");
+  const allActionSelected =
+    hasActionModules &&
+    actionModules.every((m) => watchedPermissions?.[m.value] === "read_write");
+
+  // "view"   → every module at least read (write levels are kept)
+  // "action" → every module read_write (view-only modules get read)
+  // "none"   → everything cleared
+  // "noaction" → write levels dropped back to read, everything else kept
+  const setAllPermissions = (
+    target: "none" | "view" | "action" | "noaction",
+  ) => {
+    const current = form.getValues("permissions") ?? {};
+    const next: Record<string, PermissionLevel> = {};
+    modules.forEach((m) => {
+      const level = current[m.value] ?? "none";
+      if (target === "none") next[m.value] = "none";
+      else if (target === "noaction")
+        next[m.value] = level === "read_write" ? "read" : level;
+      else if (target === "action")
+        next[m.value] = m.view_only ? "read" : "read_write";
+      else next[m.value] = level === "none" ? "read" : level;
+    });
+    form.setValue("permissions", next, {
+      shouldDirty: true,
+      shouldValidate: form.formState.isSubmitted,
+    });
+  };
+
   React.useEffect(() => {
     if (!open) return;
 
@@ -659,6 +693,35 @@ export function SubUserFormDrawer({
 
                 <div className="flex flex-col gap-2">
                   <FormLabel className="text-right block">الصلاحيات</FormLabel>
+                  {permissionsError && (
+                    <p className="text-sm text-destructive text-right">
+                      {permissionsError}
+                    </p>
+                  )}
+                  {modules.length > 0 && (
+                    <div className="flex flex-col gap-2 rounded-md border border-border bg-muted/40 p-3 sm:p-4">
+                      <label className="flex items-center gap-2 text-sm font-medium">
+                        <Checkbox
+                          checked={allViewSelected}
+                          onCheckedChange={(checked) =>
+                            setAllPermissions(checked ? "view" : "none")
+                          }
+                        />
+                        تحديد الكل (منح الوصول لكل الأقسام)
+                      </label>
+                      {hasActionModules && (
+                        <label className="flex items-center gap-2 text-sm pr-6">
+                          <Checkbox
+                            checked={allActionSelected}
+                            onCheckedChange={(checked) =>
+                              setAllPermissions(checked ? "action" : "noaction")
+                            }
+                          />
+                          تحديد الكل (السماح بالإضافة والتعديل والحذف)
+                        </label>
+                      )}
+                    </div>
+                  )}
                   <div className="flex flex-col divide-y divide-border rounded-md border border-border">
                     {modules.map((m) => (
                       <div
@@ -685,13 +748,8 @@ export function SubUserFormDrawer({
                                   منح الوصول لهذا القسم
                                 </label>
                                 {!m.view_only && (
-                                  <label
-                                    className={`flex items-center gap-2 text-sm pr-6 ${
-                                      enabled ? "" : "opacity-50"
-                                    }`}
-                                  >
+                                  <label className="flex items-center gap-2 text-sm pr-6">
                                     <Checkbox
-                                      disabled={!enabled}
                                       checked={canEdit}
                                       onCheckedChange={(checked) =>
                                         field.onChange(
@@ -710,11 +768,6 @@ export function SubUserFormDrawer({
                       </div>
                     ))}
                   </div>
-                  {permissionsError && (
-                    <p className="text-sm text-destructive text-right">
-                      {permissionsError}
-                    </p>
-                  )}
                 </div>
               </div>
             </form>
