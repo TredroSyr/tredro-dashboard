@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,6 +13,9 @@ interface CompanyProfileCardProps {
   isAccountLoading: boolean;
   onboardingCompleted?: boolean;
   onClick: () => void;
+  /** Whether the signed-in account can open /profile (the `profile` module).
+   * Without it the card still shows — just inert, not a dead link that 403s. */
+  clickable?: boolean;
 }
 
 export function CompanyProfileCard({
@@ -21,11 +25,17 @@ export function CompanyProfileCard({
   isAccountLoading,
   onboardingCompleted,
   onClick,
+  clickable = true,
 }: CompanyProfileCardProps) {
   return (
     <div
-      onClick={onClick}
-      className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-primary/5 p-3 transition-all duration-200 hover:bg-primary/10 active:scale-[0.97]"
+      onClick={clickable ? onClick : undefined}
+      className={cn(
+        "mt-4 flex items-center gap-3 rounded-xl border border-border bg-primary/5 p-3 transition-all duration-200",
+        clickable
+          ? "cursor-pointer hover:bg-primary/10 active:scale-[0.97]"
+          : "cursor-default",
+      )}
     >
       <Avatar className="h-10 w-10 shrink-0 border-2 border-background">
         <AvatarImage

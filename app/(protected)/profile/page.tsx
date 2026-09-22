@@ -30,9 +30,10 @@ import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { ApiErrorResponse } from "@/module/auth/types";
 import { useBannerStore } from "@/store/use-banner-store";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
+import { ImageCropDialog } from "@/components/tredro/image-crop-dialog";
+import { useProfileImages } from "./_hooks/use-profile-images";
 
-const MAX_LOGO_SIZE = 2 * 1024 * 1024;
-const MAX_COVER_SIZE = 5 * 1024 * 1024;
 const FORM_ID = "profile-onboarding-form";
 
 // Base URL used only for resolving relative asset paths (images) returned
@@ -69,7 +70,7 @@ const profileSchema = z.object({
 
 type ProfileValues = z.infer<typeof profileSchema>;
 
-const ProfilePage = () => {
+const ProfilePageContent = () => {
   const user = useAuthStore((state) => state.user);
   const updateUser = useAuthStore((state) => state.updateUser);
   const resetBanner = useBannerStore((state) => state.reset);
@@ -80,26 +81,27 @@ const ProfilePage = () => {
   const userName = user?.name || "";
   const onboardingCompleted = user?.company?.onboarding_completed;
 
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [coverFile, setCoverFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string | null>(
-    companyLogo || null,
-  );
-  const [coverPreview, setCoverPreview] = useState<string | null>(
-    resolveImageSrc(companyCover),
-  );
+  const {
+    logoFile,
+    coverFile,
+    logoPreview,
+    coverPreview,
+    imagesError,
+    logoInputRef,
+    coverInputRef,
+    pickLogo,
+    pickCover,
+    crop,
+  } = useProfileImages(companyLogo || null, resolveImageSrc(companyCover));
+
   const [selectedCategory, setSelectedCategory] = useState<string | null>(
     user?.company?.business_type || null,
   );
   const [categoryError, setCategoryError] = useState<string | null>(null);
-  const [imagesError, setImagesError] = useState<string | null>(null);
 
   // Sticky header only appears once the avatar/cover block has fully scrolled out of view.
   const [showStickyHeader, setShowStickyHeader] = useState(false);
   const avatarSentinelRef = useRef<HTMLDivElement>(null);
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const coverInputRef = useRef<HTMLInputElement>(null);
 
   const { data: locations = [], isLoading: locationsLoading } =
     useLocationsQuery();
@@ -186,29 +188,6 @@ const ProfilePage = () => {
     return () => observer.disconnect();
   }, []);
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > MAX_LOGO_SIZE) {
-      setImagesError("حجم الشعار يجب أن يكون أقل من 2 ميغابايت");
-      return;
-    }
-    setLogoFile(file);
-    setLogoPreview(URL.createObjectURL(file));
-    setImagesError(null);
-  };
-
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > MAX_COVER_SIZE) {
-      setImagesError("حجم الغلاف يجب أن يكون أقل من 5 ميغابايت");
-      return;
-    }
-    setCoverFile(file);
-    setCoverPreview(URL.createObjectURL(file));
-  };
-
   const onSubmit = (values: ProfileValues) => {
     if (!selectedCategory) {
       setCategoryError("يرجى اختيار نوع نشاط الشركة");
@@ -240,7 +219,6 @@ const ProfilePage = () => {
             type="file"
             accept="image/png,image/jpeg,image/jpg"
             className="hidden"
-            onChange={handleCoverChange}
           />
           {coverPreview ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -261,7 +239,7 @@ const ProfilePage = () => {
           )}
           <button
             type="button"
-            onClick={() => coverInputRef.current?.click()}
+            onClick={pickCover}
             className="absolute bottom-3 left-3 flex items-center gap-1.5 bg-black/50 hover:bg-black/60 text-white text-xs px-3 py-1.5 rounded-lg transition-colors"
           >
             <IconRenderer name="image_outlined" className="h-3.5 w-3.5" />
@@ -282,11 +260,10 @@ const ProfilePage = () => {
           className="absolute -bottom-12 !z-30 right-6 sm:right-8"
         >
           <input
-            ref={fileInputRef}
+            ref={logoInputRef}
             type="file"
-            accept="image/png,image/jpeg,image/jpg,image/svg+xml"
+            accept="image/png,image/jpeg,image/jpg"
             className="hidden"
-            onChange={handleLogoChange}
           />
           <div className="relative">
             <Avatar className="h-24 w-24 sm:h-28 sm:w-28 rounded-2xl border-4 border-card bg-card overflow-hidden shadow-lg">
@@ -304,7 +281,7 @@ const ProfilePage = () => {
             </Avatar>
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={pickLogo}
               className="absolute bottom-0 left-0 bg-primary hover:bg-primary/90 text-white rounded-lg p-1.5 shadow-md transition-colors"
               aria-label="تعديل الشعار"
             >
@@ -320,6 +297,19 @@ const ProfilePage = () => {
           aria-hidden="true"
         />
       </div>
+
+      {imagesError && (
+        <p className="px-4 mt-2 text-xs text-destructive">{imagesError}</p>
+      )}
+
+      <ImageCropDialog
+        open={crop.isOpen}
+        imageSrc={crop.imageSrc}
+        aspect={crop.aspect}
+        fileName={crop.fileName}
+        onOpenChange={crop.onOpenChange}
+        onCropComplete={crop.onCropComplete}
+      />
       <div className="px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -557,4 +547,10 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default function ProfilePage() {
+  return (
+    <PermissionGate module="profile">
+      <ProfilePageContent />
+    </PermissionGate>
+  );
+}

@@ -1,16 +1,9 @@
 "use client";
 
 import * as React from "react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
@@ -33,33 +26,21 @@ export function IncomingInvoiceDetailHeader({
   isIssuing?: boolean;
   isCancelling?: boolean;
 }) {
+  const router = useRouter();
+
   return (
     <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-6">
-      <Breadcrumb>
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/home">الرئيسية</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink href="/invoices">الفواتير</BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            {isLoading ? (
-              <Skeleton className="h-4 w-24" />
-            ) : (
-              <BreadcrumbPage>{invoice?.number}</BreadcrumbPage>
-            )}
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
-
-      <Separator />
-
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex min-w-0 flex-col gap-2">
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="shrink-0 gap-1.5 sm:w-auto sm:px-3"
+              onClick={() => router.back()}
+            >
+              <ArrowRight className="h-4 w-4" />
+            </Button>
             {isLoading || !invoice ? (
               <Skeleton className="h-7 w-40" />
             ) : (

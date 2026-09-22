@@ -38,7 +38,8 @@ const AppSidebarContent = ({
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const user = useAuthStore((state) => state.user);
-  const { accountName, isAccountLoading } = usePermissions();
+  const { accountName, isAccountLoading, canView } = usePermissions();
+  const canViewProfile = canView("profile");
   const router = useRouter();
 
   useNavAlertsSync(pathname);
@@ -100,6 +101,7 @@ const AppSidebarContent = ({
               isAccountLoading={isAccountLoading}
               onboardingCompleted={onboardingCompleted}
               onClick={handleProfileClick}
+              clickable={canViewProfile}
             />
 
             <ThemeToggle onAction={handleMobileClose} />
