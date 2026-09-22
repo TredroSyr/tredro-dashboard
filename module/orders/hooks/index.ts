@@ -3,10 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { getCustomerRequest, listCustomerRequests } from "../api";
 import { ListCustomerRequestsParams } from "../types";
 
-export const useCustomerRequestsQuery = (params?: ListCustomerRequestsParams) =>
+export const useCustomerRequestsQuery = (
+  params?: ListCustomerRequestsParams,
+  options?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: ["customerRequests", "list", params],
     queryFn: () => listCustomerRequests(params),
+    enabled: options?.enabled ?? true,
   });
 
 export const useCustomerRequestQuery = (

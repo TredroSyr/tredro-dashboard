@@ -32,6 +32,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
 import { iconName } from "@/assets/icons/iconRenderer/types";
 import { navConfig, type NavItemConfig } from "@/layout/nav-config";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
@@ -39,6 +40,7 @@ import { useThemeStore } from "@/store/use-theme-store";
 import { useAuthStore } from "@/module/auth/store/auth-store";
 
 import { PermissionGate } from "@/components/tredro/PermissionGate";
+import { usePermissions } from "@/components/provider/PermissionsProvider";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
 import {
   useUnreadNotificationsCountQuery,
@@ -52,7 +54,84 @@ import { useEffect, useRef, useState } from "react";
 // Sub Components
 // ==========================================
 
-const MobileTopBar = ({ onRefresh }: { onRefresh?: () => void }) => {
+/** First letters of up to the first two words — "أحمد سمير" → "أس", "Lina" → "L". */
+function getInitials(name?: string): string {
+  if (!name?.trim()) return "?";
+  return name
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((word) => word[0])
+    .join("")
+    .toUpperCase();
+}
+
+/**
+ * The signed-in account's avatar + name + role, shown next to the logo so
+ * it's clear who's using this session. Plain display, not a control — same
+ * card language as the sidebar footer's company profile card, minus the
+ * click-through. Stretches to fill whatever width its container gives it.
+ */
+function AccountBadge({
+  name,
+  type,
+  isLoading = false,
+  className,
+}: {
+  name?: string;
+  type?: string;
+  isLoading?: boolean;
+  className?: string;
+}) {
+  if (!isLoading && !name) return null;
+
+  return (
+    <div
+      className={`flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-primary/5 px-2.5 py-1.5 ${className ?? ""}`}
+    >
+      {isLoading ? (
+        <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
+      ) : (
+        <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
+          <AvatarFallback className="flex items-center justify-center bg-primary/20 text-xs font-semibold text-primary">
+            {getInitials(name)}
+          </AvatarFallback>
+        </Avatar>
+      )}
+      <div className="min-w-0 flex-1 text-right leading-tight">
+        {isLoading ? (
+          <div className="flex flex-col items-end gap-1.5 py-0.5">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-2.5 w-12" />
+          </div>
+        ) : (
+          <>
+            <p className="truncate text-sm font-semibold text-foreground">
+              {name}
+            </p>
+            {type && (
+              <p className="truncate text-[11px] text-muted-foreground">
+                {type}
+              </p>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const MobileTopBar = ({
+  onRefresh,
+  accountName,
+  accountType,
+  isAccountLoading,
+}: {
+  onRefresh?: () => void;
+  accountName?: string;
+  accountType?: string;
+  isAccountLoading?: boolean;
+}) => {
   return (
     <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
       <SidebarTrigger className="cursor-pointer transition-transform duration-200 hover:scale-110" />
@@ -62,9 +141,19 @@ const MobileTopBar = ({ onRefresh }: { onRefresh?: () => void }) => {
           alt="logo"
           width={100}
           height={50}
-          className="cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95"
+          className="h-auto w-[88px] cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95"
         />
       </button>
+      {/* Own slot at the far edge, away from the logo, not grouped with it.
+          AccountBadge itself is w-full, so this wrapper is what actually
+          caps its width in the top bar's horizontal row. */}
+      <div className="min-w-0 max-w-[140px]">
+        <AccountBadge
+          name={accountName}
+          type={accountType}
+          isLoading={isAccountLoading}
+        />
+      </div>
     </div>
   );
 };
@@ -366,6 +455,12 @@ const AppSidebarContent = ({
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const user = useAuthStore((state) => state.user);
+  const {
+    isOwner,
+    roleName,
+    accountName: apiAccountName,
+    isAccountLoading,
+  } = usePermissions();
   const router = useRouter();
   const alerts = useNavAlertsStore((state) => state.alerts);
   const flagAlert = useNavAlertsStore((state) => state.flag);
@@ -400,6 +495,13 @@ const AppSidebarContent = ({
   const companyName = user?.company?.name || "Tredro";
   const companyLogo = user?.company?.logo;
   const onboardingCompleted = user?.company?.onboarding_completed;
+  // The logged-in account, not the company — shown next to the logo so it's
+  // clear who's using this session (name + role, e.g. "مالك الشركة"). Name
+  // comes from GET /companies/subusers/{id}, not the login payload — it's
+  // undefined until that request resolves, and the badge just stays hidden
+  // until then rather than falling back to the auth store.
+  const accountName = apiAccountName ?? undefined;
+  const accountType = isOwner ? "مالك الشركة" : roleName || "موظف";
 
   const handleMobileClose = () => {
     if (isMobile) {
@@ -420,22 +522,28 @@ const AppSidebarContent = ({
         className="border-border transition-[width] duration-300 ease-in-out"
       >
         <SidebarHeader className="px-2 py-4">
-          <div className="flex items-center justify-between gap-2 group-data-[state=expanded]:flex-row-reverse group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:items-center lg:justify-center">
+          <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:items-center">
             <SidebarTrigger className="hidden shrink-0 cursor-pointer transition-transform duration-200 hover:scale-110 md:flex lg:hidden" />
 
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="hidden group-data-[state=expanded]:block"
-            >
-              <Image
-                src="/tredro/full_logo.svg"
-                alt="logo"
-                width={140}
-                height={70}
-                className="h-auto w-[140px] cursor-pointer object-contain transition-all duration-200 hover:scale-105 active:scale-95"
+            {/* Expanded state: logo on top, account badge on its own row
+                underneath — stacked, not side by side, so it isn't crowding
+                the logo on large screens. */}
+            <div className="hidden min-w-0 flex-1 flex-col items-center gap-2 group-data-[state=expanded]:flex">
+              <button type="button" onClick={onRefresh} className="shrink-0">
+                <Image
+                  src="/tredro/full_logo.svg"
+                  alt="logo"
+                  width={140}
+                  height={70}
+                  className="h-auto w-[112px] cursor-pointer object-contain transition-all duration-200 hover:scale-105 active:scale-95"
+                />
+              </button>
+              <AccountBadge
+                name={accountName}
+                type={accountType}
+                isLoading={isAccountLoading}
               />
-            </button>
+            </div>
 
             <button
               type="button"
@@ -522,7 +630,12 @@ const AppSidebarContent = ({
       </Sidebar>
 
       <SidebarInset className="min-w-0">
-        <MobileTopBar onRefresh={onRefresh} />
+        <MobileTopBar
+          onRefresh={onRefresh}
+          accountName={accountName}
+          accountType={accountType}
+          isAccountLoading={isAccountLoading}
+        />
         <div className="flex h-full flex-col pt-12  lg:pt-0">
           {banner}
           <main className="flex-1   overflow-auto">{children}</main>

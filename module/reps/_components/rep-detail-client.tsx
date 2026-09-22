@@ -12,12 +12,16 @@ import { useOverviewFilters } from "@/components/tredro/overview-toolbar";
 import { useRepOverviewQuery, useRepQuery } from "../hooks";
 import { useCustomersQuery } from "@/module/customers/hooks";
 import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
-import { useCustomerRequestsQuery } from "@/module/orders/hooks";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
+import { usePermissions } from "@/components/provider/PermissionsProvider";
 
 type TabValue = "overview" | "invoices" | "customers" | "warehouse";
 
 export function RepDetailClient({ repId }: { repId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
+  const { canView } = usePermissions();
+  const canViewCustomers = canView("customers");
+  const canViewInvoices = canView("invoices");
   // Period + currency live in the header (overview tab only); the overview reads the same filters.
   const overviewFilters = useOverviewFilters();
   // Same key as the query inside RepOverview, so this is one shared request — it only tells the header which currency the server answered in.
@@ -25,20 +29,19 @@ export function RepDetailClient({ repId }: { repId: string }) {
   const { data: repData, isLoading, isError, refetch } = useRepQuery(repId);
   const rep = repData?.data?.rep;
 
+  // Each count only backs a tab gated on the same module (see rep-detail-tabs)
+  // — fetching it without that permission would just 403.
   const { data: customersData, isLoading: isCustomersLoading } =
-    useCustomersQuery(repId);
+    useCustomersQuery(repId, { enabled: canViewCustomers });
   const customersCount = customersData?.data?.customers.length ?? 0;
 
   const { data: invoicesData, isLoading: isInvoicesLoading } =
-    useSalesInvoicesQuery({ rep: repId });
+    useSalesInvoicesQuery({ rep: repId }, { enabled: canViewInvoices });
   const invoicesCount = invoicesData?.data?.pagination.count ?? 0;
 
-  const { data: ordersData, isLoading: isOrdersLoading } =
-    useCustomerRequestsQuery({ rep: repId });
-  const ordersCount = ordersData?.data?.pagination.count ?? 0;
-
   const isCountsLoading =
-    isCustomersLoading || isInvoicesLoading || isOrdersLoading;
+    (canViewCustomers && isCustomersLoading) ||
+    (canViewInvoices && isInvoicesLoading);
 
   // Show error state with retry button
   if (isError) {
@@ -86,7 +89,6 @@ export function RepDetailClient({ repId }: { repId: string }) {
           onValueChange={setActiveTab}
           counts={{
             invoices: invoicesCount,
-            orders: ordersCount,
             customers: customersCount,
           }}
           isLoading={isLoading || isCountsLoading}
@@ -96,9 +98,17 @@ export function RepDetailClient({ repId }: { repId: string }) {
       {/* Only show content areas when not loading OR show skeletons */}
       <div className="px-6 pb-6">
         {activeTab === "overview" && <RepOverview repId={repId} filters={overviewFilters} />}
-        {activeTab === "invoices" && <InvoicesView repId={repId} />}
+        {activeTab === "invoices" && (
+          <PermissionGate module="invoices" fallback={null}>
+            <InvoicesView repId={repId} />
+          </PermissionGate>
+        )}
 
-        {activeTab === "customers" && <CustomersView repId={repId} />}
+        {activeTab === "customers" && (
+          <PermissionGate module="customers" fallback={null}>
+            <CustomersView repId={repId} />
+          </PermissionGate>
+        )}
         {activeTab === "warehouse" && <RepWarehouseTab repId={repId} />}
       </div>
     </div>

@@ -11,11 +11,16 @@ import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
 import { OrdersView } from "@/module/orders/_components/orders-view";
 import { NeedsRepAssignmentBanner } from "@/module/orders/_components/needs-rep-assignment-banner";
 import { useCustomerRequestsQuery } from "@/module/orders/hooks";
+import { PermissionGate } from "@/components/tredro/PermissionGate";
+import { usePermissions } from "@/components/provider/PermissionsProvider";
 
 type TabValue = "overview" | "invoices" | "orders";
 
 export function CustomerDetailClient({ customerId }: { customerId: string }) {
   const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
+  const { canView } = usePermissions();
+  const canViewInvoices = canView("invoices");
+  const canViewOrders = canView("customer_requests");
   // Period + currency live in the header (overview tab only); the overview reads the same filters.
   const overviewFilters = useOverviewFilters();
   // Same key as the query inside CustomerOverview, so this is one shared request — it only tells the header which currency the server answered in.
@@ -23,11 +28,19 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
   const { data: customerData, isLoading, isError, refetch } =
     useCustomerQuery(customerId);
   const customer = customerData?.data?.customer;
+  // Each count only backs a tab gated on the same module (see customer-detail-tabs)
+  // — fetching it without that permission would just 403.
   // There is no nested customer/orders route — the count is the same ?customer=
   // filtered list the "orders" tab itself renders (see the customer-requests doc §6).
-  const { data: requestsData } = useCustomerRequestsQuery({ customer: customerId });
+  const { data: requestsData } = useCustomerRequestsQuery(
+    { customer: customerId },
+    { enabled: canViewOrders },
+  );
   const ordersCount = requestsData?.data?.pagination?.count ?? 0;
-  const { data: invoicesData } = useSalesInvoicesQuery({ customer: customerId });
+  const { data: invoicesData } = useSalesInvoicesQuery(
+    { customer: customerId },
+    { enabled: canViewInvoices },
+  );
   const invoicesCount = invoicesData?.data?.pagination?.count ?? 0;
 
   // Show error state with retry button
@@ -84,13 +97,19 @@ export function CustomerDetailClient({ customerId }: { customerId: string }) {
 
       <div className="px-6 pb-6">
         {activeTab === "overview" && <CustomerOverview customerId={customerId} filters={overviewFilters} />}
-        {activeTab === "invoices" && <InvoicesView customerId={customerId} />}
+        {activeTab === "invoices" && (
+          <PermissionGate module="invoices" fallback={null}>
+            <InvoicesView customerId={customerId} />
+          </PermissionGate>
+        )}
         {activeTab === "orders" && (
-          <OrdersView
-            customerId={customerId}
-            customerName={customer?.name}
-            hideAssignmentBanner
-          />
+          <PermissionGate module="customer_requests" fallback={null}>
+            <OrdersView
+              customerId={customerId}
+              customerName={customer?.name}
+              hideAssignmentBanner
+            />
+          </PermissionGate>
         )}
       </div>
     </div>

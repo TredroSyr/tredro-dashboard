@@ -30,10 +30,14 @@ const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>)
   toast.error(error.response?.data?.message || fallback);
 };
 
-export const useCustomersQuery = (repId?: string | number) =>
+export const useCustomersQuery = (
+  repId?: string | number,
+  options?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: ["customers", "list", repId],
     queryFn: () => listCustomers(repId),
+    enabled: options?.enabled ?? true,
   });
 
 export const useCustomerQuery = (

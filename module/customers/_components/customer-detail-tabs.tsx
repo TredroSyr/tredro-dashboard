@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { iconName } from "@/assets/icons/iconRenderer/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePermissions } from "@/components/provider/PermissionsProvider";
+import { ModuleName } from "@/module/users/types";
 
 const TABS = [
   {
@@ -18,6 +20,7 @@ const TABS = [
     iconFilled: "payment_filled" as iconName,
     iconOutlined: "payment_outlined" as iconName,
     countKey: "invoices",
+    requiredModule: "invoices" as ModuleName,
   },
   {
     value: "orders",
@@ -25,6 +28,7 @@ const TABS = [
     iconFilled: "cart_filled" as iconName,
     iconOutlined: "cart_outlined" as iconName,
     countKey: "orders",
+    requiredModule: "customer_requests" as ModuleName,
   },
 ] as const;
 
@@ -52,14 +56,25 @@ export function CustomerDetailTabs({
   trends,
   isLoading = false,
 }: CustomerDetailTabsProps) {
+  const { canView } = usePermissions();
+  // A tab whose content the user can't view is dropped entirely, not just
+  // disabled — otherwise it's a dead end that 403s on click.
+  const visibleTabs = TABS.filter(
+    (tab) => !("requiredModule" in tab) || canView(tab.requiredModule),
+  );
+  const gridStyle = {
+    gridTemplateColumns: `repeat(${visibleTabs.length}, minmax(0, 1fr))`,
+  };
+
   if (isLoading) {
     return (
       <div className="px-6 py-4">
         <div
-          className="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:overflow-visible"
+          className="flex gap-3 overflow-x-auto scroll-smooth [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:overflow-visible"
+          style={gridStyle}
           dir="rtl"
         >
-          {TABS.map((_, i) => (
+          {visibleTabs.map((_, i) => (
             <Skeleton
               key={i}
               className={cn(
@@ -76,10 +91,11 @@ export function CustomerDetailTabs({
   return (
     <div className="px-6 py-4">
       <div
-        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:grid-cols-3 sm:overflow-visible"
+        className="flex gap-3 overflow-x-auto scroll-smooth snap-x snap-mandatory [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden sm:grid sm:overflow-visible"
+        style={gridStyle}
         dir="rtl"
       >
-        {TABS.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = value === tab.value;
           const count =
             "countKey" in tab && tab.countKey

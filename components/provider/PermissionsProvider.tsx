@@ -22,6 +22,16 @@ interface PermissionsContextValue {
   isLoading: boolean;
   isOwner: boolean;
   rawPermissions: Permission[];
+  /** The signed-in account's name, straight from GET /companies/subusers/{id} — not the login payload. */
+  accountName: string | null;
+  /** The signed-in sub-user's role name (§5.1) — absent for owners, who have no role. */
+  roleName: string | null;
+  /**
+   * Whether that fetch is still in flight — unlike `isLoading` (which only
+   * gates staff, since owners already have full access without it), this is
+   * true for owners too while their name/role are still loading.
+   */
+  isAccountLoading: boolean;
   canView: (module: ModuleName) => boolean;
   canAction: (module: ModuleName) => boolean;
   refetch: () => void;
@@ -41,11 +51,14 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
   // permissions can't always be read from that endpoint.
   const loginPermissions = useAuthStore((state) => state.user?.permissions);
 
+  // Fetched for owners too (not just staff) — the account badge's name/role
+  // come from this record rather than the login payload, and an owner has
+  // one too (§5.1 lists an owner row from the same endpoint family).
   const {
     data: subUserData,
     isLoading: queryLoading,
     refetch,
-  } = usePermissionsQuery(userIsOwner ? undefined : userId);
+  } = usePermissionsQuery(userId);
 
   const subUser = (subUserData as SubUserResponse | undefined)?.data?.subuser;
   const isOwner = userIsOwner || !!subUser?.is_owner;
@@ -62,6 +75,9 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     () => (isOwner ? [] : (subUser?.permissions ?? [])),
     [isOwner, subUser],
   );
+
+  const accountName = subUser?.name ?? null;
+  const roleName = isOwner ? null : (subUser?.role_name ?? null);
 
   const canView = useCallback(
     (module: ModuleName): boolean => {
@@ -85,6 +101,9 @@ export function PermissionsProvider({ children }: PermissionsProviderProps) {
     isLoading: !userIsOwner && queryLoading,
     isOwner,
     rawPermissions,
+    accountName,
+    roleName,
+    isAccountLoading: queryLoading,
     canView,
     canAction,
     refetch,

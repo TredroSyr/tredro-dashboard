@@ -51,10 +51,14 @@ const onErrorToast = (fallback: string) => (error: AxiosError<ApiErrorResponse>)
 };
 
 // ---- Sales invoices ----
-export const useSalesInvoicesQuery = (params?: ListSalesInvoicesParams) =>
+export const useSalesInvoicesQuery = (
+  params?: ListSalesInvoicesParams,
+  options?: { enabled?: boolean },
+) =>
   useQuery({
     queryKey: ["invoices", "sales", "list", params],
     queryFn: () => listSalesInvoices(params),
+    enabled: options?.enabled ?? true,
   });
 
 export const useSalesInvoiceQuery = (
