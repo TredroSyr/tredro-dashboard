@@ -1,5 +1,6 @@
 "use client";
 import { PdfExportButton } from "@/components/tredro/pdf/pdf-export-button";
+import { usePermissions } from "@/components/provider/PermissionsProvider";
 import type { Rep, RepOverviewParams } from "../types";
 import { fetchRepPdfData } from "../lib/rep-pdf-data";
 import { RepProfilePdfDocument } from "./rep-profile-pdf-document";
@@ -11,6 +12,15 @@ interface RepPdfDownloadButtonProps {
 }
 
 export function RepPdfDownloadButton({ rep, params }: RepPdfDownloadButtonProps) {
+  const { canView } = usePermissions();
+  // fetchRepPdfData pulls invoices, customers and orders regardless of which
+  // tabs are visible — hide the export whenever any of that data is off-limits,
+  // instead of letting the fetch 403 or leak data the tabs already hide.
+  const canExport =
+    canView("invoices") && canView("customers") && canView("customer_requests");
+
+  if (!canExport) return null;
+
   return (
     <PdfExportButton
       fileName={rep.name}

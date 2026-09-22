@@ -47,6 +47,7 @@ export interface CreateSubUserPayload {
   phone: string;
   email?: string;
   password: string;
+  role_name: string;
   permissions: Permission[];
 }
 
@@ -57,6 +58,7 @@ export interface UpdateSubUserPayload {
   email?: string;
   password?: string;
   is_active?: boolean;
+  role_name?: string;
   permissions?: Permission[];
 }
 

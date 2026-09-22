@@ -1,14 +1,8 @@
 "use client";
 
 import * as React from "react";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+import { useRouter } from "next/navigation";
+import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -52,9 +46,10 @@ export function WarehouseDetailClient({
   context = "warehouse",
 }: {
   warehouseId: string;
-  /** "rep" hides the breadcrumb/actions and labels the entity as a rep's car instead of a warehouse. */
+  /** "rep" hides the header/actions and labels the entity as a rep's car instead of a warehouse. */
   context?: "warehouse" | "rep";
 }) {
+  const router = useRouter();
   const isRepContext = context === "rep";
   const entityLabel = isRepContext ? "السيارة" : "المستودع";
   const { data, isLoading, isError, refetch } = useWarehouseQuery(warehouseId);
@@ -130,29 +125,17 @@ export function WarehouseDetailClient({
     <div>
       {!isRepContext && (
         <div className="flex flex-col gap-4 border-b border-border px-4 py-4 sm:px-6 sm:py-6">
-          <Breadcrumb>
-            <BreadcrumbList>
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/home">الرئيسية</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                <BreadcrumbLink href="/warehouses">المستودعات</BreadcrumbLink>
-              </BreadcrumbItem>
-              <BreadcrumbSeparator />
-              <BreadcrumbItem>
-                {isLoading ? (
-                  <Skeleton className="h-4 w-24" />
-                ) : (
-                  <BreadcrumbPage>{warehouse?.name}</BreadcrumbPage>
-                )}
-              </BreadcrumbItem>
-            </BreadcrumbList>
-          </Breadcrumb>
-
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="flex min-w-0 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0 gap-1.5 sm:w-auto sm:px-3"
+                  onClick={() => router.back()}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
                 {isLoading || !warehouse ? (
                   <Skeleton className="h-7 w-40" />
                 ) : (
@@ -215,7 +198,7 @@ export function WarehouseDetailClient({
         <WarehousesDataTable
           columns={stockColumns}
           data={stock}
-          isLoading={isLoadingStock}
+          isLoading={isLoading || isLoadingStock}
           pagination={{ page: stockPage, totalPages: stockTotalPages }}
           onPageChange={setStockPage}
           emptyState={
