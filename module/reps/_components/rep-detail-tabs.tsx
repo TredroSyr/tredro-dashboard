@@ -36,6 +36,7 @@ const TABS = [
     label: "السيارة",
     iconFilled: "folder_filled" as iconName,
     iconOutlined: "folder_outlined" as iconName,
+    requiredModule: "warehouses" as ModuleName,
   },
 ] as const;
 

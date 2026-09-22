@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { ProtectedRoute } from "@/guards/protected-route";
 import AppSidebar from "@/layout/app-sidebar";
 import { useAuthInit } from "@/module/auth/hook/use-token-guard";
@@ -52,22 +52,6 @@ function ProtectedLayoutContent({ children }: ProtectedLayoutProps) {
     () => queryClient.refetchQueries({ type: "active" }),
     [queryClient],
   );
-
-  // Auto-refresh when tab becomes visible (user opens from phone/switches back)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        // Don't show loading indicator for background visibility refreshes
-        // Just silently refetch active queries
-        queryClient.refetchQueries({ type: "active" });
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () => {
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [queryClient]);
 
   return (
     <ProtectedRoute>

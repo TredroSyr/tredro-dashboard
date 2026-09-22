@@ -1,7 +1,6 @@
 "use client";
 import { useRouter } from "next/navigation";
 
-import { Row } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Product } from "../types";
 
@@ -9,14 +8,12 @@ import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { ProductStatusToggle } from "./product-status-toggle";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 
-interface DataTableRowActionsProps<TData> {
-  row: Row<TData>;
+interface DataTableRowActionsProps {
+  row: { original: Product };
 }
 
-export function DataTableRowActions<TData>({
-  row,
-}: DataTableRowActionsProps<TData>) {
-  const item = row.original as Product;
+export function DataTableRowActions({ row }: DataTableRowActionsProps) {
+  const item = row.original;
   const router = useRouter();
 
   return (

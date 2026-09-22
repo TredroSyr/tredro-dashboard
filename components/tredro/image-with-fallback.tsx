@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 interface ProductImage {
   id: number;
   image: string;
-  alt_text?: string;
+  alt_text?: string | null;
 }
 
 interface ImageWithFallbackProps {

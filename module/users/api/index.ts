@@ -32,6 +32,14 @@ export const getSubUser = async (id: number): Promise<SubUserResponse> => {
   return response.data;
 };
 
+// GET companies/subusers/me — the signed-in account's own record (name,
+// role, permissions). Used instead of the /:id form for self-lookups, since
+// it needs no id and works the same for an owner or a sub-user.
+export const getMySubUser = async (): Promise<SubUserResponse> => {
+  const response = await api.get<SubUserResponse>("companies/subusers/me");
+  return response.data;
+};
+
 // POST companies/subusers
 export const createSubUser = async (
   payload: CreateSubUserPayload,

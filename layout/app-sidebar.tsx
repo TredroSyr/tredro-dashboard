@@ -1,445 +1,28 @@
 "use client";
 
-import Image from "next/image";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
-import { Moon, Sun } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarHeader,
   SidebarInset,
   SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
   SidebarProvider,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/toast";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Skeleton } from "@/components/ui/skeleton";
-import { iconName } from "@/assets/icons/iconRenderer/types";
-import { navConfig, type NavItemConfig } from "@/layout/nav-config";
-import { IconRenderer } from "@/assets/icons/iconRenderer";
-import { useThemeStore } from "@/store/use-theme-store";
+import { navConfig } from "@/layout/nav-config";
 import { useAuthStore } from "@/module/auth/store/auth-store";
-
-import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { usePermissions } from "@/components/provider/PermissionsProvider";
-import { useCustomerRequestsQuery } from "@/module/orders/hooks";
-import {
-  useUnreadNotificationsCountQuery,
-  useUnregisterNotificationDeviceMutation,
-} from "@/module/notifications/hooks";
-import { FCM_TOKEN_STORAGE_KEY } from "@/module/notifications/hooks/use-register-push-notifications";
-import { useNavAlertsStore } from "@/store/use-nav-alerts-store";
-import { useEffect, useRef, useState } from "react";
 
-// ==========================================
-// Sub Components
-// ==========================================
-
-/** First letters of up to the first two words — "أحمد سمير" → "أس", "Lina" → "L". */
-function getInitials(name?: string): string {
-  if (!name?.trim()) return "?";
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase();
-}
-
-/**
- * The signed-in account's avatar + name + role, shown next to the logo so
- * it's clear who's using this session. Plain display, not a control — same
- * card language as the sidebar footer's company profile card, minus the
- * click-through. Stretches to fill whatever width its container gives it.
- */
-function AccountBadge({
-  name,
-  type,
-  isLoading = false,
-  className,
-}: {
-  name?: string;
-  type?: string;
-  isLoading?: boolean;
-  className?: string;
-}) {
-  if (!isLoading && !name) return null;
-
-  return (
-    <div
-      className={`flex w-full min-w-0 items-center gap-2 rounded-xl border border-border bg-primary/5 px-2.5 py-1.5 ${className ?? ""}`}
-    >
-      {isLoading ? (
-        <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
-      ) : (
-        <Avatar className="h-8 w-8 shrink-0 border-2 border-background">
-          <AvatarFallback className="flex items-center justify-center bg-primary/20 text-xs font-semibold text-primary">
-            {getInitials(name)}
-          </AvatarFallback>
-        </Avatar>
-      )}
-      <div className="min-w-0 flex-1 text-right leading-tight">
-        {isLoading ? (
-          <div className="flex flex-col items-end gap-1.5 py-0.5">
-            <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-2.5 w-12" />
-          </div>
-        ) : (
-          <>
-            <p className="truncate text-sm font-semibold text-foreground">
-              {name}
-            </p>
-            {type && (
-              <p className="truncate text-[11px] text-muted-foreground">
-                {type}
-              </p>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-const MobileTopBar = ({
-  onRefresh,
-  accountName,
-  accountType,
-  isAccountLoading,
-}: {
-  onRefresh?: () => void;
-  accountName?: string;
-  accountType?: string;
-  isAccountLoading?: boolean;
-}) => {
-  return (
-    <div className="fixed inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-card px-4 py-3 md:hidden">
-      <SidebarTrigger className="cursor-pointer transition-transform duration-200 hover:scale-110" />
-      <button type="button" onClick={onRefresh}>
-        <Image
-          src="/tredro/full_logo.svg"
-          alt="logo"
-          width={100}
-          height={50}
-          className="h-auto w-[88px] cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95"
-        />
-      </button>
-      {/* Own slot at the far edge, away from the logo, not grouped with it.
-          AccountBadge itself is w-full, so this wrapper is what actually
-          caps its width in the top bar's horizontal row. */}
-      <div className="min-w-0 max-w-[140px]">
-        <AccountBadge
-          name={accountName}
-          type={accountType}
-          isLoading={isAccountLoading}
-        />
-      </div>
-    </div>
-  );
-};
-
-const ThemeToggle = ({ onAction }: { onAction: () => void }) => {
-  const { theme, toggleTheme, hasHydrated } = useThemeStore();
-  const isDark = hasHydrated && theme === "dark";
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton
-        tooltip={isDark ? "الوضع النهاري" : "الوضع الليلي"}
-        onClick={() => {
-          toggleTheme();
-          onAction();
-        }}
-        className="cursor-pointer transition-all duration-200 hover:translate-x-1 hover:bg-muted active:scale-[0.97]"
-      >
-        <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
-          <Sun
-            className={`absolute h-4 w-4 text-primary transition-all duration-300 ${
-              isDark
-                ? "-rotate-90 scale-0 opacity-0"
-                : "rotate-0 scale-100 opacity-100"
-            }`}
-          />
-          <Moon
-            className={`absolute h-4 w-4 text-primary transition-all duration-300 ${
-              isDark
-                ? "rotate-0 scale-100 opacity-100"
-                : "rotate-90 scale-0 opacity-0"
-            }`}
-          />
-        </span>
-        <span className="truncate">
-          {isDark ? "الوضع الليلي" : "الوضع النهاري"}
-        </span>
-      </SidebarMenuButton>
-    </SidebarMenuItem>
-  );
-};
-
-const LogoutMenuItem = ({ onAction }: { onAction: () => void }) => {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const clearAuth = useAuthStore((state) => state.clearAuth);
-  const { mutate: unregisterDevice } =
-    useUnregisterNotificationDeviceMutation();
-  const [open, setOpen] = useState(false);
-
-  const handleConfirmLogout = () => {
-    const toastId = toast.loading("جاري تسجيل الخروج...");
-
-    setOpen(false);
-    onAction();
-
-    // This device's push token belongs to whoever is signed in on it (backend
-    // §4.3) — unregister it now, and clear the dedup cache so the next sign-in
-    // (possibly a different user) always re-registers instead of assuming
-    // "same token = already registered".
-    const fcmToken = window.localStorage.getItem(FCM_TOKEN_STORAGE_KEY);
-    if (fcmToken) {
-      unregisterDevice(fcmToken);
-      window.localStorage.removeItem(FCM_TOKEN_STORAGE_KEY);
-    }
-
-    // Let the loading toast paint before we tear things down and navigate away
-    setTimeout(() => {
-      clearAuth();
-
-      // Wipe all cached queries so no stale/previous-user data lingers
-      queryClient.clear();
-
-      router.push("/auth/login");
-      toast.close(toastId);
-    }, 500);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          tooltip="تسجيل الخروج"
-          onClick={() => setOpen(true)}
-          className="cursor-pointer text-destructive transition-all duration-200 hover:translate-x-1 hover:bg-destructive/10 hover:text-destructive active:scale-[0.97]"
-        >
-          <IconRenderer
-            name="logout_outlined"
-            className="h-4 w-4 shrink-0 text-destructive"
-          />
-          <span className="truncate">تسجيل الخروج</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>تسجيل الخروج</DialogTitle>
-          <DialogDescription>هل انت متاكد من تسجيل الخروج</DialogDescription>
-        </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>
-            إلغاء
-          </Button>
-          <Button variant="destructive" onClick={handleConfirmLogout}>
-            تسجيل الخروج
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-// ==========================================
-// Sidebar Skeleton (Loading State)
-// ==========================================
-
-/**
- * Sidebar skeleton shown while permissions are loading.
- * Matches the exact shape of the actual sidebar items.
- */
-function SidebarSkeleton() {
-  // Show skeleton for all nav items during loading
-  const skeletonCount = navConfig.length;
-
-  return (
-    <SidebarMenu className="gap-3">
-      {Array.from({ length: skeletonCount }).map((_, index) => (
-        <SidebarMenuItem key={index}>
-          <div className="flex items-center gap-2 py-2 px-3">
-            <div className="h-4 w-4 shrink-0 rounded bg-muted animate-pulse" />
-            <div className="h-4 w-24 rounded bg-muted animate-pulse group-data-[collapsible=icon]:hidden" />
-          </div>
-        </SidebarMenuItem>
-      ))}
-    </SidebarMenu>
-  );
-}
-
-// ==========================================
-// Orders Pending-Count Badge
-// ==========================================
-
-/** Live count of orders awaiting a response — the "more details" carried alongside the orders nav label. */
-function OrdersPendingBadge() {
-  const { data } = useCustomerRequestsQuery({ status: "pending" });
-  const count = data?.data?.pagination?.count ?? 0;
-
-  if (!count) return null;
-
-  return (
-    <Badge
-      variant="secondary"
-      className="h-4 shrink-0 rounded-full bg-amber-100 px-1.5 text-[10px] tabular-nums text-amber-700 group-data-[collapsible=icon]:hidden dark:bg-amber-950/50 dark:text-amber-400"
-    >
-      {count}
-    </Badge>
-  );
-}
-
-// ==========================================
-// Notifications Unread-Count Badge
-// ==========================================
-
-/** Live unread count for the bell — backed by GET /notifications/unread-count/. */
-function NotificationsUnreadBadge() {
-  const { data } = useUnreadNotificationsCountQuery();
-  const count = data?.data?.unread_count ?? 0;
-
-  if (!count) return null;
-
-  return (
-    <Badge
-      variant="secondary"
-      className="h-4 shrink-0 rounded-full bg-amber-100 px-1.5 text-[10px] tabular-nums text-amber-700 group-data-[collapsible=icon]:hidden dark:bg-amber-950/50 dark:text-amber-400"
-    >
-      {count}
-    </Badge>
-  );
-}
-
-/**
- * Nav icon that draws attention when its page just received a new
- * notification: it turns red, shakes, and gets a small pulsing red dot —
- * visible even when the sidebar is collapsed to icon-only mode (unlike the
- * count badges above). The alert is cleared once the user visits the page.
- */
-function NavAlertIcon({
-  navKey,
-  iconName,
-  className,
-}: {
-  navKey: string;
-  iconName: iconName;
-  className: string;
-}) {
-  const hasAlert = useNavAlertsStore((state) => !!state.alerts[navKey]);
-
-  return (
-    <span className="relative flex h-4 w-4 shrink-0">
-      <IconRenderer
-        name={iconName}
-        className={`${className} ${
-          hasAlert ? "animate-bell-shake text-destructive" : ""
-        }`}
-      />
-      {hasAlert && (
-        <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-destructive opacity-75" />
-          <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
-        </span>
-      )}
-    </span>
-  );
-}
-
-// ==========================================
-// Single Nav Item Component
-// ==========================================
-
-interface NavItemProps {
-  item: NavItemConfig;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-/**
- * Single nav item with dynamic icon rendering.
- * Wrapped with PermissionGate for conditional rendering.
- */
-function NavItem({ item, isActive, onClick }: NavItemProps) {
-  // Dynamic icon rendering via IconRenderer
-  // Uses icon names as strings (from navConfig)
-  const iconName = isActive ? item.activeIcon : item.icon;
-
-  const content = (
-    <SidebarMenuItem key={item.key} className="group/menu-item">
-      <SidebarMenuButton
-        render={
-          <Link
-            href={item.href}
-            onClick={onClick}
-            className="flex w-full flex-nowrap items-center gap-2 overflow-hidden"
-          >
-            <NavAlertIcon
-              navKey={item.key}
-              iconName={iconName}
-              className={`h-4 w-4 shrink-0 transition-all duration-200 ${
-                isActive
-                  ? "scale-110 text-primary"
-                  : "text-muted-foreground group-hover/menu-item:scale-110 group-hover/menu-item:text-primary"
-              }`}
-            />
-            <span className="flex flex-1 items-center justify-between gap-2 overflow-hidden group-data-[collapsible=icon]:hidden">
-              <span className="truncate">{item.label}</span>
-              {item.key === "orders" && <OrdersPendingBadge />}
-              {item.key === "notifications" && <NotificationsUnreadBadge />}
-            </span>
-          </Link>
-        }
-        tooltip={item.label}
-        isActive={isActive}
-        className={`relative cursor-pointer overflow-hidden transition-all duration-200 ease-out hover:translate-x-1 hover:bg-primary/10 active:scale-[0.97] ${
-          isActive
-            ? "bg-primary/10 font-semibold text-primary before:absolute before:right-0 before:top-1/2 before:h-4/5 before:w-1 before:-translate-y-1/2 before:rounded-full before:bg-primary group-data-[collapsible=icon]:before:right-0"
-            : "text-foreground"
-        }`}
-      />
-    </SidebarMenuItem>
-  );
-
-  // Wrap with PermissionGate based on item config
-  if (item.requiredModule) {
-    return (
-      <PermissionGate module={item.requiredModule} _isSidebarItem>
-        {content}
-      </PermissionGate>
-    );
-  }
-
-  // No restriction
-  return content;
-}
-
-// ==========================================
-// Main Sidebar Content
-// ==========================================
+import { MobileTopBar } from "@/layout/_components/app-sidebar/mobile-top-bar";
+import { SidebarBrand } from "@/layout/_components/app-sidebar/sidebar-brand";
+import { CompanyProfileCard } from "@/layout/_components/app-sidebar/company-profile-card";
+import { ThemeToggle } from "@/layout/_components/app-sidebar/theme-toggle";
+import { LogoutMenuItem } from "@/layout/_components/app-sidebar/logout-menu-item";
+import { NavItem } from "@/layout/_components/app-sidebar/nav-item";
+import { useNavAlertsSync } from "@/layout/_components/app-sidebar/use-nav-alerts-sync";
 
 interface AppSidebarProps {
   children: React.ReactNode;
@@ -455,53 +38,14 @@ const AppSidebarContent = ({
   const pathname = usePathname();
   const { isMobile, setOpenMobile } = useSidebar();
   const user = useAuthStore((state) => state.user);
-  const {
-    isOwner,
-    roleName,
-    accountName: apiAccountName,
-    isAccountLoading,
-  } = usePermissions();
+  const { accountName, isAccountLoading } = usePermissions();
   const router = useRouter();
-  const alerts = useNavAlertsStore((state) => state.alerts);
-  const flagAlert = useNavAlertsStore((state) => state.flag);
-  const clearAlert = useNavAlertsStore((state) => state.clear);
-  const { data: unreadData } = useUnreadNotificationsCountQuery();
-  const unreadCount = unreadData?.data?.unread_count;
-  const prevUnreadCount = useRef<number | undefined>(undefined);
 
-  // The unread count going up (push or the 60s poll) means a new notification
-  // arrived — light the bell. The first value loaded on mount is not "new".
-  useEffect(() => {
-    if (unreadCount === undefined) return;
-    if (
-      prevUnreadCount.current !== undefined &&
-      unreadCount > prevUnreadCount.current
-    ) {
-      flagAlert("notifications");
-    }
-    prevUnreadCount.current = unreadCount;
-  }, [unreadCount, flagAlert]);
-
-  // Visiting a page dismisses its alert — including one that arrives while
-  // the user is already on it.
-  useEffect(() => {
-    navConfig.forEach((item) => {
-      if (alerts[item.key] && pathname.startsWith(item.href)) {
-        clearAlert(item.key);
-      }
-    });
-  }, [pathname, alerts, clearAlert]);
+  useNavAlertsSync(pathname);
 
   const companyName = user?.company?.name || "Tredro";
   const companyLogo = user?.company?.logo;
   const onboardingCompleted = user?.company?.onboarding_completed;
-  // The logged-in account, not the company — shown next to the logo so it's
-  // clear who's using this session (name + role, e.g. "مالك الشركة"). Name
-  // comes from GET /companies/subusers/{id}, not the login payload — it's
-  // undefined until that request resolves, and the badge just stays hidden
-  // until then rather than falling back to the auth store.
-  const accountName = apiAccountName ?? undefined;
-  const accountType = isOwner ? "مالك الشركة" : roleName || "موظف";
 
   const handleMobileClose = () => {
     if (isMobile) {
@@ -521,45 +65,7 @@ const AppSidebarContent = ({
         collapsible="icon"
         className="border-border transition-[width] duration-300 ease-in-out"
       >
-        <SidebarHeader className="px-2 py-4">
-          <div className="flex items-center justify-between gap-2 group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:items-center">
-            <SidebarTrigger className="hidden shrink-0 cursor-pointer transition-transform duration-200 hover:scale-110 md:flex lg:hidden" />
-
-            {/* Expanded state: logo on top, account badge on its own row
-                underneath — stacked, not side by side, so it isn't crowding
-                the logo on large screens. */}
-            <div className="hidden min-w-0 flex-1 flex-col items-center gap-2 group-data-[state=expanded]:flex">
-              <button type="button" onClick={onRefresh} className="shrink-0">
-                <Image
-                  src="/tredro/full_logo.svg"
-                  alt="logo"
-                  width={140}
-                  height={70}
-                  className="h-auto w-[112px] cursor-pointer object-contain transition-all duration-200 hover:scale-105 active:scale-95"
-                />
-              </button>
-              <AccountBadge
-                name={accountName}
-                type={accountType}
-                isLoading={isAccountLoading}
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={onRefresh}
-              className="hidden group-data-[collapsible=icon]:block"
-            >
-              <Image
-                src="/tredro/logo.svg"
-                alt="logo"
-                width={32}
-                height={32}
-                className="h-auto w-8 cursor-pointer object-contain transition-all duration-200 hover:scale-110 active:scale-95"
-              />
-            </button>
-          </div>
-        </SidebarHeader>
+        <SidebarBrand onRefresh={onRefresh} />
 
         <SidebarContent>
           <SidebarGroup>
@@ -587,40 +93,14 @@ const AppSidebarContent = ({
 
         <SidebarFooter className="gap-3 px-2 pb-4">
           <SidebarMenu className="gap-3">
-            {/* Company Profile Card */}
-            <div
+            <CompanyProfileCard
+              companyName={companyName}
+              companyLogo={companyLogo}
+              accountName={accountName}
+              isAccountLoading={isAccountLoading}
+              onboardingCompleted={onboardingCompleted}
               onClick={handleProfileClick}
-              className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-primary/5 p-3 transition-all duration-200 hover:bg-primary/10 active:scale-[0.97]"
-            >
-              <Avatar className="h-10 w-10 shrink-0 border-2 border-background">
-                <AvatarImage
-                  src={companyLogo || undefined}
-                  alt={companyName}
-                  className="h-full w-full object-cover"
-                />
-                <AvatarFallback className="bg-primary/20 text-primary flex items-center justify-center">
-                  <IconRenderer
-                    name="no_image_filled"
-                    className="h-5 w-5 text-primary/50"
-                  />
-                </AvatarFallback>
-              </Avatar>
-              <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-                <p className="truncate text-sm font-semibold text-foreground">
-                  {companyName}
-                </p>
-                <div className="flex items-center gap-2">
-                  {!onboardingCompleted && (
-                    <Badge
-                      variant="secondary"
-                      className="h-4 bg-amber-100 px-1.5 text-[10px] text-amber-700 dark:bg-amber-950/50 dark:text-amber-400"
-                    >
-                      غير مكتمل
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
+            />
 
             <ThemeToggle onAction={handleMobileClose} />
 
@@ -630,12 +110,7 @@ const AppSidebarContent = ({
       </Sidebar>
 
       <SidebarInset className="min-w-0">
-        <MobileTopBar
-          onRefresh={onRefresh}
-          accountName={accountName}
-          accountType={accountType}
-          isAccountLoading={isAccountLoading}
-        />
+        <MobileTopBar onRefresh={onRefresh} />
         <div className="flex h-full flex-col pt-12  lg:pt-0">
           {banner}
           <main className="flex-1   overflow-auto">{children}</main>

@@ -22,7 +22,7 @@ interface PermissionsContextValue {
   isLoading: boolean;
   isOwner: boolean;
   rawPermissions: Permission[];
-  /** The signed-in account's name, straight from GET /companies/subusers/{id} — not the login payload. */
+  /** The signed-in account's name, straight from GET /companies/subusers/me — not the login payload. */
   accountName: string | null;
   /** The signed-in sub-user's role name (§5.1) — absent for owners, who have no role. */
   roleName: string | null;
@@ -46,14 +46,13 @@ interface PermissionsProviderProps {
 export function PermissionsProvider({ children }: PermissionsProviderProps) {
   const userId = useAuthStore((state) => state.user?.id);
   const userIsOwner = useAuthStore((state) => !!state.user?.is_owner);
-  // Grants carried on the login payload. Fallback for staff whose role lacks
-  // `users` — GET /companies/subusers/{id} answers 403 for them, so their own
-  // permissions can't always be read from that endpoint.
+  // Grants carried on the login payload. Fallback for whenever
+  // /companies/subusers/me hasn't resolved yet or fails — permissions can't
+  // always be read from that endpoint.
   const loginPermissions = useAuthStore((state) => state.user?.permissions);
 
   // Fetched for owners too (not just staff) — the account badge's name/role
-  // come from this record rather than the login payload, and an owner has
-  // one too (§5.1 lists an owner row from the same endpoint family).
+  // come from this record rather than the login payload.
   const {
     data: subUserData,
     isLoading: queryLoading,

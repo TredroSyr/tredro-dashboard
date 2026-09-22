@@ -109,7 +109,11 @@ export function RepDetailClient({ repId }: { repId: string }) {
             <CustomersView repId={repId} />
           </PermissionGate>
         )}
-        {activeTab === "warehouse" && <RepWarehouseTab repId={repId} />}
+        {activeTab === "warehouse" && (
+          <PermissionGate module="warehouses" fallback={null}>
+            <RepWarehouseTab repId={repId} />
+          </PermissionGate>
+        )}
       </div>
     </div>
   );
