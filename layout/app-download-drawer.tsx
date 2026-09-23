@@ -104,7 +104,7 @@ export default function AppDownloadDrawer() {
             className="group relative mb-4 h-13 w-full overflow-hidden rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 transition-transform duration-300 active:scale-95 hover:scale-[1.02] hover:bg-primary/90"
           >
             <a
-              href="https://q5xg2qnuesi8g3st.public.blob.vercel-storage.com/tredro-dashboard.apk"
+              href="https://q5xg2qnuesi8g3st.public.blob.vercel-storage.com/tredro-dashborad.apk"
               download
               target="_blank"
               rel="noopener noreferrer"
