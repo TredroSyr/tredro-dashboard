@@ -47,7 +47,7 @@ export interface CreateSubUserPayload {
   phone: string;
   email?: string;
   password: string;
-  role_name: string;
+  role_name?: string;
   permissions: Permission[];
 }
 

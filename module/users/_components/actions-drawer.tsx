@@ -261,7 +261,6 @@ function buildSchema(mode: "create" | "edit") {
   return z.object({
     name: z.string().min(1, "الاسم مطلوب"),
     phone: z.string().min(1, "رقم الهاتف مطلوب"),
-    role_name: z.string().min(1, "المسمى الوظيفي مطلوب"),
     email: z
       .string()
       .email("بريد إلكتروني غير صالح")
@@ -326,7 +325,6 @@ export function SubUserFormDrawer({
       phone: "",
       email: "",
       password: "",
-      role_name: "",
       is_active: true,
       permissions: {},
     },
@@ -382,7 +380,6 @@ export function SubUserFormDrawer({
         phone: "",
         email: "",
         password: "",
-        role_name: "",
         is_active: true,
         permissions,
       });
@@ -412,7 +409,6 @@ export function SubUserFormDrawer({
         phone: subUser.phone,
         email: subUser.email ?? "",
         password: "",
-        role_name: subUser.role_name ?? "",
         is_active: subUser.is_active,
         permissions,
       });
@@ -423,7 +419,6 @@ export function SubUserFormDrawer({
         phone: "",
         email: "",
         password: "",
-        role_name: "",
         is_active: true,
         permissions,
       });
@@ -434,7 +429,6 @@ export function SubUserFormDrawer({
   const onSubmit = (values: SubUserFormValues) => {
     const trimmedName = values.name.trim();
     const trimmedPhone = values.phone.trim();
-    const trimmedRoleName = values.role_name.trim();
     // View-only modules have no write endpoints — the server rejects
     // can_action: true for them, so never send it.
     const viewOnlyModules = new Set(
@@ -458,7 +452,6 @@ export function SubUserFormDrawer({
             phone: "phone",
             email: "email",
             password: "password",
-            role_name: "role_name",
             permissions: "permissions",
           };
           const mapped = fieldMap[field];
@@ -482,7 +475,6 @@ export function SubUserFormDrawer({
           phone: trimmedPhone,
           email: values.email?.trim() || undefined,
           password,
-          role_name: trimmedRoleName,
           permissions,
         },
         {
@@ -510,7 +502,6 @@ export function SubUserFormDrawer({
         phone: trimmedPhone,
         email: values.email?.trim() || undefined,
         password: newPassword || undefined,
-        role_name: trimmedRoleName,
         is_active: values.is_active,
         permissions,
       },
@@ -626,27 +617,6 @@ export function SubUserFormDrawer({
                           onChange={field.onChange}
                           className="h-12"
                           isLoading={isLoadingSubUser}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="role_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-right block">
-                        المسمى الوظيفي
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          isLoading={isLoadingSubUser}
-                          {...field}
-                          placeholder="أدخل المسمى الوظيفي"
-                          className="text-right h-12"
                         />
                       </FormControl>
                       <FormMessage />
