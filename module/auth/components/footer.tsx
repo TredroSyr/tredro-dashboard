@@ -14,7 +14,7 @@ const Footer = () => {
         <div className="hidden items-center justify-between lg:flex">
           <div className="flex items-center gap-3">
             <Link
-              href=""
+              href="https://www.facebook.com/share/1N3gybbYH9/"
               aria-label="Facebook"
               target="_blank"
               rel="noopener noreferrer"
@@ -97,7 +97,7 @@ const Footer = () => {
         <div className="flex flex-col gap-6 lg:hidden">
           <div className="flex items-center justify-center gap-3">
             <Link
-              href=""
+              href="https://www.facebook.com/share/1N3gybbYH9/"
               aria-label="Facebook"
               target="_blank"
               rel="noopener noreferrer"
