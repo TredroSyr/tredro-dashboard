@@ -87,7 +87,7 @@ export function IncomingInvoiceDetailSheet({
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DrawerContent className="flex flex-col w-full h-[92dvh] max-h-[92dvh] rounded-t-2xl sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none md:max-w-xl">
+      <DrawerContent className="flex flex-col w-full rounded-t-2xl sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none md:max-w-xl">
         <DrawerHeader className="flex-row items-center justify-between gap-3 px-4 pt-6 pb-3 sm:px-6 sm:pt-4 sticky top-0 z-10 bg-background border-b border-border">
           <DrawerTitle className="min-w-0 truncate text-right text-base sm:text-lg">
             {invoice?.number ?? "فاتورة إدخال"}

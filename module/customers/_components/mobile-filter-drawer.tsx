@@ -224,7 +224,7 @@ export function MobileFilterDrawer<TData extends Customer>({
       <DrawerContent
         className="
           flex flex-col
-          w-full h-[92dvh] max-h-[92dvh] rounded-t-2xl
+          w-full rounded-t-2xl
           sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none
           md:max-w-xl
           lg:max-w-3xl

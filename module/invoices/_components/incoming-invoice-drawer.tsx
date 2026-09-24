@@ -145,7 +145,7 @@ export function IncomingInvoiceDrawer({
         onOpenChange={onOpenChange}
         swipeDirection={isMobile ? "down" : "left"}
       >
-        <DrawerContent className="flex flex-col w-full h-[92dvh] max-h-[92dvh] rounded-t-2xl sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none md:max-w-xl lg:max-w-2xl">
+        <DrawerContent className="flex flex-col w-full rounded-t-2xl sm:h-full sm:max-h-screen sm:w-full sm:max-w-lg sm:rounded-none md:max-w-xl lg:max-w-2xl">
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(onSubmit)}
