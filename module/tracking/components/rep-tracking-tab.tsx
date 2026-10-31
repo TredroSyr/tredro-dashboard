@@ -1,74 +1,132 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Navigation, Pause, Play, Receipt, Route } from "lucide-react";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { buildRepDay } from "../lib/dummy-day";
 import {
   ACTIVITY_META,
   STATUS_META,
+  distanceKm,
   formatAgo,
   formatDayLabel,
   formatDuration,
   formatTime,
+  pathDistanceKm,
   shiftDateKey,
   toDateKey,
 } from "../lib/geo";
+import { ACTIVITY_PIN_ICON, ACTIVITY_TONE, PIN_ICONS } from "../lib/pin-icons";
 import { useCompanyCurrency, useNow, useTrackingCenter } from "../hooks";
-import type { RepActivity, RepActivityType } from "../types";
-import { TrackingMap, type MapStop, type MapTrack } from "./tracking-map";
+import type { LatLng, PlannedCustomer, RepActivity, RepActivityType, TrackPoint } from "../types";
+import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
+import {
+  TkAvatar,
+  TkCard,
+  TkFrame,
+  TkHex,
+  TkList,
+  TkMapArea,
+  TkPillButton,
+  TkRow,
+  TkSearch,
+  TkSelect,
+  TkSidebar,
+  avatarLetter,
+  avatarTone,
+  compactNumber,
+  tkCardButton,
+} from "./tracker-ui";
 
-const REP_COLOR = "#1d4ed8";
 const REPLAY_STEP_MS = 2 * 60_000;
 
-const ACTIVITY_ICON: Record<RepActivityType, iconName> = {
-  day_start: "start_outlined",
-  invoice: "payment_outlined",
-  collection: "money_outlined",
-  return: "undo_outlined",
-  new_customer: "add_user_outlined",
-  no_sale: "block_outlined",
-  day_end: "flag_outlined",
-};
-
-/** The visit pin takes the color of the "most telling" thing that happened there. */
+/** The visit takes the look of the "most telling" thing that happened there. */
 const STOP_PRIORITY: RepActivityType[] = ["no_sale", "return", "invoice", "collection", "new_customer"];
 
-function buildStops(activities: RepActivity[], currency: string, selectedId: string | null) {
+type ShowFilter = "all" | "visited" | "pending" | "invoice" | "collection" | "return" | "no_sale";
+type SortKey = "route" | "sales" | "distance";
+
+const SHOW_OPTIONS: { value: ShowFilter; label: string }[] = [
+  { value: "all", label: "كل المحلات" },
+  { value: "visited", label: "تمت زيارتها" },
+  { value: "pending", label: "بانتظار الزيارة" },
+  { value: "invoice", label: "فيها فواتير" },
+  { value: "collection", label: "فيها تحصيل" },
+  { value: "return", label: "فيها مرتجع" },
+  { value: "no_sale", label: "بدون بيع" },
+];
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: "route", label: "ترتيب الزيارة" },
+  { value: "sales", label: "الأعلى مبيعاً" },
+  { value: "distance", label: "الأقرب" },
+];
+
+interface Visit {
+  id: string;
+  index: number;
+  name: string;
+  lat: number;
+  lng: number;
+  items: RepActivity[];
+  main: RepActivity;
+  arrivedAt: number;
+  /** The road driven from the previous stop to this shop. */
+  leg: LatLng[];
+  legKm: number;
+  sales: number;
+  collected: number;
+  returned: number;
+}
+
+const samePoint = (p: TrackPoint, lat: number, lng: number) => p.lat === lat && p.lng === lng;
+
+/** Group the day's activities into shop visits and cut the GPS path into the leg leading to each. */
+function buildVisits(activities: RepActivity[], path: TrackPoint[]): Visit[] {
   const byVisit = new Map<number, RepActivity[]>();
   activities.forEach((a) => {
     if (a.visitIndex == null) return;
     byVisit.set(a.visitIndex, [...(byVisit.get(a.visitIndex) ?? []), a]);
   });
 
-  let selectedStopId: string | null = null;
-  const stops: MapStop[] = [...byVisit.entries()].map(([index, items]) => {
-    const main =
-      STOP_PRIORITY.map((type) => items.find((a) => a.type === type)).find(Boolean) ?? items[0];
-    const id = `visit-${index}`;
-    if (items.some((a) => a.id === selectedId)) selectedStopId = id;
-    const lines = items
-      .map(
-        (a) =>
-          `${formatTime(a.time)} · ${ACTIVITY_META[a.type].label}${
-            a.amount ? ` ${formatMoney(a.amount, currency)}` : ""
-          }`,
-      )
-      .join("<br/>");
-    return {
-      id,
-      lat: main.lat,
-      lng: main.lng,
-      badge: String(index),
-      color: ACTIVITY_META[main.type].color,
-      tooltip: `<b>${index}. ${items[0].customerName ?? ""}</b><br/><small>${lines}</small>`,
-    };
-  });
-  return { stops, selectedStopId };
+  let cursor = 0;
+  return [...byVisit.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([index, items]) => {
+      const main = STOP_PRIORITY.map((type) => items.find((a) => a.type === type)).find(Boolean) ?? items[0];
+      const { lat, lng } = items[0];
+      // Legs end exactly on the shop's coordinates; the next one starts after the stay.
+      let end = path.findIndex((p, i) => i >= cursor && samePoint(p, lat, lng));
+      if (end === -1) end = path.length - 1;
+      const legPoints = path.slice(cursor, end + 1);
+      cursor = end;
+      while (cursor + 1 < path.length && samePoint(path[cursor + 1], lat, lng)) cursor++;
+      const sum = (type: RepActivityType) =>
+        items.filter((a) => a.type === type).reduce((s, a) => s + (a.amount ?? 0), 0);
+      return {
+        id: `visit-${index}`,
+        index,
+        name: items.find((a) => a.type !== "new_customer")?.customerName ?? items[0].customerName ?? "",
+        lat,
+        lng,
+        items,
+        main,
+        arrivedAt: items[0].time,
+        leg: legPoints.map((p) => [p.lat, p.lng] as LatLng),
+        legKm: pathDistanceKm(legPoints),
+        sales: sum("invoice"),
+        collected: sum("collection"),
+        returned: sum("return"),
+      };
+    });
+}
+
+function visitAmount(v: Visit) {
+  return v.sales || v.collected || v.returned;
 }
 
 export function RepTrackingTab({ repId, isActive = true }: { repId: string; isActive?: boolean }) {
@@ -77,11 +135,15 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   const currency = useCompanyCurrency();
   const today = toDateKey(new Date(now));
   const [date, setDate] = useState(today);
+  const [replayOpen, setReplayOpen] = useState(false);
   const [replayAt, setReplayAt] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [focus, setFocus] = useState<{ lat: number; lng: number; key: number } | null>(null);
-  const logRef = useRef<HTMLDivElement | null>(null);
+  const [search, setSearch] = useState("");
+  const [show, setShow] = useState<ShowFilter>("all");
+  const [sort, setSort] = useState<SortKey>("route");
+  const [focus, setFocus] = useState<{ lat: number; lng: number; key: number; soft?: boolean } | null>(null);
+  const listRef = useRef<HTMLUListElement | null>(null);
 
   const isToday = date === today;
   const isFuture = date > today;
@@ -106,6 +168,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
     setDate(next);
     setReplayAt(null);
     setPlaying(false);
+    setReplayOpen(false);
     setSelectedId(null);
   };
 
@@ -124,88 +187,104 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
     return () => clearInterval(id);
   }, [playing, sliderMin, sliderMax]);
 
-  const { stops, selectedStopId } = useMemo(
-    () => buildStops(day.activities, currency, selectedId),
-    [day.activities, currency, selectedId],
-  );
+  const visits = useMemo(() => buildVisits(day.activities, day.path), [day.activities, day.path]);
+  const depot = live.activities[0]?.type === "day_start" ? ([live.activities[0].lat, live.activities[0].lng] as LatLng) : null;
 
-  const tracks: MapTrack[] = useMemo(
-    () => [
-      {
-        id: repId,
-        color: REP_COLOR,
-        path: day.path,
-        position: day.status === "finished" ? null : day.position,
-        live: isToday && replayAt == null && (day.status === "moving" || day.status === "at_customer"),
-      },
-    ],
-    [repId, day.path, day.position, day.status, isToday, replayAt],
-  );
+  const rows = useMemo(() => {
+    const q = search.trim();
+    const typeFilter = ["invoice", "collection", "return", "no_sale"].includes(show) ? (show as RepActivityType) : null;
+    const visited = visits
+      .filter((v) => !q || v.name.includes(q))
+      .filter((v) => show === "all" || show === "visited" || (typeFilter && v.items.some((a) => a.type === typeFilter)));
+    if (sort === "sales") visited.sort((a, b) => visitAmount(b) - visitAmount(a));
+    if (sort === "distance") visited.sort((a, b) => a.legKm - b.legKm);
+    const pending =
+      show === "all" || show === "pending"
+        ? day.unvisited.filter((c) => !q || c.name.includes(q))
+        : [];
+    return { visited: show === "pending" ? [] : visited, pending };
+  }, [visits, day.unvisited, search, show, sort]);
 
-  const depot = live.activities[0]?.type === "day_start" ? ([live.activities[0].lat, live.activities[0].lng] as [number, number]) : null;
+  const selectedVisit = visits.find((v) => v.id === selectedId) ?? null;
+  const selectedPlanned = selectedVisit ? null : day.unvisited.find((c) => `planned-${c.id}` === selectedId) ?? null;
 
-  const selectActivity = (activity: RepActivity) => {
-    setSelectedId(activity.id);
-    setFocus((f) => ({ lat: activity.lat, lng: activity.lng, key: (f?.key ?? 0) + 1 }));
+  const pins: MapPin[] = useMemo(() => {
+    const visitPins = visits.map((v) => {
+      const tone = avatarTone(v.name);
+      const amount = visitAmount(v);
+      return {
+        id: v.id,
+        lat: v.lat,
+        lng: v.lng,
+        letter: avatarLetter(v.name),
+        bg: tone.bg,
+        fg: tone.fg,
+        badgeIcon: ACTIVITY_PIN_ICON[v.main.type],
+        badgeText: amount ? compactNumber(amount) : "—",
+        badgeColor: ACTIVITY_TONE[v.main.type],
+      };
+    });
+    const plannedPins = day.unvisited.map((c) => ({
+      id: `planned-${c.id}`,
+      lat: c.lat,
+      lng: c.lng,
+      letter: avatarLetter(c.name),
+      bg: "var(--tk-planned-bg)",
+      fg: "var(--tk-planned-fg)",
+      badgeIcon: PIN_ICONS.clock,
+      dimmed: true,
+    }));
+    return [...plannedPins, ...visitPins];
+  }, [visits, day.unvisited]);
+
+  const routes: MapRoute[] = useMemo(() => {
+    const list: MapRoute[] = [{ id: "trail", variant: "trail", points: day.path.map((p) => [p.lat, p.lng] as LatLng) }];
+    if (selectedVisit) list.push({ id: `${date}|${selectedVisit.id}`, variant: "glow", points: selectedVisit.leg });
+    return list;
+  }, [day.path, selectedVisit, date]);
+
+  const position =
+    day.position && day.status !== "finished"
+      ? {
+          lat: day.position.lat,
+          lng: day.position.lng,
+          live: isToday && replayAt == null && (day.status === "moving" || day.status === "at_customer"),
+        }
+      : null;
+
+  const select = (id: string | null, scroll = false) => {
+    setSelectedId((cur) => (cur === id ? null : id));
+    if (id && scroll) {
+      listRef.current?.querySelector(`[data-row="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
   };
 
-  const selectStop = (stopId: string) => {
-    const index = Number(stopId.replace("visit-", ""));
-    const activity = day.activities.find((a) => a.visitIndex === index);
-    if (!activity) return;
-    setSelectedId(activity.id);
-    logRef.current
-      ?.querySelector(`[data-activity="${activity.id}"]`)
-      ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  const selectFromList = (id: string, lat: number, lng: number) => {
+    const wasSelected = selectedId === id;
+    select(id);
+    if (!wasSelected) setFocus((f) => ({ lat, lng, key: (f?.key ?? 0) + 1, soft: true }));
   };
 
   const status = STATUS_META[isFuture ? "not_started" : day.status];
   const { stats } = day;
-  const workSpan =
-    stats.firstActivity && stats.lastActivity ? stats.lastActivity - stats.firstActivity : 0;
+  const workSpan = stats.firstActivity && stats.lastActivity ? stats.lastActivity - stats.firstActivity : 0;
+
+  const card = selectedVisit
+    ? { lat: selectedVisit.lat, lng: selectedVisit.lng, from: selectedVisit.leg[0] ?? null, content: (
+          <VisitCard
+            visit={selectedVisit}
+            cameFrom={visits.find((v) => v.index === selectedVisit.index - 1)?.name ?? "المستودع"}
+            currency={currency}
+            repId={repId}
+          />
+        ),
+      }
+    : selectedPlanned
+      ? { lat: selectedPlanned.lat, lng: selectedPlanned.lng, content: <PlannedCard customer={selectedPlanned} depot={depot} finished={day.status === "finished"} /> }
+      : null;
 
   return (
     <div className="flex flex-col gap-4">
-      {/* Day picker + live status */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="icon-sm" onClick={() => goToDate(shiftDateKey(date, -1))} aria-label="اليوم السابق">
-            <ChevronRight />
-          </Button>
-          <div className="min-w-40 text-center">
-            <div className="text-sm font-semibold text-foreground">{formatDayLabel(date)}</div>
-            <div className="text-[11px] text-muted-foreground">
-              {isToday ? "اليوم" : isFuture ? "يوم قادم — الزبائن المخطط لهم" : "سجل يوم سابق"}
-            </div>
-          </div>
-          <Button
-            variant="outline"
-            size="icon-sm"
-            onClick={() => goToDate(shiftDateKey(date, 1))}
-            disabled={isToday}
-            aria-label="اليوم التالي"
-          >
-            <ChevronLeft />
-          </Button>
-          {!isToday && (
-            <Button variant="ghost" size="sm" onClick={() => goToDate(today)}>
-              رجوع لليوم
-            </Button>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium", status.className)}>
-            <span className={cn("size-1.5 rounded-full", status.dot, isToday && day.status !== "finished" && day.status !== "offline" && "animate-pulse")} />
-            {status.label}
-            {day.status === "at_customer" && day.currentCustomer ? ` · ${day.currentCustomer}` : ""}
-          </span>
-          {isToday && stats.lastActivity && replayAt == null && (
-            <span className="text-xs text-muted-foreground">آخر نشاط {formatAgo(stats.lastActivity, now)}</span>
-          )}
-        </div>
-      </div>
-
       {/* Day stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <StatTile icon="location_outlined" label="الزيارات" value={`${stats.visits}/${stats.planned}`} sub="من الزبائن المخطط لهم" progress={stats.planned ? stats.visits / stats.planned : 0} />
@@ -216,178 +295,296 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
         <StatTile icon="time_outlined" label="آخر نشاط" value={stats.lastActivity ? formatTime(stats.lastActivity) : "—"} sub={day.activities.length ? ACTIVITY_META[day.activities[day.activities.length - 1].type].label : "لا يوجد"} />
       </div>
 
-      {/* Log (start side) + map */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(300px,360px)_1fr]">
-        <div className="order-2 flex max-h-[620px] min-h-[320px] flex-col rounded-2xl border border-border bg-card lg:order-1">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <h3 className="text-sm font-semibold text-foreground">سجل النشاط</h3>
-            <span className="text-xs text-muted-foreground">{day.activities.length} حدث</span>
-          </div>
-          <div ref={logRef} className="flex-1 overflow-y-auto p-2">
-            {day.activities.length === 0 ? (
-              <p className="py-10 text-center text-sm text-muted-foreground">
-                {isFuture || day.status === "not_started" ? "لم يبدأ المندوب يومه بعد" : "لا يوجد نشاط لهذا اليوم"}
-              </p>
-            ) : (
-              <ol className="relative">
-                {day.activities.map((activity, i) => (
-                  <ActivityRow
-                    key={activity.id}
-                    activity={activity}
-                    currency={currency}
-                    selected={activity.id === selectedId}
-                    last={i === day.activities.length - 1}
-                    onClick={() => selectActivity(activity)}
-                  />
-                ))}
-              </ol>
-            )}
-
-            {day.unvisited.length > 0 && (
-              <div className="mt-2 border-t border-dashed border-border px-2 pt-3">
-                <div className="mb-2 text-xs font-semibold text-muted-foreground">
-                  {day.status === "finished" ? "لم تتم زيارتهم" : "بانتظار الزيارة"} ({day.unvisited.length})
-                </div>
-                <ul className="space-y-1">
-                  {day.unvisited.map((c) => (
-                    <li key={c.id}>
-                      <button
-                        type="button"
-                        onClick={() => setFocus((f) => ({ lat: c.lat, lng: c.lng, key: (f?.key ?? 0) + 1 }))}
-                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-right text-xs text-muted-foreground hover:bg-muted/50"
-                      >
-                        <span className="size-2.5 shrink-0 rounded-full border-2 border-slate-400 bg-white" />
-                        {c.name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+      <TkFrame className="lg:h-[700px]">
+        <TkSidebar className="max-h-[560px] lg:max-h-none">
+          {/* Day switcher, laid out like an app header */}
+          <div className="flex items-center justify-between gap-2 px-5 pt-5">
+            <button
+              type="button"
+              onClick={() => goToDate(shiftDateKey(date, -1))}
+              className="grid size-8 place-items-center rounded-lg text-[var(--tk-soft)] transition-colors hover:bg-[var(--tk-hover-strong)]"
+              aria-label="اليوم السابق"
+            >
+              <ChevronRight className="size-5" />
+            </button>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--tk-accent)] text-white">
+                <Navigation className="size-[18px] fill-current" />
+              </span>
+              <div className="min-w-0">
+                <div className="truncate text-[15px] font-semibold">{formatDayLabel(date)}</div>
+                {isToday ? (
+                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--tk-muted)]">
+                    <span className={cn("size-1.5 rounded-full", status.dot, day.status !== "finished" && day.status !== "offline" && "animate-pulse")} />
+                    {status.label}
+                    {stats.lastActivity && replayAt == null ? ` · ${formatAgo(stats.lastActivity, now)}` : ""}
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => goToDate(today)} className="text-[11px] text-[var(--tk-accent)] hover:underline">
+                    رجوع لليوم
+                  </button>
+                )}
               </div>
-            )}
+            </div>
+            <button
+              type="button"
+              onClick={() => goToDate(shiftDateKey(date, 1))}
+              disabled={isToday}
+              className="grid size-8 place-items-center rounded-lg text-[var(--tk-soft)] transition-colors hover:bg-[var(--tk-hover-strong)] disabled:opacity-25 disabled:hover:bg-transparent"
+              aria-label="اليوم التالي"
+            >
+              <ChevronLeft className="size-5" />
+            </button>
           </div>
-        </div>
 
-        <div className="order-1 relative h-[420px] overflow-hidden rounded-2xl border border-border lg:order-2 lg:h-[620px]">
+          <div className="space-y-4 px-5 pt-5 pb-4">
+            <TkSearch value={search} onChange={setSearch} placeholder="ابحث عن محل..." />
+            <div className="flex items-end gap-2">
+              <TkSelect label="عرض:" value={show} options={SHOW_OPTIONS} onChange={setShow} />
+              <TkSelect label="ترتيب:" value={sort} options={SORT_OPTIONS} onChange={setSort} />
+              <TkPillButton
+                label="إعادة عرض اليوم"
+                active={replayOpen}
+                onClick={() => {
+                  if (!canReplay) return;
+                  if (replayOpen) {
+                    setReplayOpen(false);
+                    setPlaying(false);
+                    setReplayAt(null);
+                  } else {
+                    setReplayOpen(true);
+                    setSelectedId(null);
+                    setReplayAt(sliderMin);
+                    setPlaying(true);
+                  }
+                }}
+              >
+                <Play className="size-3.5" />
+                إعادة
+              </TkPillButton>
+            </div>
+          </div>
+
+          <TkList listRef={listRef}>
+            {rows.visited.length === 0 && rows.pending.length === 0 && (
+              <li className="py-12 text-center text-sm text-[var(--tk-muted)]">
+                {isFuture || day.status === "not_started"
+                  ? "لم يبدأ المندوب يومه بعد"
+                  : day.status === "offline"
+                    ? "حساب المندوب غير مفعّل"
+                    : "لا يوجد محلات بهالفلتر"}
+              </li>
+            )}
+            {rows.visited.map((v, i) => (
+              <TkRow key={v.id} dataId={v.id} index={i} selected={v.id === selectedId} onClick={() => selectFromList(v.id, v.lat, v.lng)}>
+                <VisitRowBody visit={v} />
+              </TkRow>
+            ))}
+            {rows.pending.map((c, i) => (
+              <TkRow
+                key={c.id}
+                dataId={`planned-${c.id}`}
+                index={rows.visited.length + i}
+                muted
+                selected={`planned-${c.id}` === selectedId}
+                onClick={() => selectFromList(`planned-${c.id}`, c.lat, c.lng)}
+              >
+                <TkAvatar name={c.name} className="grayscale" />
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[15px]">{c.name}</div>
+                  <div className="truncate text-[11.5px] text-[var(--tk-muted)]">
+                    {depot ? `${distanceKm(depot, [c.lat, c.lng]).toFixed(1)} كم من المستودع • ` : ""}
+                    {day.status === "finished" ? "لم تتم زيارته" : "بانتظار الزيارة"}
+                  </div>
+                </div>
+                <TkHex title="لم تتم زيارته">—</TkHex>
+              </TkRow>
+            ))}
+          </TkList>
+        </TkSidebar>
+
+        <TkMapArea className="h-[460px] lg:h-auto">
           <TrackingMap
             className="absolute inset-0"
             center={center}
-            tracks={tracks}
-            stops={stops}
-            planned={day.unvisited}
+            pins={pins}
+            routes={routes}
+            position={position}
             depot={depot}
-            selectedStopId={selectedStopId}
-            onStopClick={selectStop}
+            selectedPinId={selectedId}
+            onPinClick={(id) => select(id, true)}
+            onMapClick={() => setSelectedId(null)}
+            card={card}
             fitKey={`${repId}|${date}`}
             focus={focus}
-          />
-
-          <MapLegend />
-
-          {canReplay && (
-            <div className="absolute inset-x-3 bottom-3 z-[1000] flex items-center gap-3 rounded-xl border border-border bg-card/95 px-3 py-2 shadow-lg backdrop-blur">
-              <Button
-                size="icon-sm"
-                onClick={() => {
-                  if (!playing && replayAt == null) setReplayAt(sliderMin);
-                  setPlaying((p) => !p);
-                }}
-                aria-label={playing ? "إيقاف" : "إعادة تشغيل اليوم"}
-              >
-                {playing ? <Pause /> : <Play />}
-              </Button>
-              <input
-                type="range"
-                dir="ltr"
-                min={sliderMin}
-                max={sliderMax}
-                step={60_000}
-                value={Math.min(viewAt, sliderMax)}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setPlaying(false);
-                  setReplayAt(v >= sliderMax ? null : v);
-                }}
-                className="h-1.5 flex-1 cursor-pointer accent-primary"
-                aria-label="إعادة عرض اليوم"
-              />
-              <span className="w-16 shrink-0 text-center text-xs font-semibold tabular-nums text-foreground">
-                {formatTime(Math.min(viewAt, sliderMax))}
+          >
+            {/* Live status, floating at the top of the map */}
+            <div className="pointer-events-none absolute top-4 right-4 z-[1000] flex items-center gap-2" dir="rtl">
+              <span className="flex items-center gap-2 rounded-full border border-[var(--tk-line)] bg-[var(--tk-surface)] px-3 py-1.5 text-xs text-[var(--tk-fg)] shadow-lg backdrop-blur">
+                <span className={cn("size-2 rounded-full", status.dot, isToday && position?.live && "animate-pulse")} />
+                {status.label}
+                {day.status === "at_customer" && day.currentCustomer ? ` · ${day.currentCustomer}` : ""}
               </span>
-              {replayAt != null && (
-                <Button
-                  variant="outline"
-                  size="sm"
+              {stats.distanceKm > 0 && (
+                <span className="rounded-full border border-[var(--tk-line)] bg-[var(--tk-surface)] px-3 py-1.5 text-xs text-[var(--tk-soft)] tabular-nums shadow-lg backdrop-blur">
+                  {stats.distanceKm} كم اليوم
+                </span>
+              )}
+            </div>
+
+            {replayOpen && canReplay && (
+              <div
+                dir="rtl"
+                className="absolute inset-x-4 bottom-4 z-[1000] flex items-center gap-3 rounded-2xl border border-[var(--tk-line)] bg-[var(--tk-surface)] px-3 py-2.5 text-[var(--tk-fg)] shadow-2xl backdrop-blur"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!playing && replayAt == null) setReplayAt(sliderMin);
+                    setPlaying((p) => !p);
+                  }}
+                  className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--tk-accent)] text-white"
+                  aria-label={playing ? "إيقاف" : "تشغيل"}
+                >
+                  {playing ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
+                </button>
+                <input
+                  type="range"
+                  dir="ltr"
+                  min={sliderMin}
+                  max={sliderMax}
+                  step={60_000}
+                  value={Math.min(viewAt, sliderMax)}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setPlaying(false);
+                    setReplayAt(v >= sliderMax ? null : v);
+                  }}
+                  className="tk-range h-1.5 flex-1 cursor-pointer"
+                  aria-label="إعادة عرض اليوم"
+                />
+                <span className="w-16 shrink-0 text-center text-xs font-semibold tabular-nums">
+                  {formatTime(Math.min(viewAt, sliderMax))}
+                </span>
+                <button
+                  type="button"
                   onClick={() => {
                     setPlaying(false);
                     setReplayAt(null);
+                    setReplayOpen(false);
                   }}
+                  className="h-8 shrink-0 rounded-lg border border-[var(--tk-line)] px-3 text-xs hover:border-[var(--tk-line-strong)]"
                 >
                   {isToday ? "مباشر" : "كامل اليوم"}
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
+                </button>
+              </div>
+            )}
+          </TrackingMap>
+        </TkMapArea>
+      </TkFrame>
     </div>
   );
 }
 
-function ActivityRow({
-  activity,
-  currency,
-  selected,
-  last,
-  onClick,
-}: {
-  activity: RepActivity;
-  currency: string;
-  selected: boolean;
-  last: boolean;
-  onClick: () => void;
-}) {
-  const meta = ACTIVITY_META[activity.type];
+/** Short row labels — the full ones don't fit next to an amount. */
+const SHORT_LABEL: Record<RepActivityType, string> = {
+  day_start: "بداية الدوام",
+  invoice: "فاتورة",
+  collection: "تحصيل",
+  return: "مرتجع",
+  new_customer: "زبون جديد",
+  no_sale: "بدون بيع",
+  day_end: "نهاية الدوام",
+};
+
+function VisitRowBody({ visit }: { visit: Visit }) {
+  const amount = visitAmount(visit);
   return (
-    <li data-activity={activity.id} className="relative">
-      {!last && <span className="absolute top-9 bottom-0 right-[22px] w-px bg-border" />}
-      <button
-        type="button"
-        onClick={onClick}
-        className={cn(
-          "flex w-full items-start gap-3 rounded-xl px-2 py-2 text-right transition-colors",
-          selected ? "bg-primary/8 ring-1 ring-primary/30" : "hover:bg-muted/50",
-        )}
-      >
-        <span className={cn("relative z-10 grid size-7 shrink-0 place-items-center rounded-full", meta.soft)}>
-          <IconRenderer name={ACTIVITY_ICON[activity.type]} className="size-3.5" />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-center justify-between gap-2">
-            <span className="truncate text-sm font-medium text-foreground">
-              {activity.visitIndex != null && (
-                <span className="ml-1 text-xs text-muted-foreground">{activity.visitIndex}.</span>
-              )}
-              {meta.label}
-            </span>
-            <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatTime(activity.time)}</span>
+    <>
+      <TkAvatar name={visit.name} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[15px]">{visit.name}</div>
+        <div className="truncate text-[11.5px] text-[var(--tk-muted)]">
+          <span className="tabular-nums">{formatTime(visit.arrivedAt)}</span>
+          {" • "}
+          <span style={{ color: ACTIVITY_TONE[visit.main.type] ?? "var(--tk-accent)" }}>
+            {SHORT_LABEL[visit.main.type]}
+            {amount ? ` ${amount.toLocaleString("en")}` : ""}
           </span>
-          {activity.customerName && (
-            <span className="block truncate text-xs text-muted-foreground">{activity.customerName}</span>
-          )}
-          {(activity.amount || activity.note) && (
-            <span className="mt-0.5 flex items-center gap-2 text-xs">
-              {activity.amount ? (
-                <span className="font-semibold" style={{ color: meta.color }}>
-                  {activity.type === "return" ? "−" : ""}
-                  {formatMoney(activity.amount, currency)}
-                </span>
-              ) : null}
-              {activity.note && <span className="truncate text-muted-foreground">{activity.note}</span>}
-            </span>
-          )}
-        </span>
-      </button>
-    </li>
+        </div>
+      </div>
+      <div className="flex shrink-0 flex-col items-center gap-1.5">
+        <TkHex title={`الزيارة رقم ${visit.index}`}>{visit.index}</TkHex>
+        <span className="text-[10px] text-[var(--tk-muted)] tabular-nums">{visit.legKm} كم</span>
+      </div>
+    </>
+  );
+}
+
+function VisitCard({
+  visit,
+  cameFrom,
+  currency,
+  repId,
+}: {
+  visit: Visit;
+  cameFrom: string;
+  currency: string;
+  repId: string;
+}) {
+  const meta = ACTIVITY_META[visit.main.type];
+  const amount = visitAmount(visit);
+  const last = visit.items[visit.items.length - 1];
+  return (
+    <TkCard
+      name={visit.name}
+      sub={
+        <>
+          الزيارة {visit.index} •{" "}
+          <span style={{ color: ACTIVITY_TONE[visit.main.type] ?? "var(--tk-accent)" }}>وصل {formatTime(visit.arrivedAt)}</span>
+        </>
+      }
+      stats={[
+        { icon: <Receipt />, text: amount ? compactNumber(amount) : "—", tone: ACTIVITY_TONE[visit.main.type] },
+        { icon: <Clock />, text: formatDuration(Math.max(last.time - visit.arrivedAt, 0) + 2 * 60_000) },
+        { icon: <Route />, text: `${visit.legKm} كم` },
+      ]}
+      title={amount ? `${meta.label} بقيمة ${formatMoney(amount, currency)}` : meta.label}
+      lines={[
+        `جاي من ${cameFrom} — ${visit.legKm} كم`,
+        // One activity is already the title; list them only when there's more than one.
+        ...(visit.items.length > 1
+          ? visit.items.map((a) => (
+              <>
+                <span className="tabular-nums">{formatTime(a.time)}</span> · {ACTIVITY_META[a.type].label}
+                {a.amount ? ` ${formatMoney(a.amount, currency)}` : ""}
+              </>
+            ))
+          : []),
+        ...visit.items.filter((a) => a.note).map((a) => a.note!),
+      ]}
+      action={
+        <Link href={`/reps/detail?id=${repId}&tab=invoices`} className={tkCardButton}>
+          فواتير المندوب
+        </Link>
+      }
+    />
+  );
+}
+
+function PlannedCard({ customer, depot, finished }: { customer: PlannedCustomer; depot: LatLng | null; finished: boolean }) {
+  return (
+    <TkCard
+      name={customer.name}
+      sub={finished ? "لم تتم زيارته بهاليوم" : "بانتظار الزيارة"}
+      stats={[
+        { icon: <Clock />, text: finished ? "فاتت" : "لاحقاً", tone: finished ? "var(--tk-red)" : undefined },
+        { icon: <Route />, text: depot ? `${distanceKm(depot, [customer.lat, customer.lng]).toFixed(1)} كم` : "—" },
+      ]}
+      title={finished ? "ما انزار اليوم" : "ضمن خط سير اليوم"}
+      lines={[finished ? "كان مخطط يزوره المندوب حسب أيام عمله" : "رح يبيّن هون أول ما يوصله المندوب"]}
+    />
   );
 }
 
@@ -418,25 +615,6 @@ function StatTile({
       ) : (
         <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{sub}</div>
       )}
-    </div>
-  );
-}
-
-const LEGEND: RepActivityType[] = ["invoice", "collection", "return", "no_sale"];
-
-function MapLegend() {
-  return (
-    <div className="absolute top-3 right-3 z-[1000] hidden flex-col gap-1 rounded-xl border border-border bg-card/95 px-3 py-2 text-[11px] shadow-sm backdrop-blur sm:flex">
-      {LEGEND.map((type) => (
-        <span key={type} className="flex items-center gap-1.5 text-foreground">
-          <span className="size-2.5 rounded-full" style={{ background: ACTIVITY_META[type].color }} />
-          {ACTIVITY_META[type].label}
-        </span>
-      ))}
-      <span className="flex items-center gap-1.5 text-muted-foreground">
-        <span className="size-2.5 rounded-full border-2 border-slate-400 bg-white" />
-        لم تتم زيارته
-      </span>
     </div>
   );
 }
