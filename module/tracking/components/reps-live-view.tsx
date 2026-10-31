@@ -8,11 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { useRepsQuery } from "@/module/reps/hooks";
-import { buildRepDay } from "../lib/dummy-day";
+import { buildRepDay, dayStops } from "../lib/dummy-day";
 import { ACTIVITY_META, STATUS_META, formatAgo, formatTime, toDateKey } from "../lib/geo";
 import { ACTIVITY_PIN_ICON, ACTIVITY_TONE, PIN_ICONS } from "../lib/pin-icons";
 import { SHORT_LABEL, buildVisits, visitAmount } from "../lib/visits";
-import { useCompanyCurrency, useNow, useTrackingCenter } from "../hooks";
+import { useCompanyCurrency, useCustomersByRep, useNow, useRoadLegsMany, useTrackingCenter } from "../hooks";
 import type { LatLng, RepActivityType, RepDaySnapshot, RepLiveStatus } from "../types";
 import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
 import {
@@ -87,17 +87,42 @@ function useRepsLive() {
   const { data, isLoading } = useRepsQuery();
   const date = toDateKey(new Date(now));
   const reps = data?.data?.reps;
+  const customersByRep = useCustomersByRep();
+
+  // Each rep's shops are their real customers; once known, fetch real streets for every rep's drive.
+  const stopsList = useMemo(
+    () =>
+      (reps ?? []).map((rep) =>
+        customersByRep && rep.is_active
+          ? dayStops({ repId: String(rep.id), date, center, customers: customersByRep[String(rep.id)] ?? [] })
+          : null,
+      ),
+    [reps, customersByRep, date, center],
+  );
+  const roadsList = useRoadLegsMany(stopsList);
+  // useQueries hands back a fresh array every render; key on what actually loaded.
+  const roadsKey = roadsList.map((r) => (r ? "1" : "0")).join("");
 
   const rows: RepRow[] = useMemo(
     () =>
       (reps ?? [])
-        .map((rep) => ({
+        .map((rep, i) => ({
           id: String(rep.id),
           name: rep.name,
-          day: buildRepDay({ repId: String(rep.id), date, center, at: now, active: rep.is_active }),
+          day: buildRepDay({
+            repId: String(rep.id),
+            date,
+            center,
+            at: now,
+            active: rep.is_active,
+            customers: customersByRep?.[String(rep.id)],
+            roads: roadsList[i],
+          }),
         }))
         .sort((a, b) => STATUS_ORDER[a.day.status] - STATUS_ORDER[b.day.status]),
-    [reps, date, center, now],
+    // roadsList is tracked through roadsKey.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [reps, date, center, now, customersByRep, roadsKey],
   );
 
   return { rows, now, center, date, isLoading };
@@ -129,7 +154,7 @@ function LiveDot() {
 
 function repSubline(row: RepRow, now: number) {
   const { day } = row;
-  if (day.status === "at_customer" && day.currentCustomer) return `عند ${day.currentCustomer}`;
+  if (day.status === "at_customer" && day.currentCustomer) return `لدى ${day.currentCustomer}`;
   const lastWork = [...day.activities].reverse().find((a) => a.type !== "day_end" || day.status === "finished");
   if (lastWork)
     return `${ACTIVITY_META[lastWork.type].label}${lastWork.customerName ? ` · ${lastWork.customerName}` : ""} · ${formatAgo(lastWork.time, now)}`;
@@ -321,7 +346,7 @@ export function RepsLiveView() {
                         </li>
                       ))
                     : visibleRows.length === 0
-                      ? <li className="py-12 text-center text-sm text-muted-foreground">{rows.length ? "لا يوجد مناديب بهالفلتر" : "لا يوجد مناديب بعد"}</li>
+                      ? <li className="py-12 text-center text-sm text-muted-foreground">{rows.length ? "لا يوجد مناديب مطابقون لهذا الفلتر" : "لا يوجد مناديب بعد"}</li>
                       : visibleRows.map((row, i) => (
                           <TkRow key={row.id} dataId={row.id} index={i} muted={!row.day.position} onClick={() => openRep(row.id)}>
                             <RepRowBody row={row} now={now} />
@@ -413,11 +438,11 @@ function RepDetail({
   const status = STATUS_META[day.status];
   const title =
     day.status === "at_customer" && day.currentCustomer
-      ? `هلّق عند ${day.currentCustomer}`
+      ? `حالياً لدى ${day.currentCustomer}`
       : day.status === "moving"
-        ? `بالطريق للزيارة رقم ${day.stats.visits + 1}`
+        ? `في الطريق إلى الزيارة رقم ${day.stats.visits + 1}`
         : day.status === "finished"
-          ? "خلّص يومه ورجع عالمستودع"
+          ? "أنهى يومه وعاد إلى المستودع"
           : status.label;
   return (
     <TkDetail
@@ -426,6 +451,7 @@ function RepDetail({
       onCollapse={onCollapse}
       backLabel="كل المناديب"
       name={row.name}
+      nameHref={`/reps/detail?id=${row.id}`}
       sub={
         <>
           <span className={cn(inField(day.status) && "text-[var(--tk-accent)]")}>{status.label}</span>
@@ -445,7 +471,7 @@ function RepDetail({
       }
     >
       {visits.length === 0 ? (
-        <p className="py-8 text-center text-sm text-muted-foreground">لا يوجد زيارات اليوم</p>
+        <p className="py-8 text-center text-sm text-muted-foreground">لا توجد زيارات اليوم</p>
       ) : (
         <TkTimeline
           items={visits.map((v) => {
@@ -495,7 +521,7 @@ export function RepsTrackingShortcut() {
         <div className="truncate text-xs text-muted-foreground">
           {isLoading
             ? "…"
-            : `${counts.field} بالميدان الآن · ${counts.visits}/${counts.planned} زيارة اليوم · وين كل مندوب وشو عمل`}
+            : `${counts.field} بالميدان الآن · ${counts.visits}/${counts.planned} زيارة اليوم · موقع كل مندوب وما أنجزه`}
         </div>
       </div>
       <span className="hidden shrink-0 items-center gap-1 text-sm font-medium text-primary sm:flex">

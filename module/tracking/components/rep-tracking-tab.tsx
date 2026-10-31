@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Clock,
   Flag,
+  LocateFixed,
   Navigation,
   Pause,
   Play,
@@ -20,7 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
-import { buildRepDay } from "../lib/dummy-day";
+import { buildRepDay, dayStops } from "../lib/dummy-day";
 import {
   ACTIVITY_META,
   STATUS_META,
@@ -34,7 +35,8 @@ import {
 } from "../lib/geo";
 import { ACTIVITY_PIN_ICON, ACTIVITY_TONE, PIN_ICONS } from "../lib/pin-icons";
 import { SHORT_LABEL, buildVisits, visitAmount, type Visit } from "../lib/visits";
-import { useCompanyCurrency, useNow, useTrackingCenter } from "../hooks";
+import { bearing, pointAt, turnToward } from "../lib/replay";
+import { useCompanyCurrency, useNow, useRepCustomers, useRoadLegs, useTrackingCenter } from "../hooks";
 import type { LatLng, PlannedCustomer, RepActivityType } from "../types";
 import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
 import {
@@ -58,7 +60,9 @@ import {
   useFillHeight,
 } from "./tracker-ui";
 
-const REPLAY_STEP_MS = 2 * 60_000;
+/** Replay pace at ×1: 4 minutes of the day per second, so a full day plays in about a minute. */
+const SIM_SPEED = (4 * 60_000) / 1000;
+const SPEEDS = [1, 2, 4] as const;
 
 const ACTIVITY_ICON: Record<RepActivityType, ReactNode> = {
   day_start: <Flag />,
@@ -80,7 +84,7 @@ const SHOW_OPTIONS: { value: ShowFilter; label: string }[] = [
   { value: "invoice", label: "فيها فواتير" },
   { value: "collection", label: "فيها تحصيل" },
   { value: "return", label: "فيها مرتجع" },
-  { value: "no_sale", label: "بدون بيع" },
+  { value: "no_sale", label: "دون بيع" },
 ];
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
@@ -100,6 +104,10 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   const [replayOpen, setReplayOpen] = useState(false);
   const [replayAt, setReplayAt] = useState<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [simAt, setSimAt] = useState<number | null>(null);
+  const [car, setCar] = useState<{ lat: number; lng: number; heading: number; tailFrom: LatLng } | null>(null);
+  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
+  const [follow, setFollow] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [show, setShow] = useState<ShowFilter>("all");
@@ -113,42 +121,94 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   // Live edge: right now for today, the whole day for past days.
   const liveAt = isToday ? now : isFuture ? 0 : Number.MAX_SAFE_INTEGER;
 
+  // The rep's real customers are the day's shops; once they're known, fetch real streets for the drive.
+  const customers = useRepCustomers(repId);
+  const stops = useMemo(
+    () => (customers && isActive && !isFuture ? dayStops({ repId, date, center, customers }) : null),
+    [customers, isActive, isFuture, repId, date, center],
+  );
+  const roads = useRoadLegs(stops);
+
   const live = useMemo(
-    () => buildRepDay({ repId, date, center, at: liveAt, active: isActive }),
-    [repId, date, center, liveAt, isActive],
+    () => buildRepDay({ repId, date, center, at: liveAt, active: isActive, customers, roads }),
+    [repId, date, center, liveAt, isActive, customers, roads],
   );
   const viewAt = replayAt ?? liveAt;
   const day = useMemo(
-    () => (replayAt == null ? live : buildRepDay({ repId, date, center, at: viewAt, active: isActive })),
-    [live, replayAt, repId, date, center, viewAt, isActive],
+    () =>
+      replayAt == null ? live : buildRepDay({ repId, date, center, at: viewAt, active: isActive, customers, roads }),
+    [live, replayAt, repId, date, center, viewAt, isActive, customers, roads],
   );
 
   const sliderMin = live.dayStart ?? 0;
   const sliderMax = Math.min(live.dayEnd ?? 0, liveAt);
   const canReplay = live.activities.length > 0 && sliderMax > sliderMin;
 
-  const goToDate = (next: string) => {
-    setDate(next);
-    setReplayAt(null);
+  // --- Replay: a car drives the day's GPS path, frame by frame ---
+  const pathRef = useRef(live.path);
+  const simRef = useRef<number | null>(null);
+  const headingRef = useRef(0);
+  useEffect(() => {
+    pathRef.current = live.path;
+  }, [live.path]);
+
+  /** Put the car at time `t`: smooth position + heading every frame, the rest of the map once a minute. */
+  const seek = (t: number) => {
+    simRef.current = t;
+    setSimAt(t);
+    // Same minute → same value → React skips the re-render of shops, list and line.
+    setReplayAt(Math.floor(t / 60_000) * 60_000);
+    const p = pointAt(pathRef.current, t);
+    if (!p) return;
+    if (p.heading != null) headingRef.current = turnToward(headingRef.current, p.heading, 0.3);
+    setCar({ lat: p.at[0], lng: p.at[1], heading: headingRef.current, tailFrom: p.lastFix });
+  };
+
+  const stopReplay = () => {
     setPlaying(false);
     setReplayOpen(false);
+    setReplayAt(null);
+    setSimAt(null);
+    setCar(null);
+    simRef.current = null;
+  };
+
+  const startReplay = () => {
     setSelectedId(null);
+    setReplayOpen(true);
+    setFollow(true);
+    const p = pointAt(pathRef.current, sliderMin + 60_000);
+    headingRef.current = p?.heading ?? 0;
+    seek(sliderMin);
+    setPlaying(true);
   };
 
   useEffect(() => {
     if (!playing) return;
-    const id = setInterval(() => {
-      setReplayAt((t) => {
-        const next = (t ?? sliderMin) + REPLAY_STEP_MS;
-        if (next >= sliderMax) {
-          setPlaying(false);
-          return null;
-        }
-        return next;
-      });
-    }, 120);
-    return () => clearInterval(id);
-  }, [playing, sliderMin, sliderMax]);
+    let raf = 0;
+    let last = performance.now();
+    const tick = (ts: number) => {
+      const next = (simRef.current ?? sliderMin) + (ts - last) * speed * SIM_SPEED;
+      last = ts;
+      if (next >= sliderMax) {
+        seek(sliderMax);
+        setPlaying(false);
+        return;
+      }
+      seek(next);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // seek only touches refs and setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, speed, sliderMin, sliderMax]);
+
+  const goToDate = (next: string) => {
+    setDate(next);
+    stopReplay();
+    setSelectedId(null);
+  };
 
   const visits = useMemo(() => buildVisits(day.activities, day.path), [day.activities, day.path]);
   const depot = live.activities[0]?.type === "day_start" ? ([live.activities[0].lat, live.activities[0].lng] as LatLng) : null;
@@ -198,11 +258,19 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
     return [...plannedPins, ...visitPins];
   }, [visits, day.unvisited, selectedId]);
 
-  const routes: MapRoute[] = useMemo(() => {
-    const list: MapRoute[] = [{ id: "trail", variant: "trail", points: day.path.map((p) => [p.lat, p.lng] as LatLng) }];
+  const routes = useMemo<MapRoute[]>(() => {
+    const toLatLngs = (path: typeof day.path) => path.map((p) => [p.lat, p.lng] as LatLng);
+    // Replay: the whole day dotted ahead, the road driven so far in solid blue behind the car.
+    if (replayOpen) {
+      return [
+        { id: "trail", variant: "trail", points: toLatLngs(live.path) },
+        { id: `replay|${date}`, variant: "route", points: toLatLngs(day.path) },
+      ];
+    }
+    const list: MapRoute[] = [{ id: "trail", variant: "trail", points: toLatLngs(day.path) }];
     if (selectedVisit) list.push({ id: `${date}|${selectedVisit.id}`, variant: "route", points: selectedVisit.leg });
     return list;
-  }, [day.path, selectedVisit, date]);
+  }, [replayOpen, live.path, day.path, selectedVisit, date]);
 
   // Opening a shop zooms to the road that led to it; closing goes back to the whole day.
   const view = selectedVisit
@@ -211,16 +279,26 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
       ? { key: `p|${selectedPlanned.id}`, points: [[selectedPlanned.lat, selectedPlanned.lng] as LatLng] }
       : { key: `all|${date}|${repId}`, points: [...day.path.map((p) => [p.lat, p.lng] as LatLng), ...day.unvisited.map((c) => [c.lat, c.lng] as LatLng)] };
 
-  const position =
-    day.position && day.status !== "finished"
-      ? {
-          lat: day.position.lat,
-          lng: day.position.lng,
-          live: isToday && replayAt == null && (day.status === "moving" || day.status === "at_customer"),
-        }
-      : null;
+  // Live car (outside replay). Memoized so a re-render doesn't redraw the whole map.
+  const livePos = day.position;
+  const liveMoving = isToday && replayAt == null && (day.status === "moving" || day.status === "at_customer");
+  const position = useMemo(() => {
+    if (replayOpen || !livePos || day.status === "finished") return null;
+    const prev = day.path[day.path.length - 2];
+    return {
+      lat: livePos.lat,
+      lng: livePos.lng,
+      live: liveMoving,
+      heading: prev ? bearing([prev.lat, prev.lng], [livePos.lat, livePos.lng]) : 0,
+    };
+  }, [replayOpen, livePos, day.status, day.path, liveMoving]);
 
-  const open = (id: string) => setSelectedId((cur) => (cur === id ? null : id));
+  const vehicle = car ? { ...car, follow } : null;
+
+  const open = (id: string) => {
+    setFollow(false);
+    setSelectedId((cur) => (cur === id ? null : id));
+  };
 
   const closeDetail = () => {
     const id = selectedId;
@@ -285,7 +363,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                       </div>
                     ) : (
                       <button type="button" onClick={() => goToDate(today)} className="text-[11px] text-primary hover:underline">
-                        رجوع لليوم
+                        العودة إلى اليوم
                       </button>
                     )}
                   </div>
@@ -315,15 +393,8 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                     active={replayOpen}
                     onClick={() => {
                       if (!canReplay) return;
-                      if (replayOpen) {
-                        setReplayOpen(false);
-                        setPlaying(false);
-                        setReplayAt(null);
-                      } else {
-                        setReplayOpen(true);
-                        setReplayAt(sliderMin);
-                        setPlaying(true);
-                      }
+                      if (replayOpen) stopReplay();
+                      else startReplay();
                     }}
                   >
                     <Play className="size-3.5" />
@@ -339,7 +410,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                       ? "لم يبدأ المندوب يومه بعد"
                       : day.status === "offline"
                         ? "حساب المندوب غير مفعّل"
-                        : "لا يوجد محلات بهالفلتر"}
+                        : "لا توجد محلات مطابقة لهذا الفلتر"}
                   </li>
                 )}
                 {rows.visited.map((v, i) => (
@@ -372,6 +443,8 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
             pins={pins}
             routes={routes}
             position={position}
+            vehicle={vehicle}
+            onFollowBreak={() => setFollow(false)}
             depot={depot}
             selectedPinId={selectedId}
             onPinClick={open}
@@ -399,13 +472,15 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
             {replayOpen && canReplay && (
               <div
                 dir="rtl"
-                className="absolute inset-x-4 bottom-4 z-[1000] flex items-center gap-3 rounded-2xl border border-border bg-card/95 px-3 py-2.5 text-foreground shadow-xl backdrop-blur"
+                // Starts past the zoom buttons on the left.
+                className="absolute right-4 bottom-4 left-20 z-[1000] flex items-center gap-2.5 rounded-2xl border border-border bg-card/95 px-3 py-2.5 text-foreground shadow-xl backdrop-blur"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
                   type="button"
                   onClick={() => {
-                    if (!playing && replayAt == null) setReplayAt(sliderMin);
+                    // Finished? Play again from the morning.
+                    if (!playing && (simRef.current ?? sliderMax) >= sliderMax) seek(sliderMin);
                     setPlaying((p) => !p);
                   }}
                   className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-white"
@@ -418,26 +493,41 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                   dir="ltr"
                   min={sliderMin}
                   max={sliderMax}
-                  step={60_000}
-                  value={Math.min(viewAt, sliderMax)}
+                  step={15_000}
+                  value={Math.min(simAt ?? sliderMin, sliderMax)}
                   onChange={(e) => {
-                    const v = Number(e.target.value);
                     setPlaying(false);
-                    setReplayAt(v >= sliderMax ? null : v);
+                    seek(Number(e.target.value));
                   }}
-                  className="h-1.5 flex-1 cursor-pointer accent-primary"
+                  className="h-1.5 min-w-0 flex-1 cursor-pointer accent-primary"
                   aria-label="إعادة عرض اليوم"
                 />
-                <span className="w-16 shrink-0 text-center text-xs font-semibold tabular-nums">
-                  {formatTime(Math.min(viewAt, sliderMax))}
+                <span className="w-14 shrink-0 text-center text-xs font-semibold tabular-nums">
+                  {formatTime(Math.min(simAt ?? sliderMin, sliderMax))}
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    setPlaying(false);
-                    setReplayAt(null);
-                    setReplayOpen(false);
-                  }}
+                  onClick={() => setSpeed((s) => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length])}
+                  className="h-8 w-11 shrink-0 rounded-lg border border-border text-xs font-semibold tabular-nums hover:border-primary/40 hover:text-primary"
+                  title="سرعة العرض"
+                >
+                  ×{speed}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFollow((f) => !f)}
+                  className={cn(
+                    "grid size-8 shrink-0 place-items-center rounded-lg border transition-colors",
+                    follow ? "border-primary bg-primary text-white" : "border-border hover:border-primary/40 hover:text-primary",
+                  )}
+                  aria-label="متابعة السيارة"
+                  title={follow ? "الكاميرا تتابع السيارة" : "متابعة السيارة بالكاميرا"}
+                >
+                  <LocateFixed className="size-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={stopReplay}
                   className="h-8 shrink-0 rounded-lg border border-border px-3 text-xs hover:border-primary/40 hover:text-primary"
                 >
                   {isToday ? "مباشر" : "كامل اليوم"}
@@ -504,10 +594,11 @@ function VisitDetail({
       onCollapse={onCollapse}
       backLabel="كل المحلات"
       name={visit.name}
+      nameHref={visit.customerId ? `/customers/detail?id=${visit.customerId}` : undefined}
       sub={
         <>
           الزيارة رقم {visit.index} •{" "}
-          <span style={{ color: toneOf(visit.main.type) }}>وصل {formatTime(visit.arrivedAt)}</span>
+          <span style={{ color: toneOf(visit.main.type) }}>الوصول {formatTime(visit.arrivedAt)}</span>
         </>
       }
       stats={[
@@ -549,8 +640,8 @@ function VisitDetail({
           {
             key: "from",
             icon: cameFrom === "المستودع" ? <Warehouse /> : <Route />,
-            title: `جاي من ${cameFrom}`,
-            meta: `${visit.legKm} كم بالطريق`,
+            title: `قادماً من ${cameFrom}`,
+            meta: `مسافة الطريق ${visit.legKm} كم`,
           },
           ...visit.items.map((a) => ({
             key: a.id,
@@ -596,18 +687,19 @@ function PlannedDetail({
       onCollapse={onCollapse}
       backLabel="كل المحلات"
       name={customer.name}
-      sub={finished ? "لم تتم زيارته بهاليوم" : "بانتظار الزيارة"}
+      nameHref={customer.customerId ? `/customers/detail?id=${customer.customerId}` : undefined}
+      sub={finished ? "لم تتم زيارته في هذا اليوم" : "بانتظار الزيارة"}
       stats={[
-        { icon: <Clock />, label: "الحالة", value: finished ? "فاتت" : "لاحقاً", tone: finished ? "var(--tk-red)" : undefined },
+        { icon: <Clock />, label: "الحالة", value: finished ? "لم يُزر" : "قيد الانتظار", tone: finished ? "var(--tk-red)" : undefined },
         { icon: <Warehouse />, label: "من المستودع", value: depot ? `${distanceKm(depot, [customer.lat, customer.lng]).toFixed(1)} كم` : "—" },
         { icon: <Route />, label: "خط السير", value: "اليوم" },
       ]}
-      title={finished ? "ما انزار اليوم" : "ضمن خط سير اليوم"}
+      title={finished ? "لم تتم زيارته اليوم" : "ضمن خط سير اليوم"}
     >
       <p className="pt-1 text-sm leading-relaxed text-muted-foreground">
         {finished
-          ? "كان مخطط يزوره المندوب حسب أيام عمله، بس اليوم خلص بدون زيارة."
-          : "رح تبيّن هون تفاصيل الزيارة أول ما يوصله المندوب."}
+          ? "كان مدرجاً في خط سير المندوب وفق أيام عمله، إلا أن اليوم انتهى دون زيارته."
+          : "ستظهر تفاصيل الزيارة هنا فور وصول المندوب إليه."}
       </p>
     </TkDetail>
   );

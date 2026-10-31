@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowRight, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, ExternalLink, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { cn } from "@/lib/utils";
 
@@ -284,6 +285,7 @@ export function TkDetail({
   onCollapse,
   backLabel,
   name,
+  nameHref,
   sub,
   stats,
   title,
@@ -294,6 +296,8 @@ export function TkDetail({
   onCollapse?: () => void;
   backLabel: string;
   name: string;
+  /** Makes the name a link (customer / rep page). */
+  nameHref?: string;
   sub: ReactNode;
   stats: { icon: ReactNode; label: string; value: string; tone?: string }[];
   title?: ReactNode;
@@ -317,7 +321,18 @@ export function TkDetail({
         <div className="mt-4 flex items-center gap-3">
           <TkAvatar name={name} size={52} />
           <div className="min-w-0">
-            <div className="truncate text-lg font-semibold">{name}</div>
+            {nameHref ? (
+              <Link
+                href={nameHref}
+                className="group flex items-center gap-1.5 text-lg font-semibold text-foreground no-underline hover:text-primary hover:no-underline"
+                title="فتح الصفحة"
+              >
+                <span className="truncate">{name}</span>
+                <ExternalLink className="size-3.5 shrink-0 opacity-50 transition-opacity group-hover:opacity-100" />
+              </Link>
+            ) : (
+              <div className="truncate text-lg font-semibold">{name}</div>
+            )}
             <div className="truncate text-xs text-muted-foreground">{sub}</div>
           </div>
         </div>

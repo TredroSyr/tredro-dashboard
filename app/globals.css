@@ -722,27 +722,34 @@
   opacity: 1;
 }
 
-/* Rep's current spot */
-.tm-me {
+/* The rep's car: a disc with a top-down car that turns with the road. */
+.tm-car {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   transform: translate(-50%, -50%);
+  pointer-events: none;
 }
 
-.tm-me__body {
+.tm-car__disc {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
-  background: var(--tk-accent);
-  color: #fff;
-  border: 3px solid var(--tk-bg);
-  box-shadow: 0 0 18px var(--tk-accent-soft);
-  display: grid;
-  place-items: center;
+  background: var(--card);
+  border: 2px solid var(--tk-accent);
+  box-shadow: 0 0 0 4px var(--tk-accent-soft), var(--tk-pin-shadow);
 }
 
-.tm-me__pulse {
+.tm-car__body {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--tk-accent);
+  will-change: transform;
+}
+
+.tm-car__pulse {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
@@ -750,7 +757,7 @@
   opacity: 0;
 }
 
-.tm-me--live .tm-me__pulse {
+.tm-car--live .tm-car__pulse {
   animation: tm-pulse 1.8s ease-out infinite;
 }
 

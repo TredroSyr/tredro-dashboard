@@ -96,13 +96,13 @@ export const ACTIVITY_META: Record<
   collection: { label: "تحصيل دفعة", color: "#059669", soft: "bg-emerald-600/10 text-emerald-700" },
   return: { label: "مرتجع", color: "#dc2626", soft: "bg-red-600/10 text-red-600" },
   new_customer: { label: "زبون جديد", color: "#7c3aed", soft: "bg-violet-600/10 text-violet-700" },
-  no_sale: { label: "زيارة بدون بيع", color: "#d97706", soft: "bg-amber-500/15 text-amber-700" },
+  no_sale: { label: "زيارة دون بيع", color: "#d97706", soft: "bg-amber-500/15 text-amber-700" },
   day_end: { label: "نهاية الدوام", color: "#475569", soft: "bg-slate-500/10 text-slate-600" },
 };
 
 export const STATUS_META: Record<RepLiveStatus, { label: string; className: string; dot: string }> = {
-  moving: { label: "بالطريق", className: "bg-blue-600/10 text-blue-700", dot: "bg-blue-600" },
-  at_customer: { label: "عند زبون", className: "bg-emerald-600/10 text-emerald-700", dot: "bg-emerald-600" },
+  moving: { label: "في الطريق", className: "bg-blue-600/10 text-blue-700", dot: "bg-blue-600" },
+  at_customer: { label: "لدى زبون", className: "bg-emerald-600/10 text-emerald-700", dot: "bg-emerald-600" },
   finished: { label: "أنهى يومه", className: "bg-slate-500/10 text-slate-600", dot: "bg-slate-500" },
   not_started: { label: "لم يبدأ بعد", className: "bg-amber-500/15 text-amber-700", dot: "bg-amber-500" },
   offline: { label: "غير متصل", className: "bg-muted text-muted-foreground", dot: "bg-muted-foreground/50" },

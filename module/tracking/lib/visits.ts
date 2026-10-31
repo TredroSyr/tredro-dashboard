@@ -11,7 +11,7 @@ export const SHORT_LABEL: Record<RepActivityType, string> = {
   collection: "تحصيل",
   return: "مرتجع",
   new_customer: "زبون جديد",
-  no_sale: "بدون بيع",
+  no_sale: "دون بيع",
   day_end: "نهاية الدوام",
 };
 
@@ -19,6 +19,8 @@ export interface Visit {
   id: string;
   index: number;
   name: string;
+  /** Real customer id, when the shop is one of the rep's customers. */
+  customerId?: number;
   lat: number;
   lng: number;
   items: RepActivity[];
@@ -56,10 +58,12 @@ export function buildVisits(activities: RepActivity[], path: TrackPoint[]): Visi
       while (cursor + 1 < path.length && samePoint(path[cursor + 1], lat, lng)) cursor++;
       const sum = (type: RepActivityType) =>
         items.filter((a) => a.type === type).reduce((s, a) => s + (a.amount ?? 0), 0);
+      const shop = items.find((a) => a.type !== "new_customer") ?? items[0];
       return {
         id: `visit-${index}`,
         index,
-        name: items.find((a) => a.type !== "new_customer")?.customerName ?? items[0].customerName ?? "",
+        name: shop.customerName ?? "",
+        customerId: shop.customerId,
         lat,
         lng,
         items,

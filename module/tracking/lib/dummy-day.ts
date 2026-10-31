@@ -2,8 +2,10 @@
  * DUMMY DATA — there is no rep GPS tracking on the backend yet. Everything here
  * is generated deterministically from (repId, date) so a rep's day looks the
  * same on every reload and on both the home section and the rep's tracking tab.
- * Replace `buildRepDay` with the real endpoint once it exists; the snapshot
- * shape in ../types is what the UI consumes.
+ * The shops are the rep's real customers when they're passed in (so names link
+ * to real customer pages), and once road geometry is fetched the drive follows
+ * real streets. Replace `buildRepDay` with the real endpoint once it exists; the
+ * snapshot shape in ../types is what the UI consumes.
  */
 import type {
   LatLng,
@@ -17,6 +19,12 @@ import type {
 import { distanceKm, pathDistanceKm } from "./geo";
 
 const MINUTE = 60_000;
+
+/** A real customer of the rep, used as a shop on the day's route. */
+export interface DayCustomer {
+  id: number;
+  name: string;
+}
 
 const SHOP_NAMES = [
   "سوبر ماركت أبو أحمد",
@@ -44,10 +52,10 @@ const SHOP_NAMES = [
 ];
 
 const NO_SALE_NOTES = [
-  "المحل مسكّر",
-  "صاحب المحل مو موجود",
-  "عندو بضاعة كافية",
-  "طلب يرجع الأسبوع الجاي",
+  "المحل مغلق",
+  "صاحب المحل غير موجود",
+  "لديه بضاعة كافية",
+  "طلب الزيارة في الأسبوع القادم",
 ];
 
 function hashString(s: string) {
@@ -84,65 +92,85 @@ interface FullDay {
   planned: PlannedCustomer[];
   /** Time window spent at each visited customer, keyed by planned id. */
   stays: { customerId: string; name: string; from: number; to: number }[];
+  /** Depot → each visited shop → depot: the waypoints to fetch real roads for. */
+  stops: LatLng[];
   dayStart: number;
   dayEnd: number;
 }
 
-/** Street-ish leg between two points: an L-shaped detour with a little jitter, sampled every ~minute. */
-function buildLeg(
-  from: LatLng,
-  to: LatLng,
-  startTime: number,
-  rand: () => number,
-): TrackPoint[] {
+/**
+ * One drive between two stops, spread over the leg's minutes. With `road` (real
+ * street geometry) the points follow the streets; without it, an L-shaped
+ * stand-in until the roads load. The leg's duration only depends on the
+ * straight-line distance, so the day's timings don't change when roads arrive.
+ */
+function buildLeg(from: LatLng, to: LatLng, startTime: number, rand: () => number, road?: LatLng[]): TrackPoint[] {
   const km = distanceKm(from, to);
-  // ~22 km/h through city traffic, plus a couple of minutes to park.
-  const minutes = Math.max(3, Math.round((km / 22) * 60) + 2);
-  const corner: LatLng =
-    rand() > 0.5 ? [from[0], to[1]] : [to[0], from[1]];
-  const mid: LatLng = [
-    corner[0] + (rand() - 0.5) * 0.0015,
-    corner[1] + (rand() - 0.5) * 0.0015,
-  ];
+  // ~22 km/h through city traffic on streets ~35% longer than the straight line, plus parking.
+  const minutes = Math.max(3, Math.round(((km * 1.35) / 22) * 60) + 2);
+  const endTime = startTime + minutes * MINUTE;
+
+  if (road && road.length > 1) {
+    const pts: LatLng[] = [from, ...road, to];
+    const cumulative = [0];
+    for (let i = 1; i < pts.length; i++) cumulative.push(cumulative[i - 1] + distanceKm(pts[i - 1], pts[i]));
+    const total = cumulative[cumulative.length - 1] || 1;
+    // Same pace along the whole street: time grows with distance driven.
+    return pts.slice(1).map((p, i) => ({
+      lat: p[0],
+      lng: p[1],
+      time: startTime + Math.round(((cumulative[i + 1] / total) * (endTime - startTime)) / 1000) * 1000,
+    }));
+  }
+
+  const corner: LatLng = rand() > 0.5 ? [from[0], to[1]] : [to[0], from[1]];
+  const mid: LatLng = [corner[0] + (rand() - 0.5) * 0.0015, corner[1] + (rand() - 0.5) * 0.0015];
   const points: TrackPoint[] = [];
   const half = Math.max(1, Math.floor(minutes / 2));
   for (let i = 1; i <= minutes; i++) {
-    const [a, b, t] =
-      i <= half ? [from, mid, i / half] : [mid, to, (i - half) / (minutes - half)];
+    const [a, b, t] = i <= half ? [from, mid, i / half] : [mid, to, (i - half) / (minutes - half)];
     points.push({
-      lat: a[0] + (b[0] - a[0]) * t + (rand() - 0.5) * 0.00012,
-      lng: a[1] + (b[1] - a[1]) * t + (rand() - 0.5) * 0.00012,
+      lat: a[0] + (b[0] - a[0]) * t,
+      lng: a[1] + (b[1] - a[1]) * t,
       time: startTime + i * MINUTE,
     });
   }
-  points[points.length - 1] = { lat: to[0], lng: to[1], time: startTime + minutes * MINUTE };
+  points[points.length - 1] = { lat: to[0], lng: to[1], time: endTime };
   return points;
 }
 
-function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
+function buildFullDay(
+  repId: string,
+  date: string,
+  center: LatLng,
+  customers: DayCustomer[] | undefined,
+  roads: LatLng[][] | null | undefined,
+): FullDay {
   const rand = seededRandom(hashString(`${repId}|${date}`));
   const repRand = seededRandom(hashString(`rep|${repId}`));
+  // Leg shapes draw from their own sequence so they never shift the day's sales or times.
+  const legRand = seededRandom(hashString(`legs|${repId}|${date}`));
 
   // Each rep owns a stable sector of the city; the depot sits near the center.
   const angle = repRand() * Math.PI * 2;
   const reach = 0.018 + repRand() * 0.02;
-  const area: LatLng = [
-    center[0] + Math.sin(angle) * reach,
-    center[1] + Math.cos(angle) * reach,
-  ];
-  const depot: LatLng = [
-    center[0] + (repRand() - 0.5) * 0.01,
-    center[1] + (repRand() - 0.5) * 0.01,
-  ];
+  const area: LatLng = [center[0] + Math.sin(angle) * reach, center[1] + Math.cos(angle) * reach];
+  const depot: LatLng = [center[0] + (repRand() - 0.5) * 0.01, center[1] + (repRand() - 0.5) * 0.01];
 
-  const plannedCount = 7 + Math.floor(rand() * 5);
-  const names = [...SHOP_NAMES].sort(() => rand() - 0.5);
-  const planned: PlannedCustomer[] = Array.from({ length: plannedCount }, (_, i) => ({
-    id: `${repId}-c${i}`,
-    name: names[i % names.length],
-    lat: area[0] + (rand() - 0.5) * 0.022,
-    lng: area[1] + (rand() - 0.5) * 0.026,
-  }));
+  const wanted = 7 + Math.floor(rand() * 5);
+  const source: { id?: number; name: string }[] = customers?.length ? customers : SHOP_NAMES.map((name) => ({ name }));
+  const plannedCount = customers?.length ? Math.min(customers.length, wanted) : wanted;
+  const shuffled = [...source].sort(() => rand() - 0.5);
+  const planned: PlannedCustomer[] = Array.from({ length: plannedCount }, (_, i) => {
+    const c = shuffled[i % shuffled.length];
+    return {
+      id: `${repId}-c${i}`,
+      name: c.name,
+      customerId: c.id,
+      lat: area[0] + (rand() - 0.5) * 0.022,
+      lng: area[1] + (rand() - 0.5) * 0.026,
+    };
+  });
 
   // Nearest-neighbour visiting order from the depot.
   const remaining = [...planned];
@@ -151,16 +179,16 @@ function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
   while (remaining.length) {
     let best = 0;
     remaining.forEach((c, i) => {
-      if (distanceKm(cursor, [c.lat, c.lng]) < distanceKm(cursor, [remaining[best].lat, remaining[best].lng]))
-        best = i;
+      if (distanceKm(cursor, [c.lat, c.lng]) < distanceKm(cursor, [remaining[best].lat, remaining[best].lng])) best = i;
     });
     const [next] = remaining.splice(best, 1);
     order.push(next);
     cursor = [next.lat, next.lng];
   }
   // A couple of planned customers are left for another day.
-  const skipCount = Math.floor(rand() * 3);
+  const skipCount = order.length > 3 ? Math.floor(rand() * 3) : 0;
   const visits = order.slice(0, order.length - skipCount);
+  const stops: LatLng[] = [depot, ...visits.map((c) => [c.lat, c.lng] as LatLng), depot];
 
   const base = dayStartMs(date);
   let t = base + (8 * 60 + Math.floor(rand() * 45)) * MINUTE;
@@ -173,7 +201,7 @@ function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
       time: t,
       lat: depot[0],
       lng: depot[1],
-      note: "حمّل السيارة وطلع من المستودع",
+      note: "حمّل البضاعة وانطلق من المستودع",
     },
   ];
   const path: TrackPoint[] = [{ lat: depot[0], lng: depot[1], time: t }];
@@ -183,7 +211,7 @@ function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
 
   visits.forEach((customer, i) => {
     const target: LatLng = [customer.lat, customer.lng];
-    const leg = buildLeg(pos, target, t, rand);
+    const leg = buildLeg(pos, target, t, legRand, roads?.[i]);
     path.push(...leg);
     t = leg[leg.length - 1].time;
     pos = target;
@@ -199,6 +227,7 @@ function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
         lat: customer.lat,
         lng: customer.lng,
         customerName: customer.name,
+        customerId: customer.customerId,
         visitIndex,
         ...extra,
       });
@@ -226,7 +255,8 @@ function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
     if (!newCustomerAdded && i > 1 && rand() < 0.18) {
       newCustomerAdded = true;
       at(stayMinutes, "new_customer", {
-        customerName: names[(plannedCount + 1) % names.length],
+        customerName: SHOP_NAMES[(plannedCount + 1) % SHOP_NAMES.length],
+        customerId: undefined,
         note: "زبون جديد عبر كود الإحالة",
       });
     }
@@ -241,7 +271,7 @@ function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
     if (i === Math.floor(visits.length / 2)) t += (30 + Math.floor(rand() * 25)) * MINUTE;
   });
 
-  const back = buildLeg(pos, depot, t, rand);
+  const back = buildLeg(pos, depot, t, legRand, roads?.[visits.length]);
   path.push(...back);
   t = back[back.length - 1].time;
   activities.push({
@@ -250,23 +280,46 @@ function buildFullDay(repId: string, date: string, center: LatLng): FullDay {
     time: t,
     lat: depot[0],
     lng: depot[1],
-    note: "رجع عالمستودع وسكّر يومه",
+    note: "عاد إلى المستودع وأنهى يومه",
   });
 
   activities.sort((a, b) => a.time - b.time);
-  return { path, activities, planned, stays, dayStart, dayEnd: t };
+  return { path, activities, planned, stays, stops, dayStart, dayEnd: t };
 }
 
 const fullDayCache = new Map<string, FullDay>();
 
-function getFullDay(repId: string, date: string, center: LatLng) {
-  const key = `${repId}|${date}|${center.join(",")}`;
+const customersKey = (customers?: DayCustomer[]) => (customers?.length ? customers.map((c) => c.id).join(".") : "");
+
+function getFullDay(
+  repId: string,
+  date: string,
+  center: LatLng,
+  customers?: DayCustomer[],
+  roads?: LatLng[][] | null,
+) {
+  const key = `${repId}|${date}|${center.join(",")}|${customersKey(customers)}|${roads ? "roads" : "plain"}`;
   let day = fullDayCache.get(key);
   if (!day) {
-    day = buildFullDay(repId, date, center);
+    day = buildFullDay(repId, date, center, customers, roads);
     fullDayCache.set(key, day);
   }
   return day;
+}
+
+/** The day's waypoints (depot → shops → depot), for fetching real street routes. */
+export function dayStops({
+  repId,
+  date,
+  center,
+  customers,
+}: {
+  repId: string;
+  date: string;
+  center: LatLng;
+  customers?: DayCustomer[];
+}) {
+  return getFullDay(repId, date, center, customers).stops;
 }
 
 const emptyStats = (planned: number) => ({
@@ -284,7 +337,8 @@ const emptyStats = (planned: number) => ({
 /**
  * The rep's day as it stands at `at` (epoch ms). Pass the current time for the
  * live view, or a replay time to scrub through the day. Future dates and
- * inactive reps come back empty.
+ * inactive reps come back empty. `roads` holds one street polyline per leg
+ * (see `dayStops`); without it the legs are rough stand-ins.
  */
 export function buildRepDay({
   repId,
@@ -292,12 +346,16 @@ export function buildRepDay({
   center,
   at,
   active = true,
+  customers,
+  roads,
 }: {
   repId: string;
   date: string;
   center: LatLng;
   at: number;
   active?: boolean;
+  customers?: DayCustomer[];
+  roads?: LatLng[][] | null;
 }): RepDaySnapshot {
   const empty = (status: RepLiveStatus, planned: PlannedCustomer[] = []): RepDaySnapshot => ({
     repId,
@@ -314,7 +372,7 @@ export function buildRepDay({
   });
 
   if (!active) return empty("offline");
-  const day = getFullDay(repId, date, center);
+  const day = getFullDay(repId, date, center, customers, roads);
   if (at < day.dayStart) return { ...empty("not_started", day.planned), dayStart: day.dayStart, dayEnd: day.dayEnd };
 
   const path = day.path.filter((p) => p.time <= at);

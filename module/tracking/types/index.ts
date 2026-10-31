@@ -18,6 +18,8 @@ export interface RepActivity {
   lat: number;
   lng: number;
   customerName?: string;
+  /** Real customer id when the shop is one of the rep's customers — links to its page. */
+  customerId?: number;
   /** Amount in the company currency, for invoice / collection / return. */
   amount?: number;
   note?: string;
@@ -36,6 +38,8 @@ export interface TrackPoint {
 export interface PlannedCustomer {
   id: string;
   name: string;
+  /** Real customer id, when taken from the rep's customer list. */
+  customerId?: number;
   lat: number;
   lng: number;
 }

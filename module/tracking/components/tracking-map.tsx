@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import type { LayerGroup, Map as LeafletMap } from "leaflet";
+import type { LayerGroup, Map as LeafletMap, Marker, Polyline } from "leaflet";
 import { LocateFixed, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LatLng } from "../types";
@@ -37,8 +37,15 @@ interface TrackingMapProps {
   center: LatLng;
   pins?: MapPin[];
   routes?: MapRoute[];
-  /** The rep's current spot. */
-  position?: { lat: number; lng: number; live: boolean } | null;
+  /** The rep's current spot; `heading` (degrees from north) turns the car. */
+  position?: { lat: number; lng: number; live: boolean; heading?: number | null } | null;
+  /**
+   * The car during a replay. Moved every animation frame on its own marker, so
+   * it glides without redrawing the rest of the map. `follow` keeps the camera on it.
+   */
+  vehicle?: { lat: number; lng: number; heading: number; follow: boolean; tailFrom?: LatLng | null } | null;
+  /** The user dragged the map while it was following the car. */
+  onFollowBreak?: () => void;
   depot?: LatLng | null;
   selectedPinId?: string | null;
   onPinClick?: (id: string) => void;
@@ -53,7 +60,11 @@ interface TrackingMapProps {
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-const truckSvg = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h2"/><path d="M14 9h4l3 3v5a1 1 0 0 1-1 1h-1"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>`;
+// Top-down car pointing north; the marker rotates it to the driving direction.
+const carSvg = `<svg width="22" height="22" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="4.5" fill="currentColor"/><path d="M8 8.6Q12 6.6 16 8.6V11Q12 9.8 8 11Z" fill="#fff" opacity=".92"/><rect x="8.3" y="16.2" width="7.4" height="2.6" rx="1.1" fill="#fff" opacity=".7"/><rect x="7.2" y="2.9" width="2.4" height="1.3" rx=".6" fill="#fff" opacity=".85"/><rect x="14.4" y="2.9" width="2.4" height="1.3" rx=".6" fill="#fff" opacity=".85"/></svg>`;
+
+const carHtml = (live: boolean, heading: number) =>
+  `<div class="tm-car${live ? " tm-car--live" : ""}"><span class="tm-car__pulse"></span><span class="tm-car__disc"></span><span class="tm-car__body" style="transform:rotate(${heading}deg)">${carSvg}</span></div>`;
 
 function pinHtml(pin: MapPin, selected: boolean, enterIndex: number | null) {
   const cls = [
@@ -96,6 +107,8 @@ export function TrackingMap({
   pins = [],
   routes = [],
   position,
+  vehicle,
+  onFollowBreak,
   depot,
   selectedPinId,
   onPinClick,
@@ -114,11 +127,12 @@ export function TrackingMap({
   const drawnRouteRef = useRef<string | null>(null);
   /** What "توسيط" returns to: the selected route, or the whole day. */
   const homeRef = useRef<LatLng[] | null>(null);
-  const callbacksRef = useRef({ onPinClick, onMapClick });
+  const callbacksRef = useRef({ onPinClick, onMapClick, onFollowBreak });
+  const vehicleRef = useRef<{ marker: Marker; tail: Polyline; tailCasing: Polyline; body: HTMLElement | null } | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    callbacksRef.current = { onPinClick, onMapClick };
+    callbacksRef.current = { onPinClick, onMapClick, onFollowBreak };
   });
 
   useEffect(() => {
@@ -149,6 +163,8 @@ export function TrackingMap({
         keepBuffer: 4,
       }).addTo(map);
       map.on("click", () => callbacksRef.current.onMapClick?.());
+      // Grabbing the map while it follows the car hands the camera back to the user.
+      map.on("dragstart", () => callbacksRef.current.onFollowBreak?.());
 
       layerRef.current = L.layerGroup().addTo(map);
       mapRef.current = map;
@@ -164,6 +180,7 @@ export function TrackingMap({
       mapRef.current?.remove();
       mapRef.current = null;
       layerRef.current = null;
+      vehicleRef.current = null;
       fittedKeyRef.current = null;
       enteredKeyRef.current = null;
       drawnRouteRef.current = null;
@@ -232,13 +249,13 @@ export function TrackingMap({
     if (position) {
       L.marker([position.lat, position.lng], {
         icon: L.divIcon({
-          html: `<div class="tm-me${position.live ? " tm-me--live" : ""}"><span class="tm-me__pulse"></span><span class="tm-me__body">${truckSvg}</span></div>`,
+          html: carHtml(position.live, position.heading ?? 0),
           className: "",
           iconSize: [0, 0],
         }),
         zIndexOffset: 2000,
       })
-        .bindTooltip(position.live ? "مكان المندوب الآن" : "آخر موقع", { direction: "top", offset: [0, -20] })
+        .bindTooltip(position.live ? "مكان المندوب الآن" : "آخر موقع", { direction: "top", offset: [0, -24] })
         .addTo(layer);
     }
 
@@ -267,6 +284,52 @@ export function TrackingMap({
     // Only when a new thing is selected, not on every data tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, viewKey]);
+
+  // Replay car: its own marker + a short blue tail back to the last GPS fix, moved every frame.
+  const tailKey = vehicle?.tailFrom ? vehicle.tailFrom.join(",") : "";
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    if (!ready || !L || !map) return;
+
+    if (!vehicle) {
+      const v = vehicleRef.current;
+      if (v) {
+        v.marker.remove();
+        v.tail.remove();
+        v.tailCasing.remove();
+        vehicleRef.current = null;
+      }
+      return;
+    }
+
+    const here: LatLng = [vehicle.lat, vehicle.lng];
+    let v = vehicleRef.current;
+    if (!v) {
+      const line = { interactive: false, lineCap: "round" as const, lineJoin: "round" as const };
+      const tailCasing = L.polyline([], { ...line, className: "tm-route-casing", weight: 11 }).addTo(map);
+      const tail = L.polyline([], { ...line, className: "tm-route", weight: 6 }).addTo(map);
+      const marker = L.marker(here, {
+        icon: L.divIcon({ html: carHtml(true, vehicle.heading), className: "", iconSize: [0, 0] }),
+        zIndexOffset: 3000,
+        interactive: false,
+      }).addTo(map);
+      v = { marker, tail, tailCasing, body: marker.getElement()?.querySelector<HTMLElement>(".tm-car__body") ?? null };
+      vehicleRef.current = v;
+      // Start the ride close enough to see the streets.
+      if (vehicle.follow) map.setView(here, Math.max(map.getZoom(), 16), { animate: true });
+    } else {
+      v.marker.setLatLng(here);
+      if (v.body) v.body.style.transform = `rotate(${vehicle.heading}deg)`;
+      if (vehicle.follow) map.panTo(here, { animate: false });
+    }
+
+    const tail = vehicle.tailFrom ? [vehicle.tailFrom, here] : [];
+    v.tail.setLatLngs(tail);
+    v.tailCasing.setLatLngs(tail);
+    // Driven by the vehicle's values, not the object identity.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, vehicle == null, vehicle?.lat, vehicle?.lng, vehicle?.heading, vehicle?.follow, tailKey]);
 
   function flyToPoints(points: LatLng[]) {
     const L = leafletRef.current;
