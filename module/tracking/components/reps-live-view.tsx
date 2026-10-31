@@ -17,6 +17,7 @@ import type { LatLng, RepActivityType, RepDaySnapshot, RepLiveStatus } from "../
 import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
 import {
   TkAvatar,
+  TkCollapseButton,
   TkDetail,
   TkFrame,
   TkHex,
@@ -287,11 +288,17 @@ export function RepsLiveView() {
                 now={now}
                 currency={currency}
                 onBack={closeRep}
+                onCollapse={() => setExpanded(true)}
               />
             ) : (
               <>
                 <div className="space-y-4 px-5 pt-5 pb-4">
-                  <TkSearch value={search} onChange={setSearch} placeholder="ابحث عن مندوب..." />
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <TkSearch value={search} onChange={setSearch} placeholder="ابحث عن مندوب..." />
+                    </div>
+                    <TkCollapseButton onClick={() => setExpanded(true)} />
+                  </div>
                   <div className="flex items-end gap-2">
                     <TkSelect label="عرض:" value={show} options={SHOW_OPTIONS} onChange={setShow} />
                     <TkSelect label="ترتيب:" value={sort} options={SORT_OPTIONS} onChange={setSort} />
@@ -343,7 +350,7 @@ export function RepsLiveView() {
               view={view}
             >
               {active && (
-                <div className="pointer-events-none absolute top-4 right-4 z-[1000]" dir="rtl">
+                <div className={cn("pointer-events-none absolute top-4 z-[1000]", expanded ? "right-44" : "right-4")} dir="rtl">
                   <span className="flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs text-foreground shadow-md backdrop-blur">
                     <span className={cn("size-2 rounded-full", STATUS_META[active.day.status].dot, inField(active.day.status) && "animate-pulse")} />
                     {active.name} · {STATUS_META[active.day.status].label}
@@ -391,6 +398,7 @@ function RepDetail({
   now,
   currency,
   onBack,
+  onCollapse,
 }: {
   row: RepRow;
   visits: ReturnType<typeof buildVisits>;
@@ -399,6 +407,7 @@ function RepDetail({
   now: number;
   currency: string;
   onBack: () => void;
+  onCollapse: () => void;
 }) {
   const { day } = row;
   const status = STATUS_META[day.status];
@@ -414,6 +423,7 @@ function RepDetail({
     <TkDetail
       key={row.id}
       onBack={onBack}
+      onCollapse={onCollapse}
       backLabel="كل المناديب"
       name={row.name}
       sub={

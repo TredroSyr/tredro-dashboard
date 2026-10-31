@@ -18,8 +18,6 @@ import {
   Wallet,
   Warehouse,
 } from "lucide-react";
-import { IconRenderer } from "@/assets/icons/iconRenderer";
-import type { iconName } from "@/assets/icons/iconRenderer/types";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
 import { buildRepDay } from "../lib/dummy-day";
@@ -41,6 +39,7 @@ import type { LatLng, PlannedCustomer, RepActivityType } from "../types";
 import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
 import {
   TkAvatar,
+  TkCollapseButton,
   TkDetail,
   TkFrame,
   TkHex,
@@ -56,6 +55,7 @@ import {
   avatarTone,
   compactNumber,
   tkButton,
+  useFillHeight,
 } from "./tracker-ui";
 
 const REPLAY_STEP_MS = 2 * 60_000;
@@ -106,6 +106,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   const [sort, setSort] = useState<SortKey>("route");
   const [expanded, setExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
+  const fill = useFillHeight();
 
   const isToday = date === today;
   const isFuture = date > today;
@@ -232,22 +233,12 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
 
   const status = STATUS_META[isFuture ? "not_started" : day.status];
   const { stats } = day;
-  const workSpan = stats.firstActivity && stats.lastActivity ? stats.lastActivity - stats.firstActivity : 0;
   const visitPosition = selectedVisit ? visits.indexOf(selectedVisit) : -1;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Day stats */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-        <StatTile icon="location_outlined" label="الزيارات" value={`${stats.visits}/${stats.planned}`} sub="من الزبائن المخطط لهم" progress={stats.planned ? stats.visits / stats.planned : 0} />
-        <StatTile icon="revenue_outlined" label="المبيعات" value={formatMoney(stats.salesTotal, currency)} sub={`${stats.invoicesCount} فاتورة`} />
-        <StatTile icon="money_outlined" label="التحصيل" value={formatMoney(stats.collectionsTotal, currency)} sub={stats.returnsTotal ? `مرتجع ${formatMoney(stats.returnsTotal, currency)}` : "بدون مرتجعات"} />
-        <StatTile icon="map_outlined" label="المسافة المقطوعة" value={`${stats.distanceKm} كم`} sub="حسب مسار GPS" />
-        <StatTile icon="clock_outlined" label="ساعات العمل" value={workSpan ? formatDuration(workSpan) : "—"} sub={stats.firstActivity ? `من ${formatTime(stats.firstActivity)}` : "لم يبدأ"} />
-        <StatTile icon="time_outlined" label="آخر نشاط" value={stats.lastActivity ? formatTime(stats.lastActivity) : "—"} sub={day.activities.length ? ACTIVITY_META[day.activities[day.activities.length - 1].type].label : "لا يوجد"} />
-      </div>
-
-      <TkFrame expanded={expanded} className="lg:h-[720px]">
+    // Fills the screen below the tabs so the page itself never scrolls.
+    <div ref={fill.ref} style={fill.height ? { height: fill.height } : undefined}>
+      <TkFrame expanded={expanded} className="h-full">
         <TkSidebar hidden={expanded} className="max-h-[600px] lg:max-h-none">
           {selectedVisit ? (
             <VisitDetail
@@ -256,11 +247,18 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
               currency={currency}
               repId={repId}
               onBack={closeDetail}
+              onCollapse={() => setExpanded(true)}
               onPrev={visitPosition > 0 ? () => setSelectedId(visits[visitPosition - 1].id) : undefined}
               onNext={visitPosition < visits.length - 1 ? () => setSelectedId(visits[visitPosition + 1].id) : undefined}
             />
           ) : selectedPlanned ? (
-            <PlannedDetail customer={selectedPlanned} depot={depot} finished={day.status === "finished"} onBack={closeDetail} />
+            <PlannedDetail
+              customer={selectedPlanned}
+              depot={depot}
+              finished={day.status === "finished"}
+              onBack={closeDetail}
+              onCollapse={() => setExpanded(true)}
+            />
           ) : (
             <>
               {/* Day switcher, laid out like an app header */}
@@ -292,15 +290,19 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                     )}
                   </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => goToDate(shiftDateKey(date, 1))}
-                  disabled={isToday}
-                  className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent"
-                  aria-label="اليوم التالي"
-                >
-                  <ChevronLeft className="size-5" />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => goToDate(shiftDateKey(date, 1))}
+                    disabled={isToday}
+                    className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent"
+                    aria-label="اليوم التالي"
+                  >
+                    <ChevronLeft className="size-5" />
+                  </button>
+                  <span className="mx-0.5 h-5 w-px bg-border" />
+                  <TkCollapseButton onClick={() => setExpanded(true)} />
+                </div>
               </div>
 
               <div className="space-y-4 px-5 pt-5 pb-4">
@@ -378,7 +380,10 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
             view={view}
           >
             {/* Live status, floating at the top of the map */}
-            <div className="pointer-events-none absolute top-4 right-4 z-[1000] flex items-center gap-2" dir="rtl">
+            <div
+              className={cn("pointer-events-none absolute top-4 z-[1000] flex items-center gap-2", expanded ? "right-44" : "right-4")}
+              dir="rtl"
+            >
               <span className="flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs text-foreground shadow-md backdrop-blur">
                 <span className={cn("size-2 rounded-full", status.dot, position?.live && "animate-pulse")} />
                 {status.label}
@@ -476,6 +481,7 @@ function VisitDetail({
   currency,
   repId,
   onBack,
+  onCollapse,
   onPrev,
   onNext,
 }: {
@@ -484,6 +490,7 @@ function VisitDetail({
   currency: string;
   repId: string;
   onBack: () => void;
+  onCollapse: () => void;
   onPrev?: () => void;
   onNext?: () => void;
 }) {
@@ -494,6 +501,7 @@ function VisitDetail({
     <TkDetail
       key={visit.id}
       onBack={onBack}
+      onCollapse={onCollapse}
       backLabel="كل المحلات"
       name={visit.name}
       sub={
@@ -573,16 +581,19 @@ function PlannedDetail({
   depot,
   finished,
   onBack,
+  onCollapse,
 }: {
   customer: PlannedCustomer;
   depot: LatLng | null;
   finished: boolean;
   onBack: () => void;
+  onCollapse: () => void;
 }) {
   return (
     <TkDetail
       key={customer.id}
       onBack={onBack}
+      onCollapse={onCollapse}
       backLabel="كل المحلات"
       name={customer.name}
       sub={finished ? "لم تتم زيارته بهاليوم" : "بانتظار الزيارة"}
@@ -599,36 +610,5 @@ function PlannedDetail({
           : "رح تبيّن هون تفاصيل الزيارة أول ما يوصله المندوب."}
       </p>
     </TkDetail>
-  );
-}
-
-function StatTile({
-  icon,
-  label,
-  value,
-  sub,
-  progress,
-}: {
-  icon: iconName;
-  label: string;
-  value: string;
-  sub: string;
-  progress?: number;
-}) {
-  return (
-    <div className="rounded-2xl border border-border bg-card p-3">
-      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-        <IconRenderer name={icon} className="size-3.5" />
-        {label}
-      </div>
-      <div className="mt-1.5 truncate text-base font-semibold text-foreground tabular-nums">{value}</div>
-      {progress != null ? (
-        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
-        </div>
-      ) : (
-        <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{sub}</div>
-      )}
-    </div>
   );
 }

@@ -3,6 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { LayerGroup, Map as LeafletMap } from "leaflet";
+import { LocateFixed, Minus, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LatLng } from "../types";
 
@@ -111,6 +112,8 @@ export function TrackingMap({
   const fittedKeyRef = useRef<string | null>(null);
   const enteredKeyRef = useRef<string | null>(null);
   const drawnRouteRef = useRef<string | null>(null);
+  /** What "توسيط" returns to: the selected route, or the whole day. */
+  const homeRef = useRef<LatLng[] | null>(null);
   const callbacksRef = useRef({ onPinClick, onMapClick });
   const [ready, setReady] = useState(false);
 
@@ -136,7 +139,8 @@ export function TrackingMap({
         zoomDelta: 0.5,
         wheelPxPerZoomLevel: 90,
       });
-      L.control.zoom({ position: "bottomleft" }).addTo(map);
+      // Our own zoom/center buttons are drawn in React below; keep only the OSM credit (required by its license).
+      map.attributionControl.setPrefix(false);
       // Same OSM tiles as the rep app; .map-surface gives them the Tredro blue tint (light + dark).
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
@@ -246,6 +250,7 @@ export function TrackingMap({
       ];
       if (points.length) {
         fittedKeyRef.current = fitKey;
+        homeRef.current = points;
         map.fitBounds(L.latLngBounds(points), { padding: [70, 70], maxZoom: 16, animate: false });
       }
     }
@@ -257,19 +262,54 @@ export function TrackingMap({
     const L = leafletRef.current;
     const map = mapRef.current;
     if (!ready || !L || !map || !view || !view.points.length) return;
-    if (view.points.length === 1) {
-      map.flyTo(view.points[0], Math.max(map.getZoom(), 16), { duration: 0.6 });
-    } else {
-      map.flyToBounds(L.latLngBounds(view.points), { padding: [90, 90], maxZoom: 17, duration: 0.7 });
-    }
+    homeRef.current = view.points;
+    flyToPoints(view.points);
     // Only when a new thing is selected, not on every data tick.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, viewKey]);
+
+  function flyToPoints(points: LatLng[]) {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    if (!L || !map || !points.length) return;
+    if (points.length === 1) {
+      map.flyTo(points[0], Math.max(map.getZoom(), 16), { duration: 0.6 });
+    } else {
+      map.flyToBounds(L.latLngBounds(points), { padding: [90, 90], maxZoom: 17, duration: 0.7 });
+    }
+  }
 
   return (
     <div className={cn("tracking-map map-surface relative isolate overflow-hidden", className)} dir="ltr">
       <div ref={containerRef} className="absolute inset-0" />
       {children}
+
+      {/* Zoom + recenter, in the dashboard's own style */}
+      <div className="absolute bottom-4 left-4 z-[1000] flex flex-col overflow-hidden rounded-xl border border-border bg-card/95 text-foreground shadow-md backdrop-blur">
+        <MapButton label="تكبير" onClick={() => mapRef.current?.zoomIn()}>
+          <Plus className="size-4" />
+        </MapButton>
+        <MapButton label="تصغير" onClick={() => mapRef.current?.zoomOut()}>
+          <Minus className="size-4" />
+        </MapButton>
+        <MapButton label="توسيط" onClick={() => homeRef.current && flyToPoints(homeRef.current)}>
+          <LocateFixed className="size-4" />
+        </MapButton>
+      </div>
     </div>
+  );
+}
+
+function MapButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="grid size-10 place-items-center border-b border-border transition-colors last:border-b-0 hover:bg-muted hover:text-primary"
+    >
+      {children}
+    </button>
   );
 }

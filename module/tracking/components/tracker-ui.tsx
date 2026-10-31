@@ -1,7 +1,7 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { ArrowRight, Maximize2, Minimize2, Search } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { ArrowRight, PanelRightClose, PanelRightOpen, Search } from "lucide-react";
 import { SearchableSelect } from "@/components/tredro/searchable-select";
 import { cn } from "@/lib/utils";
 
@@ -92,19 +92,54 @@ export function TkMapArea({
       )}
     >
       {children}
-      {onToggleExpand && (
+      {expanded && onToggleExpand && (
         <button
           type="button"
           onClick={onToggleExpand}
-          className="absolute top-4 left-4 z-[1000] hidden size-10 place-items-center rounded-xl border border-border bg-card/95 text-foreground shadow-md backdrop-blur transition-colors hover:text-primary lg:grid"
-          aria-label={expanded ? "إظهار القائمة" : "تكبير الخريطة"}
-          title={expanded ? "إظهار القائمة" : "تكبير الخريطة"}
+          className="absolute top-4 right-4 z-[1000] flex h-10 items-center gap-2 rounded-xl border border-border bg-card/95 px-3 text-sm text-foreground shadow-md backdrop-blur transition-colors hover:text-primary"
+          dir="rtl"
         >
-          {expanded ? <Minimize2 className="size-4" /> : <Maximize2 className="size-4" />}
+          <PanelRightOpen className="size-4" />
+          إظهار القائمة
         </button>
       )}
     </div>
   );
+}
+
+/** Closes the side panel so the map takes the whole frame. */
+export function TkCollapseButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="grid size-8 shrink-0 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+      aria-label="إخفاء القائمة"
+      title="إخفاء القائمة"
+    >
+      <PanelRightClose className="size-[18px]" />
+    </button>
+  );
+}
+
+/**
+ * Height that fills the viewport from the element's top down (minus `bottomGap`),
+ * so the page itself never scrolls. Only on desktop — on phones the panel stacks.
+ */
+export function useFillHeight(bottomGap = 24) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
+  useEffect(() => {
+    const measure = () => {
+      const el = ref.current;
+      if (!el || window.innerWidth < 1024) return setHeight(null);
+      setHeight(Math.max(460, Math.floor(window.innerHeight - el.getBoundingClientRect().top - bottomGap)));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [bottomGap]);
+  return { ref, height };
 }
 
 export function TkSearch({
@@ -246,6 +281,7 @@ export function TkHex({ children, title, active }: { children: ReactNode; title?
 
 export function TkDetail({
   onBack,
+  onCollapse,
   backLabel,
   name,
   sub,
@@ -255,6 +291,7 @@ export function TkDetail({
   action,
 }: {
   onBack: () => void;
+  onCollapse?: () => void;
   backLabel: string;
   name: string;
   sub: ReactNode;
@@ -266,14 +303,17 @@ export function TkDetail({
   return (
     <div className="tk-detail-in flex min-h-0 flex-1 flex-col">
       <div className="px-5 pt-5">
-        <button
-          type="button"
-          onClick={onBack}
-          className="flex items-center gap-1.5 rounded-lg py-1 text-sm text-muted-foreground transition-colors hover:text-primary"
-        >
-          <ArrowRight className="size-4" />
-          {backLabel}
-        </button>
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-1.5 rounded-lg py-1 text-sm text-muted-foreground transition-colors hover:text-primary"
+          >
+            <ArrowRight className="size-4" />
+            {backLabel}
+          </button>
+          {onCollapse && <TkCollapseButton onClick={onCollapse} />}
+        </div>
         <div className="mt-4 flex items-center gap-3">
           <TkAvatar name={name} size={52} />
           <div className="min-w-0">
