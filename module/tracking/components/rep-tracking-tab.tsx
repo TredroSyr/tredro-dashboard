@@ -60,8 +60,13 @@ import {
   useFillHeight,
 } from "./tracker-ui";
 
-/** Replay pace at ×1: 4 minutes of the day per second, so a full day plays in about a minute. */
-const SIM_SPEED = (4 * 60_000) / 1000;
+/**
+ * Replay pace at ×1, in day-milliseconds per real millisecond. Driving plays
+ * at 30× so the car moves like a car on screen; standing at a shop or on a
+ * break skips by at 10 minutes a second, so the demo never drags.
+ */
+const DRIVE_RATE = 30;
+const IDLE_RATE = (10 * 60_000) / 1000;
 const SPEEDS = [1, 2, 4] as const;
 
 const ACTIVITY_ICON: Record<RepActivityType, ReactNode> = {
@@ -188,7 +193,11 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
     let raf = 0;
     let last = performance.now();
     const tick = (ts: number) => {
-      const next = (simRef.current ?? sliderMin) + (ts - last) * speed * SIM_SPEED;
+      const current = simRef.current ?? sliderMin;
+      const driving = pointAt(pathRef.current, current)?.driving ?? false;
+      // Cap the frame gap so a backgrounded tab doesn't jump the car ahead on return.
+      const dt = Math.min(ts - last, 100);
+      const next = current + dt * speed * (driving ? DRIVE_RATE : IDLE_RATE);
       last = ts;
       if (next >= sliderMax) {
         seek(sliderMax);

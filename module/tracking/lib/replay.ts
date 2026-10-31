@@ -1,4 +1,5 @@
 import type { LatLng, TrackPoint } from "../types";
+import { distanceKm } from "./geo";
 
 /** Compass bearing from a to b in degrees (0 = north, 90 = east) — what the car icon rotates by. */
 export function bearing(a: LatLng, b: LatLng) {
@@ -13,9 +14,13 @@ export function bearing(a: LatLng, b: LatLng) {
  * so the car keeps facing the way it arrived. `lastFix` is the latest real point
  * at or before `t` — the blue line is drawn up to it, the car's tail covers the rest.
  */
-export function pointAt(path: TrackPoint[], t: number): { at: LatLng; heading: number | null; lastFix: LatLng } | null {
+export function pointAt(
+  path: TrackPoint[],
+  t: number,
+): { at: LatLng; heading: number | null; lastFix: LatLng; driving: boolean } | null {
   if (!path.length) return null;
-  if (t <= path[0].time) return { at: [path[0].lat, path[0].lng], heading: null, lastFix: [path[0].lat, path[0].lng] };
+  if (t <= path[0].time)
+    return { at: [path[0].lat, path[0].lng], heading: null, lastFix: [path[0].lat, path[0].lng], driving: false };
 
   // Last fix at or before t (binary search; paths are sorted by time).
   let lo = 0;
@@ -28,12 +33,14 @@ export function pointAt(path: TrackPoint[], t: number): { at: LatLng; heading: n
   const a = path[lo];
   const b = path[lo + 1];
   const lastFix: LatLng = [a.lat, a.lng];
-  if (!b) return { at: lastFix, heading: null, lastFix };
+  if (!b) return { at: lastFix, heading: null, lastFix, driving: false };
 
   const f = Math.min(1, Math.max(0, (t - a.time) / Math.max(1, b.time - a.time)));
   const at: LatLng = [a.lat + (b.lat - a.lat) * f, a.lng + (b.lng - a.lng) * f];
   const moving = a.lat !== b.lat || a.lng !== b.lng;
-  return { at, heading: moving ? bearing(lastFix, [b.lat, b.lng]) : null, lastFix };
+  // A stretch slower than walking pace is waiting (at a shop, on a break), not driving.
+  const kmh = distanceKm(lastFix, [b.lat, b.lng]) / Math.max(1 / 3600, (b.time - a.time) / 3_600_000);
+  return { at, heading: moving ? bearing(lastFix, [b.lat, b.lng]) : null, lastFix, driving: kmh >= 4 };
 }
 
 /** Eases `from` toward `to` along the shorter way round the compass. */
