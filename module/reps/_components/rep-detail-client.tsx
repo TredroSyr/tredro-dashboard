@@ -6,6 +6,7 @@ import { RepDetailTabs } from "./rep-detail-tabs";
 import RepOverview from "./rep-overview";
 import CustomersView from "@/module/customers/_components/customers-view";
 import { RepWarehouseTab } from "@/module/warehouses/_components/rep-warehouse-tab";
+import { RepTrackingTab } from "@/module/tracking/components/rep-tracking-tab";
 import { ErrorDisplay } from "@/components/ui/error-display";
 import InvoicesView from "@/module/invoices/_components/invoices-view";
 import { useOverviewFilters } from "@/components/tredro/overview-toolbar";
@@ -15,10 +16,21 @@ import { useSalesInvoicesQuery } from "@/module/invoices/hooks";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { usePermissions } from "@/components/provider/PermissionsProvider";
 
-type TabValue = "overview" | "invoices" | "customers" | "warehouse";
+type TabValue = "overview" | "invoices" | "customers" | "tracking" | "warehouse";
 
-export function RepDetailClient({ repId }: { repId: string }) {
-  const [activeTab, setActiveTab] = React.useState<TabValue>("overview");
+const TAB_VALUES: TabValue[] = ["overview", "invoices", "customers", "tracking", "warehouse"];
+
+export function RepDetailClient({
+  repId,
+  initialTab,
+}: {
+  repId: string;
+  /** From `?tab=` — e.g. the home page's live section deep-links to "tracking". */
+  initialTab?: string | null;
+}) {
+  const [activeTab, setActiveTab] = React.useState<TabValue>(() =>
+    TAB_VALUES.includes(initialTab as TabValue) ? (initialTab as TabValue) : "overview",
+  );
   const { canView } = usePermissions();
   const canViewCustomers = canView("customers");
   const canViewInvoices = canView("invoices");
@@ -108,6 +120,9 @@ export function RepDetailClient({ repId }: { repId: string }) {
           <PermissionGate module="customers" fallback={null}>
             <CustomersView repId={repId} />
           </PermissionGate>
+        )}
+        {activeTab === "tracking" && (
+          <RepTrackingTab repId={repId} isActive={rep?.is_active ?? true} />
         )}
         {activeTab === "warehouse" && (
           <PermissionGate module="warehouses" fallback={null}>

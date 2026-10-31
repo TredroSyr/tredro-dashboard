@@ -32,6 +32,12 @@ const TABS = [
     requiredModule: "customers" as ModuleName,
   },
   {
+    value: "tracking",
+    label: "التتبع",
+    iconFilled: "location_filled" as iconName,
+    iconOutlined: "location_outlined" as iconName,
+  },
+  {
     value: "warehouse",
     label: "السيارة",
     iconFilled: "folder_filled" as iconName,

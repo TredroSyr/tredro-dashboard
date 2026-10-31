@@ -34,6 +34,7 @@ import {
 import type { CompanyOverview } from "@/module/dashboard/types";
 import { PermissionGate } from "@/components/tredro/PermissionGate";
 import { DefaultRouteRedirect } from "@/components/tredro/default-route-redirect";
+import { RepsTrackingShortcut } from "@/module/tracking/components/reps-live-view";
 
 // ---- Real data: KPI row, request distribution, leaderboards and activity section ----
 
@@ -472,6 +473,10 @@ function PlatformOverview() {
             : kpis.map(({ key, ...item }) => <OverviewStatCard key={key} {...item} />)}
         </OverviewStatCardRow>
       )}
+
+      <PermissionGate module="reps" fallback={null}>
+        <RepsTrackingShortcut />
+      </PermissionGate>
 
       <div
         className={`grid grid-cols-1 gap-4 sm:gap-5 ${

@@ -11,7 +11,7 @@ export default function RepDetailPage() {
 
   return (
     <PermissionGate module="reps">
-      <RepDetailClient repId={id} />
+      <RepDetailClient repId={id} initialTab={searchParams.get("tab")} />
     </PermissionGate>
   );
 }

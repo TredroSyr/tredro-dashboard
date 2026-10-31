@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
-import { Plus, Search } from "lucide-react";
+import Link from "next/link";
+import { MapPin, Plus, Search } from "lucide-react";
 import { Table } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,13 @@ export function DataTableToolbar<TData>({
           <span>المندوبون</span>
           {total !== undefined && <Badge>{total} مندوب</Badge>}
         </h1>
+        <Link
+          href="/reps/tracking"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border px-3 text-sm font-medium text-foreground no-underline hover:bg-muted hover:no-underline"
+        >
+          <MapPin className="size-4 text-primary" />
+          تتبع المناديب
+        </Link>
       </div>
 
       <div className="flex items-center justify-between py-4 px-6 gap-3 border-b border-border">
