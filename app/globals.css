@@ -477,60 +477,39 @@
    REP TRACKING (module/tracking) — map-app look, light + dark
 ========================================================= */
 
+/* Built on the dashboard tokens (--primary, --card, --border…), so the
+   tracking panel follows Tredro's colors and the light/dark switch. */
 .tk-frame {
   --tk-accent: var(--primary);
-  --tk-accent-soft: color-mix(in oklab, var(--primary) 30%, transparent);
+  --tk-accent-soft: color-mix(in oklab, var(--primary) 28%, transparent);
   --tk-bg: var(--card);
-  --tk-map: #e8e8e8;
-  --tk-surface: oklch(1 0 0 / 0.96);
+  --tk-surface: var(--card);
   --tk-fg: var(--foreground);
-  --tk-soft: oklch(0.4 0 0);
   --tk-muted: var(--muted-foreground);
-  --tk-line: oklch(0 0 0 / 0.1);
-  --tk-line-strong: oklch(0 0 0 / 0.25);
-  --tk-hover: oklch(0 0 0 / 0.035);
-  --tk-hover-strong: oklch(0 0 0 / 0.07);
-  --tk-trail: #475569;
-  --tk-planned-bg: #d4d4d8;
+  --tk-line: var(--border);
+  --tk-line-strong: color-mix(in oklab, var(--foreground) 22%, transparent);
+  --tk-planned-bg: #e4e4e7;
   --tk-planned-fg: #52525b;
   --tk-red: #dc2626;
   --tk-amber: #b45309;
   --tk-violet: #6d28d9;
-  --tk-frame-shadow: 0 0 0 1px var(--border), 0 24px 50px -30px rgb(0 0 0 / 0.25);
-  --tk-card-shadow: 0 24px 50px -16px rgb(15 23 42 / 0.28);
-  --tk-pin-shadow: 0 6px 14px rgb(15 23 42 / 0.22);
+  --tk-pin-shadow: 0 6px 14px oklch(0.32 0.1 259.8 / 0.25);
 }
 
 .dark .tk-frame {
-  /* The brand blue lifted so it glows on the charcoal map. */
-  --tk-accent: oklch(0.68 0.16 258);
-  --tk-accent-soft: oklch(0.68 0.16 258 / 0.35);
-  --tk-bg: #191919;
-  --tk-map: #262626;
-  --tk-surface: rgb(29 29 29 / 0.95);
-  --tk-fg: #ededed;
-  --tk-soft: #c4c4c4;
-  --tk-muted: #a3a3a3;
-  --tk-line: rgb(255 255 255 / 0.12);
-  --tk-line-strong: rgb(255 255 255 / 0.3);
-  --tk-hover: rgb(255 255 255 / 0.04);
-  --tk-hover-strong: rgb(255 255 255 / 0.08);
-  --tk-trail: #d4d4d4;
-  --tk-planned-bg: #3a3a3a;
-  --tk-planned-fg: #d4d4d4;
+  /* Brand blue lifted a step so the route and accents read on the dark map. */
+  --tk-accent: oklch(0.62 0.17 259.81);
+  --tk-accent-soft: oklch(0.62 0.17 259.81 / 0.35);
+  --tk-planned-bg: #3f3f46;
+  --tk-planned-fg: #d4d4d8;
   --tk-red: #fca5a5;
   --tk-amber: #fcd34d;
   --tk-violet: #c4b5fd;
-  --tk-frame-shadow: 0 30px 60px -30px rgb(0 0 0 / 0.5);
-  --tk-card-shadow: 0 24px 50px -12px rgb(0 0 0 / 0.7);
   --tk-pin-shadow: 0 6px 16px rgb(0 0 0 / 0.45);
 }
 
 .tk-frame ::-webkit-scrollbar-track {
   background: transparent;
-}
-.tk-frame ::-webkit-scrollbar-thumb {
-  background: var(--tk-line-strong);
 }
 
 /* The list runs off the bottom of the panel instead of stopping hard. */
@@ -549,41 +528,23 @@
   }
 }
 
-.tk-card {
-  animation: tk-card-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+/* Opening a shop/rep slides its detail in over the list. */
+.tk-detail-in {
+  animation: tk-detail-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
-@keyframes tk-card-in {
+@keyframes tk-detail-in {
   from {
     opacity: 0;
-    transform: translateY(10px) scale(0.96);
+    transform: translateX(-14px);
   }
 }
 
-.tk-range {
-  appearance: none;
-  background: var(--tk-line);
-  border-radius: 9999px;
-  accent-color: var(--tk-accent);
-}
-.tk-range::-webkit-slider-thumb {
-  appearance: none;
-  width: 16px;
-  height: 16px;
-  border-radius: 9999px;
-  background: var(--tk-accent);
-  box-shadow: 0 0 0 4px var(--tk-accent-soft);
-}
-
+/* Tiles and background come from the shared .map-surface theme (same as the rep app). */
 .tracking-map .leaflet-container {
   width: 100%;
   height: 100%;
-  background: var(--tk-map);
   font-family: var(--font-thmanyah-sans), var(--font-sans);
-}
-
-.dark .tracking-map .leaflet-tile-pane {
-  filter: brightness(0.92);
 }
 
 .tracking-map .leaflet-control-attribution {
@@ -630,20 +591,20 @@
 
 /* Routes */
 .tm-trail {
-  stroke: var(--tk-trail);
-  stroke-opacity: 0.4;
+  stroke: var(--tk-accent);
+  stroke-opacity: 0.45;
   fill: none;
 }
 
-.tm-glow {
-  stroke: var(--tk-accent);
+/* Selected road: Tredro blue over a card-colored casing, like the rep app's route. */
+.tm-route-casing {
+  stroke: var(--card);
+  stroke-opacity: 0.95;
   fill: none;
-  filter: drop-shadow(0 0 4px var(--tk-accent));
 }
 
-.tm-glow-halo {
+.tm-route {
   stroke: var(--tk-accent);
-  stroke-opacity: 0.18;
   fill: none;
 }
 

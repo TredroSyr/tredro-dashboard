@@ -1,8 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Clock, Navigation, Pause, Play, Receipt, Route } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  Ban,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Flag,
+  Navigation,
+  Pause,
+  Play,
+  Receipt,
+  Route,
+  Undo2,
+  UserPlus,
+  Wallet,
+  Warehouse,
+} from "lucide-react";
 import { IconRenderer } from "@/assets/icons/iconRenderer";
 import type { iconName } from "@/assets/icons/iconRenderer/types";
 import { cn } from "@/lib/utils";
@@ -16,17 +31,17 @@ import {
   formatDayLabel,
   formatDuration,
   formatTime,
-  pathDistanceKm,
   shiftDateKey,
   toDateKey,
 } from "../lib/geo";
 import { ACTIVITY_PIN_ICON, ACTIVITY_TONE, PIN_ICONS } from "../lib/pin-icons";
+import { SHORT_LABEL, buildVisits, visitAmount, type Visit } from "../lib/visits";
 import { useCompanyCurrency, useNow, useTrackingCenter } from "../hooks";
-import type { LatLng, PlannedCustomer, RepActivity, RepActivityType, TrackPoint } from "../types";
+import type { LatLng, PlannedCustomer, RepActivityType } from "../types";
 import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
 import {
   TkAvatar,
-  TkCard,
+  TkDetail,
   TkFrame,
   TkHex,
   TkList,
@@ -36,16 +51,24 @@ import {
   TkSearch,
   TkSelect,
   TkSidebar,
+  TkTimeline,
   avatarLetter,
   avatarTone,
   compactNumber,
-  tkCardButton,
+  tkButton,
 } from "./tracker-ui";
 
 const REPLAY_STEP_MS = 2 * 60_000;
 
-/** The visit takes the look of the "most telling" thing that happened there. */
-const STOP_PRIORITY: RepActivityType[] = ["no_sale", "return", "invoice", "collection", "new_customer"];
+const ACTIVITY_ICON: Record<RepActivityType, ReactNode> = {
+  day_start: <Flag />,
+  invoice: <Receipt />,
+  collection: <Wallet />,
+  return: <Undo2 />,
+  new_customer: <UserPlus />,
+  no_sale: <Ban />,
+  day_end: <Flag />,
+};
 
 type ShowFilter = "all" | "visited" | "pending" | "invoice" | "collection" | "return" | "no_sale";
 type SortKey = "route" | "sales" | "distance";
@@ -66,68 +89,7 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "distance", label: "الأقرب" },
 ];
 
-interface Visit {
-  id: string;
-  index: number;
-  name: string;
-  lat: number;
-  lng: number;
-  items: RepActivity[];
-  main: RepActivity;
-  arrivedAt: number;
-  /** The road driven from the previous stop to this shop. */
-  leg: LatLng[];
-  legKm: number;
-  sales: number;
-  collected: number;
-  returned: number;
-}
-
-const samePoint = (p: TrackPoint, lat: number, lng: number) => p.lat === lat && p.lng === lng;
-
-/** Group the day's activities into shop visits and cut the GPS path into the leg leading to each. */
-function buildVisits(activities: RepActivity[], path: TrackPoint[]): Visit[] {
-  const byVisit = new Map<number, RepActivity[]>();
-  activities.forEach((a) => {
-    if (a.visitIndex == null) return;
-    byVisit.set(a.visitIndex, [...(byVisit.get(a.visitIndex) ?? []), a]);
-  });
-
-  let cursor = 0;
-  return [...byVisit.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([index, items]) => {
-      const main = STOP_PRIORITY.map((type) => items.find((a) => a.type === type)).find(Boolean) ?? items[0];
-      const { lat, lng } = items[0];
-      // Legs end exactly on the shop's coordinates; the next one starts after the stay.
-      let end = path.findIndex((p, i) => i >= cursor && samePoint(p, lat, lng));
-      if (end === -1) end = path.length - 1;
-      const legPoints = path.slice(cursor, end + 1);
-      cursor = end;
-      while (cursor + 1 < path.length && samePoint(path[cursor + 1], lat, lng)) cursor++;
-      const sum = (type: RepActivityType) =>
-        items.filter((a) => a.type === type).reduce((s, a) => s + (a.amount ?? 0), 0);
-      return {
-        id: `visit-${index}`,
-        index,
-        name: items.find((a) => a.type !== "new_customer")?.customerName ?? items[0].customerName ?? "",
-        lat,
-        lng,
-        items,
-        main,
-        arrivedAt: items[0].time,
-        leg: legPoints.map((p) => [p.lat, p.lng] as LatLng),
-        legKm: pathDistanceKm(legPoints),
-        sales: sum("invoice"),
-        collected: sum("collection"),
-        returned: sum("return"),
-      };
-    });
-}
-
-function visitAmount(v: Visit) {
-  return v.sales || v.collected || v.returned;
-}
+const toneOf = (type: RepActivityType) => ACTIVITY_TONE[type] ?? "var(--tk-accent)";
 
 export function RepTrackingTab({ repId, isActive = true }: { repId: string; isActive?: boolean }) {
   const now = useNow(30_000);
@@ -142,7 +104,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   const [search, setSearch] = useState("");
   const [show, setShow] = useState<ShowFilter>("all");
   const [sort, setSort] = useState<SortKey>("route");
-  const [focus, setFocus] = useState<{ lat: number; lng: number; key: number; soft?: boolean } | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const listRef = useRef<HTMLUListElement | null>(null);
 
   const isToday = date === today;
@@ -198,15 +160,12 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
       .filter((v) => show === "all" || show === "visited" || (typeFilter && v.items.some((a) => a.type === typeFilter)));
     if (sort === "sales") visited.sort((a, b) => visitAmount(b) - visitAmount(a));
     if (sort === "distance") visited.sort((a, b) => a.legKm - b.legKm);
-    const pending =
-      show === "all" || show === "pending"
-        ? day.unvisited.filter((c) => !q || c.name.includes(q))
-        : [];
+    const pending = show === "all" || show === "pending" ? day.unvisited.filter((c) => !q || c.name.includes(q)) : [];
     return { visited: show === "pending" ? [] : visited, pending };
   }, [visits, day.unvisited, search, show, sort]);
 
   const selectedVisit = visits.find((v) => v.id === selectedId) ?? null;
-  const selectedPlanned = selectedVisit ? null : day.unvisited.find((c) => `planned-${c.id}` === selectedId) ?? null;
+  const selectedPlanned = selectedVisit ? null : (day.unvisited.find((c) => `planned-${c.id}` === selectedId) ?? null);
 
   const pins: MapPin[] = useMemo(() => {
     const visitPins = visits.map((v) => {
@@ -220,8 +179,9 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
         bg: tone.bg,
         fg: tone.fg,
         badgeIcon: ACTIVITY_PIN_ICON[v.main.type],
-        badgeText: amount ? compactNumber(amount) : "—",
+        badgeText: amount ? compactNumber(amount) : SHORT_LABEL[v.main.type],
         badgeColor: ACTIVITY_TONE[v.main.type],
+        dimmed: selectedId != null && selectedId !== v.id,
       };
     });
     const plannedPins = day.unvisited.map((c) => ({
@@ -232,16 +192,23 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
       bg: "var(--tk-planned-bg)",
       fg: "var(--tk-planned-fg)",
       badgeIcon: PIN_ICONS.clock,
-      dimmed: true,
+      dimmed: selectedId !== `planned-${c.id}`,
     }));
     return [...plannedPins, ...visitPins];
-  }, [visits, day.unvisited]);
+  }, [visits, day.unvisited, selectedId]);
 
   const routes: MapRoute[] = useMemo(() => {
     const list: MapRoute[] = [{ id: "trail", variant: "trail", points: day.path.map((p) => [p.lat, p.lng] as LatLng) }];
-    if (selectedVisit) list.push({ id: `${date}|${selectedVisit.id}`, variant: "glow", points: selectedVisit.leg });
+    if (selectedVisit) list.push({ id: `${date}|${selectedVisit.id}`, variant: "route", points: selectedVisit.leg });
     return list;
   }, [day.path, selectedVisit, date]);
+
+  // Opening a shop zooms to the road that led to it; closing goes back to the whole day.
+  const view = selectedVisit
+    ? { key: `v|${date}|${selectedVisit.id}`, points: selectedVisit.leg.length > 1 ? selectedVisit.leg : [[selectedVisit.lat, selectedVisit.lng] as LatLng] }
+    : selectedPlanned
+      ? { key: `p|${selectedPlanned.id}`, points: [[selectedPlanned.lat, selectedPlanned.lng] as LatLng] }
+      : { key: `all|${date}|${repId}`, points: [...day.path.map((p) => [p.lat, p.lng] as LatLng), ...day.unvisited.map((c) => [c.lat, c.lng] as LatLng)] };
 
   const position =
     day.position && day.status !== "finished"
@@ -252,36 +219,21 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
         }
       : null;
 
-  const select = (id: string | null, scroll = false) => {
-    setSelectedId((cur) => (cur === id ? null : id));
-    if (id && scroll) {
-      listRef.current?.querySelector(`[data-row="${id}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-  };
+  const open = (id: string) => setSelectedId((cur) => (cur === id ? null : id));
 
-  const selectFromList = (id: string, lat: number, lng: number) => {
-    const wasSelected = selectedId === id;
-    select(id);
-    if (!wasSelected) setFocus((f) => ({ lat, lng, key: (f?.key ?? 0) + 1, soft: true }));
+  const closeDetail = () => {
+    const id = selectedId;
+    setSelectedId(null);
+    // Back on the list, keep the shop that was open in sight.
+    requestAnimationFrame(() =>
+      listRef.current?.querySelector(`[data-row="${id}"]`)?.scrollIntoView({ block: "nearest" }),
+    );
   };
 
   const status = STATUS_META[isFuture ? "not_started" : day.status];
   const { stats } = day;
   const workSpan = stats.firstActivity && stats.lastActivity ? stats.lastActivity - stats.firstActivity : 0;
-
-  const card = selectedVisit
-    ? { lat: selectedVisit.lat, lng: selectedVisit.lng, from: selectedVisit.leg[0] ?? null, content: (
-          <VisitCard
-            visit={selectedVisit}
-            cameFrom={visits.find((v) => v.index === selectedVisit.index - 1)?.name ?? "المستودع"}
-            currency={currency}
-            repId={repId}
-          />
-        ),
-      }
-    : selectedPlanned
-      ? { lat: selectedPlanned.lat, lng: selectedPlanned.lng, content: <PlannedCard customer={selectedPlanned} depot={depot} finished={day.status === "finished"} /> }
-      : null;
+  const visitPosition = selectedVisit ? visits.indexOf(selectedVisit) : -1;
 
   return (
     <div className="flex flex-col gap-4">
@@ -295,115 +247,123 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
         <StatTile icon="time_outlined" label="آخر نشاط" value={stats.lastActivity ? formatTime(stats.lastActivity) : "—"} sub={day.activities.length ? ACTIVITY_META[day.activities[day.activities.length - 1].type].label : "لا يوجد"} />
       </div>
 
-      <TkFrame className="lg:h-[700px]">
-        <TkSidebar className="max-h-[560px] lg:max-h-none">
-          {/* Day switcher, laid out like an app header */}
-          <div className="flex items-center justify-between gap-2 px-5 pt-5">
-            <button
-              type="button"
-              onClick={() => goToDate(shiftDateKey(date, -1))}
-              className="grid size-8 place-items-center rounded-lg text-[var(--tk-soft)] transition-colors hover:bg-[var(--tk-hover-strong)]"
-              aria-label="اليوم السابق"
-            >
-              <ChevronRight className="size-5" />
-            </button>
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--tk-accent)] text-white">
-                <Navigation className="size-[18px] fill-current" />
-              </span>
-              <div className="min-w-0">
-                <div className="truncate text-[15px] font-semibold">{formatDayLabel(date)}</div>
-                {isToday ? (
-                  <div className="flex items-center gap-1.5 text-[11px] text-[var(--tk-muted)]">
-                    <span className={cn("size-1.5 rounded-full", status.dot, day.status !== "finished" && day.status !== "offline" && "animate-pulse")} />
-                    {status.label}
-                    {stats.lastActivity && replayAt == null ? ` · ${formatAgo(stats.lastActivity, now)}` : ""}
-                  </div>
-                ) : (
-                  <button type="button" onClick={() => goToDate(today)} className="text-[11px] text-[var(--tk-accent)] hover:underline">
-                    رجوع لليوم
-                  </button>
-                )}
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => goToDate(shiftDateKey(date, 1))}
-              disabled={isToday}
-              className="grid size-8 place-items-center rounded-lg text-[var(--tk-soft)] transition-colors hover:bg-[var(--tk-hover-strong)] disabled:opacity-25 disabled:hover:bg-transparent"
-              aria-label="اليوم التالي"
-            >
-              <ChevronLeft className="size-5" />
-            </button>
-          </div>
-
-          <div className="space-y-4 px-5 pt-5 pb-4">
-            <TkSearch value={search} onChange={setSearch} placeholder="ابحث عن محل..." />
-            <div className="flex items-end gap-2">
-              <TkSelect label="عرض:" value={show} options={SHOW_OPTIONS} onChange={setShow} />
-              <TkSelect label="ترتيب:" value={sort} options={SORT_OPTIONS} onChange={setSort} />
-              <TkPillButton
-                label="إعادة عرض اليوم"
-                active={replayOpen}
-                onClick={() => {
-                  if (!canReplay) return;
-                  if (replayOpen) {
-                    setReplayOpen(false);
-                    setPlaying(false);
-                    setReplayAt(null);
-                  } else {
-                    setReplayOpen(true);
-                    setSelectedId(null);
-                    setReplayAt(sliderMin);
-                    setPlaying(true);
-                  }
-                }}
-              >
-                <Play className="size-3.5" />
-                إعادة
-              </TkPillButton>
-            </div>
-          </div>
-
-          <TkList listRef={listRef}>
-            {rows.visited.length === 0 && rows.pending.length === 0 && (
-              <li className="py-12 text-center text-sm text-[var(--tk-muted)]">
-                {isFuture || day.status === "not_started"
-                  ? "لم يبدأ المندوب يومه بعد"
-                  : day.status === "offline"
-                    ? "حساب المندوب غير مفعّل"
-                    : "لا يوجد محلات بهالفلتر"}
-              </li>
-            )}
-            {rows.visited.map((v, i) => (
-              <TkRow key={v.id} dataId={v.id} index={i} selected={v.id === selectedId} onClick={() => selectFromList(v.id, v.lat, v.lng)}>
-                <VisitRowBody visit={v} />
-              </TkRow>
-            ))}
-            {rows.pending.map((c, i) => (
-              <TkRow
-                key={c.id}
-                dataId={`planned-${c.id}`}
-                index={rows.visited.length + i}
-                muted
-                selected={`planned-${c.id}` === selectedId}
-                onClick={() => selectFromList(`planned-${c.id}`, c.lat, c.lng)}
-              >
-                <TkAvatar name={c.name} className="grayscale" />
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-[15px]">{c.name}</div>
-                  <div className="truncate text-[11.5px] text-[var(--tk-muted)]">
-                    {depot ? `${distanceKm(depot, [c.lat, c.lng]).toFixed(1)} كم من المستودع • ` : ""}
-                    {day.status === "finished" ? "لم تتم زيارته" : "بانتظار الزيارة"}
+      <TkFrame expanded={expanded} className="lg:h-[720px]">
+        <TkSidebar hidden={expanded} className="max-h-[600px] lg:max-h-none">
+          {selectedVisit ? (
+            <VisitDetail
+              visit={selectedVisit}
+              cameFrom={visits[visitPosition - 1]?.name ?? "المستودع"}
+              currency={currency}
+              repId={repId}
+              onBack={closeDetail}
+              onPrev={visitPosition > 0 ? () => setSelectedId(visits[visitPosition - 1].id) : undefined}
+              onNext={visitPosition < visits.length - 1 ? () => setSelectedId(visits[visitPosition + 1].id) : undefined}
+            />
+          ) : selectedPlanned ? (
+            <PlannedDetail customer={selectedPlanned} depot={depot} finished={day.status === "finished"} onBack={closeDetail} />
+          ) : (
+            <>
+              {/* Day switcher, laid out like an app header */}
+              <div className="flex items-center justify-between gap-2 px-5 pt-5">
+                <button
+                  type="button"
+                  onClick={() => goToDate(shiftDateKey(date, -1))}
+                  className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  aria-label="اليوم السابق"
+                >
+                  <ChevronRight className="size-5" />
+                </button>
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-white">
+                    <Navigation className="size-[18px] fill-current" />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="truncate text-[15px] font-semibold">{formatDayLabel(date)}</div>
+                    {isToday ? (
+                      <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <span className={cn("size-1.5 rounded-full", status.dot, position?.live && "animate-pulse")} />
+                        {status.label}
+                        {stats.lastActivity && replayAt == null ? ` · ${formatAgo(stats.lastActivity, now)}` : ""}
+                      </div>
+                    ) : (
+                      <button type="button" onClick={() => goToDate(today)} className="text-[11px] text-primary hover:underline">
+                        رجوع لليوم
+                      </button>
+                    )}
                   </div>
                 </div>
-                <TkHex title="لم تتم زيارته">—</TkHex>
-              </TkRow>
-            ))}
-          </TkList>
+                <button
+                  type="button"
+                  onClick={() => goToDate(shiftDateKey(date, 1))}
+                  disabled={isToday}
+                  className="grid size-8 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-25 disabled:hover:bg-transparent"
+                  aria-label="اليوم التالي"
+                >
+                  <ChevronLeft className="size-5" />
+                </button>
+              </div>
+
+              <div className="space-y-4 px-5 pt-5 pb-4">
+                <TkSearch value={search} onChange={setSearch} placeholder="ابحث عن محل..." />
+                <div className="flex items-end gap-2">
+                  <TkSelect label="عرض:" value={show} options={SHOW_OPTIONS} onChange={setShow} />
+                  <TkSelect label="ترتيب:" value={sort} options={SORT_OPTIONS} onChange={setSort} />
+                  <TkPillButton
+                    label="إعادة عرض اليوم"
+                    active={replayOpen}
+                    onClick={() => {
+                      if (!canReplay) return;
+                      if (replayOpen) {
+                        setReplayOpen(false);
+                        setPlaying(false);
+                        setReplayAt(null);
+                      } else {
+                        setReplayOpen(true);
+                        setReplayAt(sliderMin);
+                        setPlaying(true);
+                      }
+                    }}
+                  >
+                    <Play className="size-3.5" />
+                    إعادة
+                  </TkPillButton>
+                </div>
+              </div>
+
+              <TkList listRef={listRef}>
+                {rows.visited.length === 0 && rows.pending.length === 0 && (
+                  <li className="py-12 text-center text-sm text-muted-foreground">
+                    {isFuture || day.status === "not_started"
+                      ? "لم يبدأ المندوب يومه بعد"
+                      : day.status === "offline"
+                        ? "حساب المندوب غير مفعّل"
+                        : "لا يوجد محلات بهالفلتر"}
+                  </li>
+                )}
+                {rows.visited.map((v, i) => (
+                  <TkRow key={v.id} dataId={v.id} index={i} onClick={() => open(v.id)}>
+                    <VisitRowBody visit={v} />
+                  </TkRow>
+                ))}
+                {rows.pending.map((c, i) => (
+                  <TkRow key={c.id} dataId={`planned-${c.id}`} index={rows.visited.length + i} muted onClick={() => open(`planned-${c.id}`)}>
+                    <TkAvatar name={c.name} className="grayscale" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px]">{c.name}</div>
+                      <div className="truncate text-[11.5px] text-muted-foreground">
+                        {depot ? `${distanceKm(depot, [c.lat, c.lng]).toFixed(1)} كم من المستودع • ` : ""}
+                        {day.status === "finished" ? "لم تتم زيارته" : "بانتظار الزيارة"}
+                      </div>
+                    </div>
+                    <TkHex title="لم تتم زيارته">—</TkHex>
+                  </TkRow>
+                ))}
+              </TkList>
+            </>
+          )}
         </TkSidebar>
 
-        <TkMapArea className="h-[460px] lg:h-auto">
+        <TkMapArea expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} className="h-[460px] lg:h-auto">
           <TrackingMap
             className="absolute inset-0"
             center={center}
@@ -412,21 +372,20 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
             position={position}
             depot={depot}
             selectedPinId={selectedId}
-            onPinClick={(id) => select(id, true)}
+            onPinClick={open}
             onMapClick={() => setSelectedId(null)}
-            card={card}
             fitKey={`${repId}|${date}`}
-            focus={focus}
+            view={view}
           >
             {/* Live status, floating at the top of the map */}
             <div className="pointer-events-none absolute top-4 right-4 z-[1000] flex items-center gap-2" dir="rtl">
-              <span className="flex items-center gap-2 rounded-full border border-[var(--tk-line)] bg-[var(--tk-surface)] px-3 py-1.5 text-xs text-[var(--tk-fg)] shadow-lg backdrop-blur">
-                <span className={cn("size-2 rounded-full", status.dot, isToday && position?.live && "animate-pulse")} />
+              <span className="flex items-center gap-2 rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs text-foreground shadow-md backdrop-blur">
+                <span className={cn("size-2 rounded-full", status.dot, position?.live && "animate-pulse")} />
                 {status.label}
                 {day.status === "at_customer" && day.currentCustomer ? ` · ${day.currentCustomer}` : ""}
               </span>
               {stats.distanceKm > 0 && (
-                <span className="rounded-full border border-[var(--tk-line)] bg-[var(--tk-surface)] px-3 py-1.5 text-xs text-[var(--tk-soft)] tabular-nums shadow-lg backdrop-blur">
+                <span className="rounded-full border border-border bg-card/95 px-3 py-1.5 text-xs text-muted-foreground tabular-nums shadow-md backdrop-blur">
                   {stats.distanceKm} كم اليوم
                 </span>
               )}
@@ -435,7 +394,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
             {replayOpen && canReplay && (
               <div
                 dir="rtl"
-                className="absolute inset-x-4 bottom-4 z-[1000] flex items-center gap-3 rounded-2xl border border-[var(--tk-line)] bg-[var(--tk-surface)] px-3 py-2.5 text-[var(--tk-fg)] shadow-2xl backdrop-blur"
+                className="absolute inset-x-4 bottom-4 z-[1000] flex items-center gap-3 rounded-2xl border border-border bg-card/95 px-3 py-2.5 text-foreground shadow-xl backdrop-blur"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
@@ -444,7 +403,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                     if (!playing && replayAt == null) setReplayAt(sliderMin);
                     setPlaying((p) => !p);
                   }}
-                  className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--tk-accent)] text-white"
+                  className="grid size-9 shrink-0 place-items-center rounded-full bg-primary text-white"
                   aria-label={playing ? "إيقاف" : "تشغيل"}
                 >
                   {playing ? <Pause className="size-4 fill-current" /> : <Play className="size-4 fill-current" />}
@@ -461,7 +420,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                     setPlaying(false);
                     setReplayAt(v >= sliderMax ? null : v);
                   }}
-                  className="tk-range h-1.5 flex-1 cursor-pointer"
+                  className="h-1.5 flex-1 cursor-pointer accent-primary"
                   aria-label="إعادة عرض اليوم"
                 />
                 <span className="w-16 shrink-0 text-center text-xs font-semibold tabular-nums">
@@ -474,7 +433,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                     setReplayAt(null);
                     setReplayOpen(false);
                   }}
-                  className="h-8 shrink-0 rounded-lg border border-[var(--tk-line)] px-3 text-xs hover:border-[var(--tk-line-strong)]"
+                  className="h-8 shrink-0 rounded-lg border border-border px-3 text-xs hover:border-primary/40 hover:text-primary"
                 >
                   {isToday ? "مباشر" : "كامل اليوم"}
                 </button>
@@ -487,17 +446,6 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   );
 }
 
-/** Short row labels — the full ones don't fit next to an amount. */
-const SHORT_LABEL: Record<RepActivityType, string> = {
-  day_start: "بداية الدوام",
-  invoice: "فاتورة",
-  collection: "تحصيل",
-  return: "مرتجع",
-  new_customer: "زبون جديد",
-  no_sale: "بدون بيع",
-  day_end: "نهاية الدوام",
-};
-
 function VisitRowBody({ visit }: { visit: Visit }) {
   const amount = visitAmount(visit);
   return (
@@ -505,10 +453,10 @@ function VisitRowBody({ visit }: { visit: Visit }) {
       <TkAvatar name={visit.name} />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[15px]">{visit.name}</div>
-        <div className="truncate text-[11.5px] text-[var(--tk-muted)]">
+        <div className="truncate text-[11.5px] text-muted-foreground">
           <span className="tabular-nums">{formatTime(visit.arrivedAt)}</span>
           {" • "}
-          <span style={{ color: ACTIVITY_TONE[visit.main.type] ?? "var(--tk-accent)" }}>
+          <span style={{ color: toneOf(visit.main.type) }}>
             {SHORT_LABEL[visit.main.type]}
             {amount ? ` ${amount.toLocaleString("en")}` : ""}
           </span>
@@ -516,75 +464,141 @@ function VisitRowBody({ visit }: { visit: Visit }) {
       </div>
       <div className="flex shrink-0 flex-col items-center gap-1.5">
         <TkHex title={`الزيارة رقم ${visit.index}`}>{visit.index}</TkHex>
-        <span className="text-[10px] text-[var(--tk-muted)] tabular-nums">{visit.legKm} كم</span>
+        <span className="text-[10px] text-muted-foreground tabular-nums">{visit.legKm} كم</span>
       </div>
     </>
   );
 }
 
-function VisitCard({
+function VisitDetail({
   visit,
   cameFrom,
   currency,
   repId,
+  onBack,
+  onPrev,
+  onNext,
 }: {
   visit: Visit;
   cameFrom: string;
   currency: string;
   repId: string;
+  onBack: () => void;
+  onPrev?: () => void;
+  onNext?: () => void;
 }) {
   const meta = ACTIVITY_META[visit.main.type];
   const amount = visitAmount(visit);
   const last = visit.items[visit.items.length - 1];
   return (
-    <TkCard
+    <TkDetail
+      key={visit.id}
+      onBack={onBack}
+      backLabel="كل المحلات"
       name={visit.name}
       sub={
         <>
-          الزيارة {visit.index} •{" "}
-          <span style={{ color: ACTIVITY_TONE[visit.main.type] ?? "var(--tk-accent)" }}>وصل {formatTime(visit.arrivedAt)}</span>
+          الزيارة رقم {visit.index} •{" "}
+          <span style={{ color: toneOf(visit.main.type) }}>وصل {formatTime(visit.arrivedAt)}</span>
         </>
       }
       stats={[
-        { icon: <Receipt />, text: amount ? compactNumber(amount) : "—", tone: ACTIVITY_TONE[visit.main.type] },
-        { icon: <Clock />, text: formatDuration(Math.max(last.time - visit.arrivedAt, 0) + 2 * 60_000) },
-        { icon: <Route />, text: `${visit.legKm} كم` },
+        { icon: <Receipt />, label: "المبلغ", value: amount ? compactNumber(amount) : "—", tone: ACTIVITY_TONE[visit.main.type] },
+        { icon: <Clock />, label: "المدة", value: formatDuration(Math.max(last.time - visit.arrivedAt, 0) + 2 * 60_000) },
+        { icon: <Route />, label: "الطريق", value: `${visit.legKm} كم` },
       ]}
       title={amount ? `${meta.label} بقيمة ${formatMoney(amount, currency)}` : meta.label}
-      lines={[
-        `جاي من ${cameFrom} — ${visit.legKm} كم`,
-        // One activity is already the title; list them only when there's more than one.
-        ...(visit.items.length > 1
-          ? visit.items.map((a) => (
-              <>
-                <span className="tabular-nums">{formatTime(a.time)}</span> · {ACTIVITY_META[a.type].label}
-                {a.amount ? ` ${formatMoney(a.amount, currency)}` : ""}
-              </>
-            ))
-          : []),
-        ...visit.items.filter((a) => a.note).map((a) => a.note!),
-      ]}
       action={
-        <Link href={`/reps/detail?id=${repId}&tab=invoices`} className={tkCardButton}>
-          فواتير المندوب
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onPrev}
+            disabled={!onPrev}
+            className="grid size-11 shrink-0 place-items-center rounded-xl border border-border transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-30"
+            aria-label="الزيارة السابقة"
+            title="الزيارة السابقة"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+          <Link href={`/reps/detail?id=${repId}&tab=invoices`} className={tkButton}>
+            فواتير المندوب
+          </Link>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={!onNext}
+            className="grid size-11 shrink-0 place-items-center rounded-xl border border-border transition-colors hover:border-primary/40 hover:text-primary disabled:opacity-30"
+            aria-label="الزيارة التالية"
+            title="الزيارة التالية"
+          >
+            <ChevronLeft className="size-4" />
+          </button>
+        </div>
       }
-    />
+    >
+      <TkTimeline
+        items={[
+          {
+            key: "from",
+            icon: cameFrom === "المستودع" ? <Warehouse /> : <Route />,
+            title: `جاي من ${cameFrom}`,
+            meta: `${visit.legKm} كم بالطريق`,
+          },
+          ...visit.items.map((a) => ({
+            key: a.id,
+            icon: ACTIVITY_ICON[a.type],
+            tone: toneOf(a.type),
+            title: (
+              <>
+                {ACTIVITY_META[a.type].label}
+                {a.amount ? <span className="font-semibold"> {formatMoney(a.amount, currency)}</span> : null}
+              </>
+            ),
+            meta: (
+              <>
+                <span className="tabular-nums">{formatTime(a.time)}</span>
+                {a.note ? ` · ${a.note}` : ""}
+                {a.type === "new_customer" && a.customerName ? ` · ${a.customerName}` : ""}
+              </>
+            ),
+          })),
+        ]}
+      />
+    </TkDetail>
   );
 }
 
-function PlannedCard({ customer, depot, finished }: { customer: PlannedCustomer; depot: LatLng | null; finished: boolean }) {
+function PlannedDetail({
+  customer,
+  depot,
+  finished,
+  onBack,
+}: {
+  customer: PlannedCustomer;
+  depot: LatLng | null;
+  finished: boolean;
+  onBack: () => void;
+}) {
   return (
-    <TkCard
+    <TkDetail
+      key={customer.id}
+      onBack={onBack}
+      backLabel="كل المحلات"
       name={customer.name}
       sub={finished ? "لم تتم زيارته بهاليوم" : "بانتظار الزيارة"}
       stats={[
-        { icon: <Clock />, text: finished ? "فاتت" : "لاحقاً", tone: finished ? "var(--tk-red)" : undefined },
-        { icon: <Route />, text: depot ? `${distanceKm(depot, [customer.lat, customer.lng]).toFixed(1)} كم` : "—" },
+        { icon: <Clock />, label: "الحالة", value: finished ? "فاتت" : "لاحقاً", tone: finished ? "var(--tk-red)" : undefined },
+        { icon: <Warehouse />, label: "من المستودع", value: depot ? `${distanceKm(depot, [customer.lat, customer.lng]).toFixed(1)} كم` : "—" },
+        { icon: <Route />, label: "خط السير", value: "اليوم" },
       ]}
       title={finished ? "ما انزار اليوم" : "ضمن خط سير اليوم"}
-      lines={[finished ? "كان مخطط يزوره المندوب حسب أيام عمله" : "رح يبيّن هون أول ما يوصله المندوب"]}
-    />
+    >
+      <p className="pt-1 text-sm leading-relaxed text-muted-foreground">
+        {finished
+          ? "كان مخطط يزوره المندوب حسب أيام عمله، بس اليوم خلص بدون زيارة."
+          : "رح تبيّن هون تفاصيل الزيارة أول ما يوصله المندوب."}
+      </p>
+    </TkDetail>
   );
 }
 
