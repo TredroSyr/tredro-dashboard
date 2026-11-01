@@ -46,6 +46,11 @@ export function toDateKey(d: Date) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/** Today's "YYYY-MM-DD" in Syria — a tracking day is a calendar day in Asia/Damascus. */
+export function syriaDateKey(ms: number) {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Damascus" }).format(new Date(ms));
+}
+
 export function shiftDateKey(date: string, days: number) {
   const [y, m, d] = date.split("-").map(Number);
   return toDateKey(new Date(y, m - 1, d + days));

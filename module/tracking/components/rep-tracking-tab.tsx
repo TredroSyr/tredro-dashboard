@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   Ban,
@@ -21,7 +22,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
-import { buildRepDay, dayStops } from "../lib/dummy-day";
+import { sliceDay } from "../lib/day";
 import {
   ACTIVITY_META,
   STATUS_META,
@@ -31,13 +32,13 @@ import {
   formatDuration,
   formatTime,
   shiftDateKey,
-  toDateKey,
+  syriaDateKey,
 } from "../lib/geo";
 import { ACTIVITY_PIN_ICON, ACTIVITY_TONE, PIN_ICONS } from "../lib/pin-icons";
 import { SHORT_LABEL, buildVisits, visitAmount, type Visit } from "../lib/visits";
 import { bearing, pointAt, turnToward } from "../lib/replay";
-import { useCompanyCurrency, useNow, useRepCustomers, useRoadLegs, useTrackingCenter } from "../hooks";
-import type { LatLng, PlannedCustomer, RepActivityType } from "../types";
+import { useCompanyCurrency, useNow, useRepDayQuery, useTrackingCenter } from "../hooks";
+import type { LatLng, PlannedCustomer, RepActivity, RepActivityType } from "../types";
 import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
 import {
   TkAvatar,
@@ -100,11 +101,20 @@ const SORT_OPTIONS: { value: SortKey; label: string }[] = [
 
 const toneOf = (type: RepActivityType) => ACTIVITY_TONE[type] ?? "var(--tk-accent)";
 
-export function RepTrackingTab({ repId, isActive = true }: { repId: string; isActive?: boolean }) {
+const hasPin = (c: PlannedCustomer): c is PlannedCustomer & { lat: number; lng: number } => c.lat != null && c.lng != null;
+
+/** Where the activity's document lives in the dashboard, when it has a page. */
+function activityHref(a: RepActivity) {
+  if (a.ref?.kind === "sales_invoice") return `/invoices/detail?id=${a.ref.id}`;
+  if (a.ref?.kind === "customer") return `/customers/detail?id=${a.ref.id}`;
+  return null;
+}
+
+export function RepTrackingTab({ repId }: { repId: string }) {
   const now = useNow(30_000);
   const center = useTrackingCenter();
   const currency = useCompanyCurrency();
-  const today = toDateKey(new Date(now));
+  const today = syriaDateKey(now);
   const [date, setDate] = useState(today);
   const [replayOpen, setReplayOpen] = useState(false);
   const [replayAt, setReplayAt] = useState<number | null>(null);
@@ -123,30 +133,14 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
 
   const isToday = date === today;
   const isFuture = date > today;
-  // Live edge: right now for today, the whole day for past days.
-  const liveAt = isToday ? now : isFuture ? 0 : Number.MAX_SAFE_INTEGER;
 
-  // The rep's real customers are the day's shops; once they're known, fetch real streets for the drive.
-  const customers = useRepCustomers(repId);
-  const stops = useMemo(
-    () => (customers && isActive && !isFuture ? dayStops({ repId, date, center, customers }) : null),
-    [customers, isActive, isFuture, repId, date, center],
-  );
-  const roads = useRoadLegs(stops);
+  const { day: live, isLoading } = useRepDayQuery(repId, date, today);
+  const day = useMemo(() => (replayAt == null ? live : sliceDay(live, replayAt)), [live, replayAt]);
 
-  const live = useMemo(
-    () => buildRepDay({ repId, date, center, at: liveAt, active: isActive, customers, roads }),
-    [repId, date, center, liveAt, isActive, customers, roads],
-  );
-  const viewAt = replayAt ?? liveAt;
-  const day = useMemo(
-    () =>
-      replayAt == null ? live : buildRepDay({ repId, date, center, at: viewAt, active: isActive, customers, roads }),
-    [live, replayAt, repId, date, center, viewAt, isActive, customers, roads],
-  );
-
+  // The replay runs from "start my day" to the day's end — or to now while it's still running.
+  const lastSeen = Math.max(live.path[live.path.length - 1]?.time ?? 0, live.activities[live.activities.length - 1]?.time ?? 0);
   const sliderMin = live.dayStart ?? 0;
-  const sliderMax = Math.min(live.dayEnd ?? 0, liveAt);
+  const sliderMax = isToday ? Math.min(live.dayEnd ?? now, now) : (live.dayEnd ?? lastSeen);
   const canReplay = live.activities.length > 0 && sliderMax > sliderMin;
 
   // --- Replay: a car drives the day's GPS path, frame by frame ---
@@ -220,7 +214,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   };
 
   const visits = useMemo(() => buildVisits(day.activities, day.path), [day.activities, day.path]);
-  const depot = live.activities[0]?.type === "day_start" ? ([live.activities[0].lat, live.activities[0].lng] as LatLng) : null;
+  const depot = live.depot;
 
   const rows = useMemo(() => {
     const q = search.trim();
@@ -254,7 +248,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
         dimmed: selectedId != null && selectedId !== v.id,
       };
     });
-    const plannedPins = day.unvisited.map((c) => ({
+    const plannedPins = day.unvisited.filter(hasPin).map((c) => ({
       id: `planned-${c.id}`,
       lat: c.lat,
       lng: c.lng,
@@ -285,8 +279,8 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
   const view = selectedVisit
     ? { key: `v|${date}|${selectedVisit.id}`, points: selectedVisit.leg.length > 1 ? selectedVisit.leg : [[selectedVisit.lat, selectedVisit.lng] as LatLng] }
     : selectedPlanned
-      ? { key: `p|${selectedPlanned.id}`, points: [[selectedPlanned.lat, selectedPlanned.lng] as LatLng] }
-      : { key: `all|${date}|${repId}`, points: [...day.path.map((p) => [p.lat, p.lng] as LatLng), ...day.unvisited.map((c) => [c.lat, c.lng] as LatLng)] };
+      ? { key: `p|${selectedPlanned.id}`, points: hasPin(selectedPlanned) ? [[selectedPlanned.lat, selectedPlanned.lng] as LatLng] : [] }
+      : { key: `all|${date}|${repId}`, points: [...day.path.map((p) => [p.lat, p.lng] as LatLng), ...day.unvisited.filter(hasPin).map((c) => [c.lat, c.lng] as LatLng)] };
 
   // Live car (outside replay). Memoized so a re-render doesn't redraw the whole map.
   const livePos = day.position;
@@ -330,7 +324,7 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
           {selectedVisit ? (
             <VisitDetail
               visit={selectedVisit}
-              cameFrom={visits[visitPosition - 1]?.name ?? "المستودع"}
+              cameFrom={visits[visitPosition - 1]?.name ?? "نقطة البداية"}
               currency={currency}
               repId={repId}
               onBack={closeDetail}
@@ -415,7 +409,9 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
               <TkList listRef={listRef}>
                 {rows.visited.length === 0 && rows.pending.length === 0 && (
                   <li className="py-12 text-center text-sm text-muted-foreground">
-                    {isFuture || day.status === "not_started"
+                    {isLoading
+                      ? "جارٍ تحميل يوم المندوب…"
+                      : isFuture || day.status === "not_started"
                       ? "لم يبدأ المندوب يومه بعد"
                       : day.status === "offline"
                         ? "حساب المندوب غير مفعّل"
@@ -433,7 +429,8 @@ export function RepTrackingTab({ repId, isActive = true }: { repId: string; isAc
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[15px]">{c.name}</div>
                       <div className="truncate text-[11.5px] text-muted-foreground">
-                        {depot ? `${distanceKm(depot, [c.lat, c.lng]).toFixed(1)} كم من المستودع • ` : ""}
+                        {depot && hasPin(c) ? `${distanceKm(depot, [c.lat, c.lng]).toFixed(1)} كم من نقطة البداية • ` : ""}
+                        {!hasPin(c) ? "بلا موقع على الخريطة • " : ""}
                         {day.status === "finished" ? "لم تتم زيارته" : "بانتظار الزيارة"}
                       </div>
                     </div>
@@ -593,6 +590,7 @@ function VisitDetail({
   onPrev?: () => void;
   onNext?: () => void;
 }) {
+  const router = useRouter();
   const meta = ACTIVITY_META[visit.main.type];
   const amount = visitAmount(visit);
   const last = visit.items[visit.items.length - 1];
@@ -648,12 +646,13 @@ function VisitDetail({
         items={[
           {
             key: "from",
-            icon: cameFrom === "المستودع" ? <Warehouse /> : <Route />,
+            icon: cameFrom === "نقطة البداية" ? <Warehouse /> : <Route />,
             title: `قادماً من ${cameFrom}`,
             meta: `مسافة الطريق ${visit.legKm} كم`,
           },
           ...visit.items.map((a) => ({
             key: a.id,
+            onClick: activityHref(a) ? () => router.push(activityHref(a)!) : undefined,
             icon: ACTIVITY_ICON[a.type],
             tone: toneOf(a.type),
             title: (
@@ -700,7 +699,11 @@ function PlannedDetail({
       sub={finished ? "لم تتم زيارته في هذا اليوم" : "بانتظار الزيارة"}
       stats={[
         { icon: <Clock />, label: "الحالة", value: finished ? "لم يُزر" : "قيد الانتظار", tone: finished ? "var(--tk-red)" : undefined },
-        { icon: <Warehouse />, label: "من المستودع", value: depot ? `${distanceKm(depot, [customer.lat, customer.lng]).toFixed(1)} كم` : "—" },
+        {
+          icon: <Warehouse />,
+          label: "من نقطة البداية",
+          value: depot && hasPin(customer) ? `${distanceKm(depot, [customer.lat, customer.lng]).toFixed(1)} كم` : "—",
+        },
         { icon: <Route />, label: "خط السير", value: "اليوم" },
       ]}
       title={finished ? "لم تتم زيارته اليوم" : "ضمن خط سير اليوم"}

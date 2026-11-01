@@ -7,12 +7,10 @@ import { IconRenderer } from "@/assets/icons/iconRenderer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatMoney } from "@/lib/format";
-import { useRepsQuery } from "@/module/reps/hooks";
-import { buildRepDay, dayStops } from "../lib/dummy-day";
-import { ACTIVITY_META, STATUS_META, formatAgo, formatTime, toDateKey } from "../lib/geo";
+import { ACTIVITY_META, STATUS_META, formatAgo, formatTime, syriaDateKey } from "../lib/geo";
 import { ACTIVITY_PIN_ICON, ACTIVITY_TONE, PIN_ICONS } from "../lib/pin-icons";
 import { SHORT_LABEL, buildVisits, visitAmount } from "../lib/visits";
-import { useCompanyCurrency, useCustomersByRep, useNow, useRoadLegsMany, useTrackingCenter } from "../hooks";
+import { useCompanyCurrency, useNow, useRepDayQuery, useRepsLiveQuery, useTrackingCenter } from "../hooks";
 import type { LatLng, RepActivityType, RepDaySnapshot, RepLiveStatus } from "../types";
 import { TrackingMap, type MapPin, type MapRoute } from "./tracking-map";
 import {
@@ -84,47 +82,13 @@ const inField = (s: RepLiveStatus) => s === "moving" || s === "at_customer";
 function useRepsLive() {
   const now = useNow(30_000);
   const center = useTrackingCenter();
-  const { data, isLoading } = useRepsQuery();
-  const date = toDateKey(new Date(now));
-  const reps = data?.data?.reps;
-  const customersByRep = useCustomersByRep();
-
-  // Each rep's shops are their real customers; once known, fetch real streets for every rep's drive.
-  const stopsList = useMemo(
-    () =>
-      (reps ?? []).map((rep) =>
-        customersByRep && rep.is_active
-          ? dayStops({ repId: String(rep.id), date, center, customers: customersByRep[String(rep.id)] ?? [] })
-          : null,
-      ),
-    [reps, customersByRep, date, center],
-  );
-  const roadsList = useRoadLegsMany(stopsList);
-  // useQueries hands back a fresh array every render; key on what actually loaded.
-  const roadsKey = roadsList.map((r) => (r ? "1" : "0")).join("");
-
+  const date = syriaDateKey(now);
+  const { rows: liveRows, isLoading } = useRepsLiveQuery();
+  // The server lists active reps first, then by name; keep that order within each status.
   const rows: RepRow[] = useMemo(
-    () =>
-      (reps ?? [])
-        .map((rep, i) => ({
-          id: String(rep.id),
-          name: rep.name,
-          day: buildRepDay({
-            repId: String(rep.id),
-            date,
-            center,
-            at: now,
-            active: rep.is_active,
-            customers: customersByRep?.[String(rep.id)],
-            roads: roadsList[i],
-          }),
-        }))
-        .sort((a, b) => STATUS_ORDER[a.day.status] - STATUS_ORDER[b.day.status]),
-    // roadsList is tracked through roadsKey.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [reps, date, center, now, customersByRep, roadsKey],
+    () => [...liveRows].sort((a, b) => STATUS_ORDER[a.day.status] - STATUS_ORDER[b.day.status]),
+    [liveRows],
   );
-
   return { rows, now, center, date, isLoading };
 }
 
@@ -192,7 +156,13 @@ export function RepsLiveView() {
     return list;
   }, [rows, search, show, sort]);
 
-  const active = rows.find((r) => r.id === activeId) ?? null;
+  const activeRow = rows.find((r) => r.id === activeId) ?? null;
+  // The list only carries a thinned path; an opened rep gets their whole day (and is followed point by point).
+  const { day: activeDay, isLoading: activeLoading } = useRepDayQuery(activeId, date, date);
+  const active = useMemo(
+    () => (activeRow ? { ...activeRow, day: activeLoading ? activeRow.day : activeDay } : null),
+    [activeRow, activeDay, activeLoading],
+  );
   const activeVisits = useMemo(
     () => (active ? buildVisits(active.day.activities, active.day.path) : []),
     [active],
@@ -442,7 +412,7 @@ function RepDetail({
       : day.status === "moving"
         ? `في الطريق إلى الزيارة رقم ${day.stats.visits + 1}`
         : day.status === "finished"
-          ? "أنهى يومه وعاد إلى المستودع"
+          ? "أنهى يومه"
           : status.label;
   return (
     <TkDetail

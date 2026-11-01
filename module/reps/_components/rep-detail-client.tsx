@@ -122,7 +122,7 @@ export function RepDetailClient({
           </PermissionGate>
         )}
         {activeTab === "tracking" && (
-          <RepTrackingTab repId={repId} isActive={rep?.is_active ?? true} />
+          <RepTrackingTab repId={repId} />
         )}
         {activeTab === "warehouse" && (
           <PermissionGate module="warehouses" fallback={null}>
